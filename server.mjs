@@ -331,10 +331,110 @@ class FileStore {
     this.now = now;
     this.state = null;
     this.queue = Promise.resolve();
-    this.confirmationSecret = randomToken(32);
+    const configuredConfirmationBasis = process.env.CONFIRMATION_SECRET || process.env.ADMIN_TOKEN_SHA256 || process.env.ADMIN_TOKEN || '';
+    this.confirmationSecret = configuredConfirmationBasis
+      ? sha256Text(`confirmation-v1:${configuredConfirmationBasis}`)
+      : randomToken(32);
+    this.remoteBlob = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+    this.blobPath = String(process.env.BLOB_STATE_PATH || 'calasorga/store.json').replace(/^\/+/, '');
+    this.blobApi = null;
+    this.remoteEtag = null;
+    this.remoteCurrentText = null;
+  }
+
+  async #blobClient() {
+    if (!this.blobApi) this.blobApi = await import('@vercel/blob');
+    return this.blobApi;
+  }
+
+  #isBlobNotFound(err) {
+    return err?.name === 'BlobNotFoundError' || err?.status === 404 || err?.statusCode === 404 || err?.code === 'BLOB_NOT_FOUND';
+  }
+
+  #isBlobConflict(err) {
+    return err?.name === 'BlobPreconditionFailedError' || err?.status === 412 || err?.statusCode === 412 || err?.code === 'BLOB_PRECONDITION_FAILED';
+  }
+
+  async #readRemoteCandidate(pathname) {
+    const api = await this.#blobClient();
+    const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
+    let meta;
+    try {
+      meta = await api.head(pathname, { token });
+    } catch (err) {
+      if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+      throw err;
+    }
+    const result = await api.get(pathname, { access: 'private', useCache: false, token });
+    if (!result || result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+    const rawText = await new Response(result.stream).text();
+    const before = this.state;
+    try {
+      this.state = JSON.parse(rawText);
+      this.#normalize({ requireEnvelope: true });
+      const report = this.integrityReport();
+      if (!report.ok) {
+        throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
+      }
+      return { state: clone(this.state), rawText, etag: meta?.etag || null };
+    } finally {
+      this.state = before;
+    }
+  }
+
+  async #loadRemotePrimary() {
+    const loaded = await this.#readRemoteCandidate(this.blobPath);
+    this.state = loaded.state;
+    this.remoteEtag = loaded.etag;
+    this.remoteCurrentText = loaded.rawText;
+  }
+
+  async refresh() {
+    if (!this.remoteBlob) return this;
+    await this.#loadRemotePrimary();
+    return this;
   }
 
   async init(seed = null) {
+    if (this.remoteBlob) {
+      let primaryError = null;
+      try {
+        await this.#loadRemotePrimary();
+        return this;
+      } catch (err) {
+        if (err?.code === 'UNSUPPORTED_SCHEMA') throw err;
+        if (err?.code === 'ENOENT') {
+          this.state = seed ? clone(seed) : defaultState();
+          this.#normalize({ requireEnvelope: true });
+          this.remoteEtag = null;
+          this.remoteCurrentText = null;
+          await this.#persist({ preserveCurrent: false });
+          return this;
+        }
+        primaryError = err;
+      }
+
+      try {
+        const api = await this.#blobClient();
+        const meta = await api.head(this.blobPath, { token: process.env.BLOB_READ_WRITE_TOKEN || undefined });
+        this.remoteEtag = meta?.etag || null;
+      } catch {}
+
+      for (const suffix of ['.good', '.bak']) {
+        try {
+          const loaded = await this.#readRemoteCandidate(`${this.blobPath}${suffix}`);
+          this.state = loaded.state;
+          this.remoteCurrentText = null;
+          console.warn(`Stockage Blob principal illisible/invalide : récupération depuis ${suffix}.`);
+          await this.#persist({ preserveCurrent: false });
+          return this;
+        } catch (recoveryErr) {
+          if (recoveryErr?.code === 'UNSUPPORTED_SCHEMA') throw recoveryErr;
+        }
+      }
+      throw primaryError;
+    }
+
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     await this.#cleanupStaleTemps();
     let primaryError = null;
@@ -447,6 +547,47 @@ class FileStore {
 
   async #persist({ preserveCurrent = true } = {}) {
     const text = JSON.stringify(this.state, null, 2);
+
+    if (this.remoteBlob) {
+      const api = await this.#blobClient();
+      const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
+      const previousText = this.remoteCurrentText;
+      const options = { access: 'private', token, allowOverwrite: true };
+      if (this.remoteEtag) options.ifMatch = this.remoteEtag;
+
+      let uploaded;
+      try {
+        uploaded = await api.put(this.blobPath, text, options);
+      } catch (err) {
+        if (this.#isBlobConflict(err)) {
+          throw Object.assign(new Error('Le calendrier a été modifié simultanément. Nouvelle tentative requise.'), { code: 'REMOTE_CONFLICT', status: 409 });
+        }
+        throw err;
+      }
+
+      if (uploaded?.etag) this.remoteEtag = uploaded.etag;
+      else {
+        const meta = await api.head(this.blobPath, { token });
+        this.remoteEtag = meta?.etag || null;
+      }
+      this.remoteCurrentText = text;
+
+      // Les copies auxiliaires n'entrent jamais dans la transaction principale :
+      // la réussite du blob principal suffit à valider l'écriture.
+      const snapshots = [];
+      if (preserveCurrent && previousText) {
+        snapshots.push(['.bak', previousText]);
+      }
+      snapshots.push(['.good', text]);
+      const settled = await Promise.allSettled(snapshots.map(([suffix, body]) =>
+        api.put(`${this.blobPath}${suffix}`, body, { access: 'private', token, allowOverwrite: true })
+      ));
+      for (const item of settled) {
+        if (item.status === 'rejected') console.warn(`Impossible de mettre à jour un snapshot Blob auxiliaire : ${item.reason?.message || item.reason}`);
+      }
+      return;
+    }
+
     const tmp = `${this.filePath}.tmp-${process.pid}-${Date.now()}-${randomToken(4)}`;
     await this.#writeDurable(tmp, text);
     if (preserveCurrent) {
@@ -477,6 +618,28 @@ class FileStore {
 
   async mutate(fn) {
     const task = this.queue.then(async () => {
+      if (this.remoteBlob) {
+        for (let attempt = 0; attempt < 8; attempt++) {
+          await this.#loadRemotePrimary();
+          const previous = this.state;
+          const draft = clone(previous);
+          const result = await fn(draft);
+          if (result && result.ok === false) return result;
+          this.state = draft;
+          try {
+            await this.#persist();
+            return result;
+          } catch (err) {
+            this.state = previous;
+            if (err?.code !== 'REMOTE_CONFLICT') throw err;
+            if (attempt === 7) {
+              throw Object.assign(new Error('Plusieurs modifications simultanées empêchent momentanément l’enregistrement. Réessayez.'), { status: 409 });
+            }
+            await new Promise((resolve) => setTimeout(resolve, 8 + Math.floor(Math.random() * 18) + attempt * 6));
+          }
+        }
+      }
+
       const previous = this.state;
       const draft = clone(previous);
       const result = await fn(draft);
@@ -1263,30 +1426,42 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.14.0-complete';
+const APP_VERSION = '0.15.0-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
+const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
 let demoRootHits = 0;
-const trustProxy = ['1', 'true', 'yes'].includes(String(process.env.TRUST_PROXY || '').toLowerCase());
+const trustProxy = isVercelRuntime || ['1', 'true', 'yes'].includes(String(process.env.TRUST_PROXY || '').toLowerCase());
 const adminToken = process.env.ADMIN_TOKEN || (demoMode ? 'demo-admin-V1' : '');
 const configuredAdminHash = String(process.env.ADMIN_TOKEN_SHA256 || '').trim().toLowerCase();
-if (configuredAdminHash && !/^[a-f0-9]{64}$/.test(configuredAdminHash)) {
-  console.error('ADMIN_TOKEN_SHA256 doit être une empreinte SHA-256 hexadécimale de 64 caractères.');
-  process.exit(2);
+
+function configurationError(message) {
+  if (isMainModule(import.meta.url)) {
+    console.error(message);
+    process.exit(2);
+  }
+  throw new Error(message);
 }
+
+if (configuredAdminHash && !/^[a-f0-9]{64}$/.test(configuredAdminHash)) {
+  configurationError('ADMIN_TOKEN_SHA256 doit être une empreinte SHA-256 hexadécimale de 64 caractères.');
+}
+if (isVercelRuntime && !process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+  configurationError('Vercel Blob n’est pas connecté : créez un Blob privé dans le projet et connectez-le à CalasOrga.');
+}
+
 const adminTokenHash = configuredAdminHash || (adminToken ? tokenHash(adminToken) : '');
 const adminCredentialTag = adminTokenHash ? tokenHash(`admin-credential-v1:${adminTokenHash}`).slice(0, 32) : '';
 const now = process.env.NODE_ENV === 'test' && process.env.NOW_OVERRIDE ? () => new Date(process.env.NOW_OVERRIDE) : () => new Date();
-const store = await new FileStore(dataFile, { now }).init(demoMode ? makeDemoSeed(now()) : null);
 
 if (!adminTokenHash) {
-  console.error('ADMIN_TOKEN ou ADMIN_TOKEN_SHA256 est obligatoire hors DEMO_MODE.');
-  process.exit(2);
+  configurationError('ADMIN_TOKEN ou ADMIN_TOKEN_SHA256 est obligatoire hors DEMO_MODE.');
 }
 if (!demoMode && !configuredAdminHash && adminToken.length < 24) {
-  console.error('ADMIN_TOKEN est trop court : utilisez au moins 24 caractères, ou de préférence ADMIN_TOKEN_SHA256 généré par npm run admin-token.');
-  process.exit(2);
+  configurationError('ADMIN_TOKEN est trop court : utilisez au moins 24 caractères, ou de préférence ADMIN_TOKEN_SHA256.');
 }
+
+const store = await new FileStore(dataFile, { now }).init(demoMode ? makeDemoSeed(now()) : null);
 
 const rate = new Map();
 function limited(key, max = 60, windowMs = 60_000) {
@@ -1294,8 +1469,10 @@ function limited(key, max = 60, windowMs = 60_000) {
   if (t - row.start > windowMs) { row.start = t; row.n = 0; }
   row.n += 1; rate.set(key, row); return row.n > max;
 }
-setInterval(() => { const t = Date.now(); for (const [k, v] of rate) if (t - v.start > 5 * 60_000) rate.delete(k); }, 5 * 60_000).unref();
-setInterval(() => { store.maintenance().catch((err) => console.error('Maintenance stockage:', err)); }, 60 * 60_000).unref();
+if (!isVercelRuntime) {
+  setInterval(() => { const t = Date.now(); for (const [k, v] of rate) if (t - v.start > 5 * 60_000) rate.delete(k); }, 5 * 60_000).unref();
+  setInterval(() => { store.maintenance().catch((err) => console.error('Maintenance stockage:', err)); }, 60 * 60_000).unref();
+}
 
 function securityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1358,6 +1535,21 @@ function auditCsv(entries) {
 async function bodyJson(req, max = 16_384) {
   const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
   if (type !== 'application/json') throw Object.assign(new Error('Content-Type application/json requis.'), { status: 415 });
+
+  // Vercel peut déjà avoir décodé le JSON avant d'appeler la fonction.
+  if (req.body !== undefined && req.body !== null) {
+    if (Buffer.isBuffer(req.body)) {
+      if (req.body.length > max) throw Object.assign(new Error('Corps trop volumineux.'), { status: 413 });
+      req.body = req.body.toString('utf8');
+    }
+    if (typeof req.body === 'string') {
+      if (Buffer.byteLength(req.body, 'utf8') > max) throw Object.assign(new Error('Corps trop volumineux.'), { status: 413 });
+      try { req.body = req.body ? JSON.parse(req.body) : {}; } catch { throw Object.assign(new Error('JSON invalide.'), { status: 400 }); }
+    }
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) throw Object.assign(new Error('Objet JSON requis.'), { status: 400 });
+    return req.body;
+  }
+
   let size = 0, text = '';
   for await (const chunk of req) { size += chunk.length; if (size > max) throw Object.assign(new Error('Corps trop volumineux.'), { status: 413 }); text += chunk; }
   if (!text) return {};
@@ -1400,8 +1592,9 @@ function serveIndex(res) {
   securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(indexHtml);
 }
 
-const server = http.createServer(async (req, res) => {
+export async function requestHandler(req, res) {
   try {
+    await store.refresh();
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = url.pathname;
     if (pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !browserMutationMetadataOk(req)) {
@@ -1412,11 +1605,11 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/healthz' && req.method === 'GET') {
       const integrity = store.integrityReport();
-      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: 'file', integrity: integrity.ok });
+      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', integrity: integrity.ok });
     }
     if (pathname === '/readyz' && req.method === 'GET') {
       const integrity = store.integrityReport();
-      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: 'file' });
+      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file' });
     }
     if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
@@ -1625,7 +1818,9 @@ const server = http.createServer(async (req, res) => {
   } catch (err) {
     console.error(err); return json(res, err?.status || 500, { error: err?.status ? err.message : 'Erreur serveur.' });
   }
-});
+}
+
+const server = http.createServer(requestHandler);
 
 // Bornes défensives adaptées à une petite application interactive exposée sur Internet.
 server.requestTimeout = 15_000;

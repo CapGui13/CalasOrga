@@ -1,6 +1,6 @@
-# Calendrier du club — V14 complète
+# Calendrier du club — V15 complète
 
-Version cumulative destinée aux premiers tests réels.
+Version cumulative destinée aux tests réels, y compris **plusieurs téléphones synchronisés sur Vercel**.
 
 ## Interface membre
 
@@ -17,7 +17,7 @@ Membres initiaux : **Odile, Guillaume, Sylvie, Caroline, Véronique, Gérard, Pa
 
 ## Fonctions conservées
 
-- synchronisation multi-appareils quand `server.mjs` est réellement hébergé ;
+- synchronisation multi-appareils ;
 - liens personnels sécurisés ;
 - sessions serveur ;
 - permissions contrôlées côté serveur ;
@@ -29,72 +29,82 @@ Membres initiaux : **Odile, Guillaume, Sylvie, Caroline, Véronique, Gérard, Pa
 - historique ;
 - export planning CSV ;
 - sauvegarde complète + validation + restauration ;
-- récupération du stockage `.good` / `.bak` ;
-- écritures sérialisées pour éviter les pertes lors d'actions simultanées ;
-- CSRF, contrôle d'origine, CSP, cookies SameSite, rate-limit ;
-- horizon membre limité à 366 jours ;
-- stockage persistant par fichier sur serveur mono-instance.
+- récupération depuis une copie valide si le stockage principal devient illisible ;
+- protection contre les pertes lors de modifications simultanées ;
+- CSRF, contrôle d'origine, CSP, cookies SameSite/HttpOnly/Secure ;
+- horizon membre limité à 366 jours.
 
-## 1 — Mettre le code sur GitHub
+## GitHub Pages
 
-Mets **tous les fichiers de ce dossier** à la racine d'un dépôt GitHub.
+`index.html` reste utilisable sur GitHub Pages pour tester l'interface.
+Dans ce cas, les données restent volontairement dans le navigateur : **GitHub Pages seul ne synchronise pas les appareils**.
 
-### GitHub Pages
+## Déploiement Vercel — recommandé pour les tests partagés
 
-Si tu actives simplement **GitHub Pages**, `index.html` fonctionne automatiquement en **mode test local** : l'interface est testable mais les données restent dans le navigateur de chaque appareil.
+V15 utilise **Vercel Blob privé** comme stockage partagé. Les écritures utilisent un ETag et une nouvelle tentative automatique pour empêcher deux téléphones de s'écraser mutuellement.
 
-Donc :
+### 1. Importer le dépôt dans Vercel
 
-- GitHub Pages = bon pour tester l'interface ;
-- GitHub Pages seul = **pas de synchronisation entre deux téléphones**.
+Importer le dépôt GitHub `CapGui13/CalasOrga` comme projet Vercel.
 
-## 2 — Pour tester réellement plusieurs téléphones
+Ajouter une variable d'environnement :
 
-Il faut exécuter `server.mjs` sur un hébergement Node avec **stockage persistant**.
-Le dépôt GitHub peut être la source du déploiement (Render, Railway avec volume, VPS/Docker, etc.).
+```text
+ADMIN_TOKEN=<secret-administrateur-long-et-aleatoire>
+```
+
+Ne jamais mettre ce secret dans GitHub.
+
+### 2. Ajouter le stockage
+
+Dans le projet Vercel : **Storage → Create → Blob**.
+
+Créer un Blob avec **accès privé** et le connecter au projet `CalasOrga`.
+Vercel fournit alors automatiquement les identifiants nécessaires (`BLOB_READ_WRITE_TOKEN` ou `BLOB_STORE_ID` + OIDC selon la configuration Vercel).
+
+Aucune clé Blob ne doit être copiée dans GitHub.
+
+### 3. Redéployer
+
+Après connexion du Blob, relancer le déploiement Production.
+
+Le contrôle :
+
+```text
+/healthz
+```
+
+doit répondre avec :
+
+```json
+{"ok":true,"storage":"vercel-blob","integrity":true}
+```
+
+### 4. Ouvrir l'administration
+
+Avec le secret configuré dans `ADMIN_TOKEN` :
+
+```text
+https://TON-PROJET.vercel.app/admin-login#TON_SECRET_ADMIN
+```
+
+Dans l'administration, générer un lien personnel pour chaque membre et lui envoyer uniquement son propre lien.
+
+## Stockage et concurrence
+
+Sur Vercel, l'état partagé est conservé dans un Blob privé. Avant chaque modification, le serveur lit la dernière version et son ETag. L'écriture n'est acceptée que si cette version n'a pas changé. En cas d'action simultanée, l'opération est recalculée sur la nouvelle version puis réessayée.
+
+Le mode Node/Docker classique reste disponible avec un fichier persistant sérialisé (`DATA_FILE`).
+
+## Docker / serveur Node classique
 
 Variables minimales :
 
 ```text
-ADMIN_TOKEN=<un secret administrateur long et aléatoire>
+ADMIN_TOKEN=<secret long>
 DATA_FILE=/chemin/persistant/store.json
 PORT=3000
-TRUST_PROXY=1   # si l'hébergeur place l'app derrière son proxy HTTPS
+TRUST_PROXY=1
 ```
 
-Ne mets **jamais** `ADMIN_TOKEN` dans GitHub.
-
-Lancement local serveur :
-
-```bash
-ADMIN_TOKEN="un-secret-administrateur-d-au-moins-24-caracteres" npm start
-```
-
-Puis ouvre :
-
-```text
-http://localhost:3000/admin-login#TON_SECRET_ADMIN
-```
-
-Dans l'administration, clique sur **Nouveau lien** pour chaque membre. Le lien généré est celui à lui envoyer.
-
-## 3 — Docker
-
-Le projet contient aussi :
-
-- `Dockerfile`
-- `docker-compose.yml`
-
-Le volume Docker `club_data` conserve le fichier de données.
-
-## Données importantes
-
-Le fichier vivant est `data/store.json` par défaut. Il ne doit **pas** être versionné dans GitHub.
-
-Le serveur maintient également des copies de reprise `.good` et `.bak`.
-
-## Important pour Vercel / serverless
-
-Cette version utilise volontairement un fichier persistant sérialisé pour un petit club.
-Un hébergement serverless sans disque persistant n'est donc pas adapté tel quel.
-Pour ce type d'hébergement, il faudra brancher une base partagée au lieu du fichier.
+Le `docker-compose.yml` conserve le fichier dans le volume `club_data`.

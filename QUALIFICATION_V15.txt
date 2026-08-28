@@ -1,0 +1,38 @@
+CALENDRIER DU CLUB — V15 COMPLÈTE VERCEL — QUALIFICATION
+========================================================
+
+Date : 2026-08-28
+
+PASS — syntaxe server.mjs
+PASS — syntaxe api/index.mjs
+PASS — vercel.json JSON valide
+PASS — mode fichier Node conservé
+PASS — santé /healthz en mode fichier
+PASS — colonnes Date / Accueil / TPE / MEP / Arbitrage / Présent
+PASS — séparateurs physiques de semaines + alternance légère des fonds
+PASS — 10 membres initiaux exacts
+PASS — Vercel wrapper : corps JSON pré-décodé accepté
+PASS — stockage Blob simulé : initialisation
+PASS — stockage Blob simulé : lecture fraîche entre deux instances
+PASS — deux instances distinctes : écritures simultanées sur deux rôles différents
+PASS — deux instances distinctes : deux membres simultanés dans la même case
+PASS — aucune écriture perdue lors du conflit ETag
+PASS — récupération automatique après corruption du Blob principal
+PASS — sauvegarde incluant les rôles
+PASS — restauration de sauvegarde sur stockage Blob
+PASS — session administrateur conservée après restauration
+PASS — rotation du lien membre
+PASS — ancienne session membre révoquée après rotation
+PASS — confirmation destructive liée à l'état exact du planning
+PASS — inscription concurrente entre avertissement et confirmation détectée
+PASS — ancienne confirmation refusée et nouveau compteur recalculé
+PASS — CSP statique cohérente avec index.html
+
+Architecture V15 :
+- GitHub Pages : interface en mode local navigateur, sans synchronisation.
+- Vercel : fonction Node + Vercel Blob privé partagé avec contrôle de concurrence ETag.
+- Node/Docker : stockage fichier persistant sérialisé toujours supporté.
+
+Ajout gate final après stabilisation des confirmations :
+- confirmation destructive émise par une instance et validée par une seconde instance partageant le même Blob : PASS
+- secret de confirmation dérivé de l'identité administrateur en environnement distribué : PASS
