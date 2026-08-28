@@ -1444,7 +1444,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.4.1-complete-vercel';
+const APP_VERSION = '0.15.4.2-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1528,18 +1528,18 @@ function planningCsv(snapshot, from, to) {
   const dates = isoDateRange(from, to, 366);
   if (!dates) return null;
   const names = Object.fromEntries((snapshot.members || []).map((m) => [m.id, m.name]));
-  const min = Math.max(1, Number(snapshot.settings?.minRequired || 1));
-  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'MEP', 'Arbitrage', 'Présent', 'Nombre présent', 'Minimum', 'Couverture', 'Remarque']];
+  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'MEP', 'Arbitrage', 'Présent', 'Nombre présent', 'Postes pourvus', 'Postes requis', 'Couverture', 'Remarque']];
   for (const date of dates) {
     if (!effectiveIsOpen(snapshot, date)) continue;
     const dayAssignments = snapshot.assignments?.[date] || {};
     const presentIds = Array.isArray(dayAssignments.present) ? dayAssignments.present : (Array.isArray(snapshot.attendance?.[date]) ? snapshot.attendance[date] : []);
     const label = (role) => (Array.isArray(dayAssignments[role]) ? dayAssignments[role] : []).map((id) => names[id]).filter(Boolean).join(', ');
     const present = presentIds.map((id) => names[id]).filter(Boolean);
+    const filledPosts = ROLE_KEYS.filter((role) => Array.isArray(dayAssignments[role]) && dayAssignments[role].length > 0).length;
     const [y, m, d] = date.split('-').map(Number);
     const day = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
     const note = snapshot.scheduleExceptions?.[date]?.note || '';
-    rows.push([date, day, label('accueil'), label('tpe'), label('mep'), label('arbitrage'), present.join(', '), present.length, min, present.length >= min ? 'Assurée' : 'À pourvoir', note]);
+    rows.push([date, day, label('accueil'), label('tpe'), label('mep'), label('arbitrage'), present.join(', '), present.length, filledPosts, ROLE_KEYS.length, filledPosts === ROLE_KEYS.length ? 'Assurée' : 'À pourvoir', note]);
   }
   return '\ufeff' + rows.map((row) => row.map(csvCell).join(';')).join('\r\n') + '\r\n';
 }
