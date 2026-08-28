@@ -440,6 +440,7 @@ class FileStore {
           const loaded = await this.#readRemoteCandidate(`${this.blobPath}${suffix}`);
           this.state = loaded.state;
           this.remoteCurrentText = null;
+          this.#invalidateRecoveredCredentials(`blob:${suffix}`);
           console.warn(`Stockage Blob principal illisible/invalide : récupération depuis ${suffix}.`);
           await this.#persist({ preserveCurrent: false });
           return this;
@@ -469,6 +470,7 @@ class FileStore {
     for (const suffix of ['.good', '.bak']) {
       try {
         await this.#loadStateFile(`${this.filePath}${suffix}`);
+        this.#invalidateRecoveredCredentials(`file:${suffix}`);
         console.warn(`Stockage principal illisible/invalide : récupération depuis ${suffix}.`);
         await this.#persist({ preserveCurrent: false });
         return this;
@@ -486,6 +488,22 @@ class FileStore {
     if (!report.ok) {
       throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
     }
+  }
+
+  #invalidateRecoveredCredentials(reason = 'reprise_stockage') {
+    const nowIso = this.now().toISOString();
+    let revokedLinks = 0;
+    for (const rec of this.state.memberTokens || []) {
+      if (!rec.active) continue;
+      rec.active = false;
+      rec.revokedAt = nowIso;
+      revokedLinks += 1;
+    }
+    const revokedSessions = (this.state.sessions || []).filter((rec) => rec.active).length;
+    this.state.sessions = [];
+    this.#log(this.state, 'Système', 'identifiants_revoques_reprise_stockage', null, {
+      reason, revokedLinks, revokedSessions
+    });
   }
 
   #normalize({ requireEnvelope = false } = {}) {
@@ -1093,12 +1111,38 @@ class FileStore {
     const currentHash = tokenHash(currentAdminSessionRaw || '');
     return this.mutate((s) => {
       const keepAdmin = s.sessions.find((rec) => rec.kind === 'admin' && rec.tokenHash === currentHash && this.#sessionAlive(rec));
+      const restoredIds = new Set(valid.state.members.map((m) => m.id));
+      const restoredActiveIds = new Set(valid.state.members.filter((m) => m.active).map((m) => m.id));
+      const preservedMemberTokens = clone((s.memberTokens || []).filter((rec) => restoredIds.has(rec.memberId)));
+      const nowIso = this.now().toISOString();
+      let linksRevokedBecauseMemberInactive = 0;
+      for (const rec of preservedMemberTokens) {
+        if (rec.active && !restoredActiveIds.has(rec.memberId)) {
+          rec.active = false;
+          rec.revokedAt = nowIso;
+          linksRevokedBecauseMemberInactive += 1;
+        }
+      }
+      const preservedActiveLinks = preservedMemberTokens.filter((rec) => rec.active).length;
+      const backupActiveLinksIgnored = valid.state.memberTokens.filter((rec) => rec.active).length;
       const next = clone(valid.state);
+      // Une restauration remet les données métier, jamais les credentials du fichier importé.
+      // Les liens actuellement valides restent valides pour les membres encore présents/actifs.
+      // Un ancien lien révoqué ne peut donc pas ressusciter via une vieille sauvegarde.
+      next.memberTokens = preservedMemberTokens;
       next.sessions = keepAdmin ? [clone(keepAdmin)] : [];
       for (const key of Object.keys(s)) delete s[key];
       Object.assign(s, next);
-      this.#log(s, 'Administrateur', 'sauvegarde_importee', null, { exportedAt: safeIsoInstant(payload.exportedAt) || '', formatVersion: Number(payload.formatVersion), warnings: valid.warnings });
-      return { ok: true, warnings: valid.warnings };
+      this.#log(s, 'Administrateur', 'sauvegarde_importee', null, {
+        exportedAt: safeIsoInstant(payload.exportedAt) || '',
+        formatVersion: Number(payload.formatVersion),
+        warnings: valid.warnings,
+        credentialPolicy: 'preserve_current_links_ignore_backup_links',
+        preservedActiveLinks,
+        backupActiveLinksIgnored,
+        linksRevokedBecauseMemberInactive
+      });
+      return { ok: true, warnings: valid.warnings, preservedActiveLinks, backupActiveLinksIgnored };
     });
   }
 
@@ -1444,7 +1488,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.4.2-complete-vercel';
+const APP_VERSION = '0.15.4.4-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1522,7 +1566,7 @@ function csvCell(value) {
   let text = String(value ?? '');
   // Empêche qu'un nom/remarque soit interprété comme une formule par Excel/LibreOffice.
   if (/^[\t \r\n]*[=+\-@]/.test(text)) text = `'${text}`;
-  return /[;"\n\r]/.test(text) ? `"${text.replaceAll('\"', '\"\"')}"` : text;
+  return /[;"\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 function planningCsv(snapshot, from, to) {
   const dates = isoDateRange(from, to, 366);
@@ -1630,7 +1674,7 @@ export async function requestHandler(req, res) {
     if (['/calendar','/join','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
 
     // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
-    // récente. refresh() utilise désormais un GET conditionnel sur l'ETag.
+    // récente. Le chemin Blob conservateur courant utilise HEAD + GET.
     await store.refresh();
 
     if (pathname === '/healthz' && req.method === 'GET') {
@@ -1765,7 +1809,7 @@ export async function requestHandler(req, res) {
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req); const r = await store.removeExceptionsRange(b.from, b.to, { confirmationToken: String(b.confirmationToken || '') });
-      if (!r.ok) return json(res, r.status, { error: r.error });
+      if (!r.ok) return json(res, r.status, { ...r });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
     if (pathname === '/api/admin/exception' && req.method === 'POST') {
@@ -1781,7 +1825,7 @@ export async function requestHandler(req, res) {
       if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req, 4096);
       const r = await store.removeException(url.searchParams.get('date'), { confirmationToken: String(b.confirmationToken || '') });
-      if (!r.ok) return json(res, r.status, { error: r.error }); return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+      if (!r.ok) return json(res, r.status, { ...r }); return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
     if (pathname === '/api/admin/settings' && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
