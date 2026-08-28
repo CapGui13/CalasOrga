@@ -1,10 +1,10 @@
-# Calendrier du club — V15.1 complète
+# Calendrier du club — V15.2 complète
 
 Version cumulative destinée aux tests réels, y compris **plusieurs téléphones synchronisés sur Vercel**.
 
-## Correctif V15.1
+## Correctif V15.2
 
-Un Blob privé nouvellement créé est vide. V15.1 traite explicitement ce premier démarrage comme un état normal : le serveur crée automatiquement `calasorga/store.json` avec le roster initial et l'enveloppe de stockage complète. Les différentes signatures `BlobNotFound` de `@vercel/blob` sont prises en charge aussi bien sur `head()` que sur `get()`.
+Un Blob privé nouvellement créé est vide. V15.2 traite explicitement ce premier démarrage comme un état normal : le serveur crée automatiquement `calasorga/store.json` avec le roster initial et l'enveloppe de stockage complète. Les différentes signatures `BlobNotFound` de `@vercel/blob` sont prises en charge aussi bien sur `head()` que sur `get()`.
 
 ## Interface membre
 
@@ -45,7 +45,7 @@ Dans ce cas, les données restent volontairement dans le navigateur : **GitHub P
 
 ## Déploiement Vercel — recommandé pour les tests partagés
 
-V15 utilise **Vercel Blob privé** comme stockage partagé. Les écritures utilisent un ETag et une nouvelle tentative automatique pour empêcher deux téléphones de s'écraser mutuellement.
+V15.2 utilise **Vercel Blob privé** comme stockage partagé. Les écritures utilisent un ETag et une nouvelle tentative automatique pour empêcher deux téléphones de s'écraser mutuellement.
 
 ### 1. Importer le dépôt dans Vercel
 
@@ -112,3 +112,9 @@ TRUST_PROXY=1
 ```
 
 Le `docker-compose.yml` conserve le fichier dans le volume `club_data`.
+
+## Correctifs V15.2
+
+- premier démarrage d’un Blob privé vide : création automatique de `calasorga/store.json` ;
+- compatibilité avec le preset Vercel **Node** : `server.mjs` exporte désormais son `http.Server` par défaut, comme attendu par le runtime Vercel ;
+- le mode Node/Docker et le wrapper `api/index.mjs` restent compatibles.

@@ -1,0 +1,7 @@
+CALASORGA V15.2 — QUALIFICATION
+
+Correctifs cumulatifs :
+- V15.1 : premier démarrage sur Blob privé vide reconnu et initialisé automatiquement.
+- V15.2 : compatibilité explicite avec le preset Vercel Node via export default du http.Server.
+
+Le backend complet, les rôles, la sécurité, l’administration, la persistance Blob et le mode Node/Docker sont conservés.

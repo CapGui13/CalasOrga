@@ -1441,7 +1441,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.1-complete-vercel';
+const APP_VERSION = '0.15.2-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1842,6 +1842,10 @@ server.requestTimeout = 15_000;
 server.headersTimeout = 10_000;
 server.keepAliveTimeout = 5_000;
 server.maxHeadersCount = 100;
+
+// Vercel Node Application Preset exige un export par défaut de fonction ou de serveur.
+// On exporte le même serveur HTTP que celui utilisé en mode Node classique.
+export default server;
 
 if (isMainModule(import.meta.url)) {
   let shuttingDown = false;
