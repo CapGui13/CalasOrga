@@ -1,0 +1,16 @@
+services:
+  calendrier:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      ADMIN_TOKEN: "${ADMIN_TOKEN}"
+      ADMIN_TOKEN_SHA256: "${ADMIN_TOKEN_SHA256:-}"
+      DATA_FILE: /app/data/store.json
+      PORT: 3000
+      TRUST_PROXY: "${TRUST_PROXY:-0}"
+    volumes:
+      - club_data:/app/data
+volumes:
+  club_data:
