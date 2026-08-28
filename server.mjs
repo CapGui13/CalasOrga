@@ -364,25 +364,30 @@ class FileStore {
     return err?.name === 'BlobPreconditionFailedError' || err?.status === 412 || err?.statusCode === 412 || err?.code === 'BLOB_PRECONDITION_FAILED';
   }
 
-  async #readRemoteCandidate(pathname) {
+  async #readRemoteCandidate(pathname, { ifNoneMatch = null } = {}) {
     const api = await this.#blobClient();
     const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
-    let meta;
-    try {
-      meta = await api.head(pathname, { token });
-    } catch (err) {
-      if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
-      throw err;
-    }
     let result;
     try {
-      result = await api.get(pathname, { access: 'private', useCache: false, token });
+      result = await api.get(pathname, {
+        access: 'private', useCache: false, token,
+        ...(ifNoneMatch ? { ifNoneMatch } : {})
+      });
     } catch (err) {
       if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
       throw err;
     }
-    if (!result || result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+    if (!result) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+    if (result.statusCode === 304) return { notModified: true, etag: result.blob?.etag || ifNoneMatch || null };
+    if (result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
     const rawText = await new Response(result.stream).text();
+    let etag = result.blob?.etag || null;
+    // Compatibilité défensive avec un SDK ancien : le GET moderne renvoie déjà l'ETag.
+    // On ne fait un HEAD supplémentaire que si cette métadonnée manque réellement.
+    if (!etag) {
+      try { etag = (await api.head(pathname, { token }))?.etag || null; }
+      catch (err) { if (!this.#isBlobNotFound(err)) throw err; }
+    }
     const before = this.state;
     try {
       this.state = JSON.parse(rawText);
@@ -391,22 +396,26 @@ class FileStore {
       if (!report.ok) {
         throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
       }
-      return { state: clone(this.state), rawText, etag: meta?.etag || null };
+      return { state: clone(this.state), rawText, etag };
     } finally {
       this.state = before;
     }
   }
 
-  async #loadRemotePrimary() {
-    const loaded = await this.#readRemoteCandidate(this.blobPath);
+  async #loadRemotePrimary({ conditional = false } = {}) {
+    const loaded = await this.#readRemoteCandidate(this.blobPath, {
+      ifNoneMatch: conditional ? this.remoteEtag : null
+    });
+    if (loaded.notModified) return false;
     this.state = loaded.state;
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
+    return true;
   }
 
   async refresh() {
     if (!this.remoteBlob) return this;
-    await this.#loadRemotePrimary();
+    await this.#loadRemotePrimary({ conditional: true });
     return this;
   }
 
@@ -635,7 +644,10 @@ class FileStore {
     const task = this.queue.then(async () => {
       if (this.remoteBlob) {
         for (let attempt = 0; attempt < 8; attempt++) {
-          await this.#loadRemotePrimary();
+          // La requête a déjà rafraîchi l'état partagé. On écrit directement avec ifMatch.
+          // Si une autre instance a écrit entre-temps, le conflit ETag force une relecture
+          // au tour suivant : même sûreté distribuée, une lecture Blob en moins au cas normal.
+          if (attempt > 0 || !this.state || !this.remoteEtag) await this.#loadRemotePrimary();
           const previous = this.state;
           const draft = clone(previous);
           const result = await fn(draft);
@@ -1441,7 +1453,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.3-complete-vercel';
+const APP_VERSION = '0.15.4-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1609,7 +1621,6 @@ function serveIndex(res) {
 
 export async function requestHandler(req, res) {
   try {
-    await store.refresh();
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = url.pathname;
     if (pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !browserMutationMetadataOk(req)) {
@@ -1617,6 +1628,19 @@ export async function requestHandler(req, res) {
     }
     const secure = requestIsHttps(req, { trustProxy });
     if (secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
+    // Le HTML est statique : inutile de réveiller Blob avant même que le navigateur
+    // appelle l'API. Cela accélère l'ouverture du lien et économise des opérations.
+    if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
+    if (pathname === '/' && req.method === 'GET') {
+      if (demoMode) demoRootHits += 1;
+      return serveIndex(res);
+    }
+    if (['/calendar','/join','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
+
+    // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
+    // récente. refresh() utilise désormais un GET conditionnel sur l'ETag.
+    await store.refresh();
 
     if (pathname === '/healthz' && req.method === 'GET') {
       const integrity = store.integrityReport();
@@ -1627,13 +1651,6 @@ export async function requestHandler(req, res) {
       return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file' });
     }
     if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
-    if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
-    if (pathname === '/' && req.method === 'GET') {
-      if (demoMode) demoRootHits += 1;
-      return serveIndex(res);
-    }
-    if (['/calendar','/join','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
-
 
     if (pathname === '/api/session/member' && req.method === 'POST') {
       if (limited(`member-login:${getIp(req)}`, 40)) return json(res, 429, { error: 'Trop de tentatives.' });

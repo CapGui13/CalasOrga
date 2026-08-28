@@ -25,7 +25,7 @@
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
         { "key": "Cache-Control", "value": "no-store" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'sha256-goh/wNxxyGR1Px/4fNkK478BxFAGT2v7UEWmGNTLnnA='; style-src 'self' 'sha256-MdO3/n+lpwvVzJQyiofartrw4BhAp4FHE9EZWhhO5So='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'sha256-uvdJjPkaQIxu7o7dkPLTKNo2izfQ/ik8/kmlmHvjt1M='; style-src 'self' 'sha256-MdO3/n+lpwvVzJQyiofartrw4BhAp4FHE9EZWhhO5So='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" }
       ]
     }
   ]

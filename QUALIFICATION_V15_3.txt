@@ -1,9 +1,0 @@
-CalasOrga V15.3 — qualification
-
-Correctif Vercel Node preset :
-- server.mjs exporte par défaut requestHandler (fonction HTTP), pas un objet http.Server.
-- export nommé requestHandler conservé pour api/index.mjs.
-- correctif BlobNotFound de V15.1 conservé.
-- mode Node classique conservé via http.createServer(requestHandler).
-
-Gates exécutés avant livraison : voir réponse ChatGPT.
