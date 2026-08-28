@@ -1,6 +1,10 @@
-# Calendrier du club — V15 complète
+# Calendrier du club — V15.1 complète
 
 Version cumulative destinée aux tests réels, y compris **plusieurs téléphones synchronisés sur Vercel**.
+
+## Correctif V15.1
+
+Un Blob privé nouvellement créé est vide. V15.1 traite explicitement ce premier démarrage comme un état normal : le serveur crée automatiquement `calasorga/store.json` avec le roster initial et l'enveloppe de stockage complète. Les différentes signatures `BlobNotFound` de `@vercel/blob` sont prises en charge aussi bien sur `head()` que sur `get()`.
 
 ## Interface membre
 

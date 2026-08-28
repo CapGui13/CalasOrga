@@ -348,7 +348,16 @@ class FileStore {
   }
 
   #isBlobNotFound(err) {
-    return err?.name === 'BlobNotFoundError' || err?.status === 404 || err?.statusCode === 404 || err?.code === 'BLOB_NOT_FOUND';
+    const status = Number(err?.status ?? err?.statusCode ?? err?.response?.status ?? 0);
+    const signature = [err?.name, err?.constructor?.name, err?.code, err?.message]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return status === 404
+      || err?.code === 'BLOB_NOT_FOUND'
+      || signature.includes('blobnotfound')
+      || signature.includes('requested blob does not exist')
+      || signature.includes('blob does not exist');
   }
 
   #isBlobConflict(err) {
@@ -365,7 +374,13 @@ class FileStore {
       if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
       throw err;
     }
-    const result = await api.get(pathname, { access: 'private', useCache: false, token });
+    let result;
+    try {
+      result = await api.get(pathname, { access: 'private', useCache: false, token });
+    } catch (err) {
+      if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+      throw err;
+    }
     if (!result || result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
     const rawText = await new Response(result.stream).text();
     const before = this.state;
@@ -1426,7 +1441,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.0-complete-vercel';
+const APP_VERSION = '0.15.1-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
