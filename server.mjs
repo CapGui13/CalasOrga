@@ -364,30 +364,25 @@ class FileStore {
     return err?.name === 'BlobPreconditionFailedError' || err?.status === 412 || err?.statusCode === 412 || err?.code === 'BLOB_PRECONDITION_FAILED';
   }
 
-  async #readRemoteCandidate(pathname, { ifNoneMatch = null } = {}) {
+  async #readRemoteCandidate(pathname) {
     const api = await this.#blobClient();
     const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
-    let result;
+    let meta;
     try {
-      result = await api.get(pathname, {
-        access: 'private', useCache: false, token,
-        ...(ifNoneMatch ? { ifNoneMatch } : {})
-      });
+      meta = await api.head(pathname, { token });
     } catch (err) {
       if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
       throw err;
     }
-    if (!result) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
-    if (result.statusCode === 304) return { notModified: true, etag: result.blob?.etag || ifNoneMatch || null };
-    if (result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
-    const rawText = await new Response(result.stream).text();
-    let etag = result.blob?.etag || null;
-    // Compatibilité défensive avec un SDK ancien : le GET moderne renvoie déjà l'ETag.
-    // On ne fait un HEAD supplémentaire que si cette métadonnée manque réellement.
-    if (!etag) {
-      try { etag = (await api.head(pathname, { token }))?.etag || null; }
-      catch (err) { if (!this.#isBlobNotFound(err)) throw err; }
+    let result;
+    try {
+      result = await api.get(pathname, { access: 'private', useCache: false, token });
+    } catch (err) {
+      if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+      throw err;
     }
+    if (!result || result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+    const rawText = await new Response(result.stream).text();
     const before = this.state;
     try {
       this.state = JSON.parse(rawText);
@@ -396,26 +391,22 @@ class FileStore {
       if (!report.ok) {
         throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
       }
-      return { state: clone(this.state), rawText, etag };
+      return { state: clone(this.state), rawText, etag: meta?.etag || null };
     } finally {
       this.state = before;
     }
   }
 
-  async #loadRemotePrimary({ conditional = false } = {}) {
-    const loaded = await this.#readRemoteCandidate(this.blobPath, {
-      ifNoneMatch: conditional ? this.remoteEtag : null
-    });
-    if (loaded.notModified) return false;
+  async #loadRemotePrimary() {
+    const loaded = await this.#readRemoteCandidate(this.blobPath);
     this.state = loaded.state;
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
-    return true;
   }
 
   async refresh() {
     if (!this.remoteBlob) return this;
-    await this.#loadRemotePrimary({ conditional: true });
+    await this.#loadRemotePrimary();
     return this;
   }
 
@@ -644,10 +635,10 @@ class FileStore {
     const task = this.queue.then(async () => {
       if (this.remoteBlob) {
         for (let attempt = 0; attempt < 8; attempt++) {
-          // La requête a déjà rafraîchi l'état partagé. On écrit directement avec ifMatch.
-          // Si une autre instance a écrit entre-temps, le conflit ETag force une relecture
-          // au tour suivant : même sûreté distribuée, une lecture Blob en moins au cas normal.
-          if (attempt > 0 || !this.state || !this.remoteEtag) await this.#loadRemotePrimary();
+          // Chemin conservateur Vercel : relire HEAD + GET avant chaque écriture.
+          // Plus coûteux qu'une optimisation ETag-only, mais validé sur le Blob réel et
+          // robuste aux différences de comportement du SDK entre runtimes serverless.
+          await this.#loadRemotePrimary();
           const previous = this.state;
           const draft = clone(previous);
           const result = await fn(draft);
@@ -1453,7 +1444,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.4-complete-vercel';
+const APP_VERSION = '0.15.4.1-complete-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
