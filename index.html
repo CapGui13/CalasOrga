@@ -48,7 +48,7 @@
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.5.2 · mode test local.</strong> Sur un fichier local ou GitHub Pages, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.5.3 · mode test local.</strong> Sur un fichier local ou GitHub Pages, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <section id="chooserView" class="card chooser-card hidden">
@@ -116,7 +116,7 @@
 'use strict';
 const GITHUB_PAGES = location.hostname.endsWith('github.io');
 const LOCAL = location.protocol === 'file:' || GITHUB_PAGES || new URLSearchParams(location.search).get('local') === '1';
-const PROD_ADMIN_URL = 'https://calasorga.vercel.app/admin-login';
+const PROD_ADMIN_URL = 'https://capgui13.github.io/CalasOrga/Admin/';
 const STORAGE_KEY = 'club-presences-complete-v14';
 const INITIAL_NAMES = ['Odile','Guillaume','Sylvie','Caroline','Véronique','Gérard','Patrick','Christian','Armelle','Pascal'];
 const CORE_ROLE_KEYS=['accueil','tpe','mep','arbitrage'];
