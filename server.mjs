@@ -54,6 +54,8 @@ function cookie(name, value, { httpOnly = true, secure = false, maxAge = 60 * 60
   return parts.join('; ');
 }
 
+const MEMBER_SESSION_TTL_SECONDS = 60 * 60 * 24 * 365;
+
 function clearCookie(name, { secure = false, httpOnly = true } = {}) {
   const parts = [`${name}=`, 'Path=/', 'Max-Age=0', 'SameSite=Strict'];
   if (httpOnly) parts.push('HttpOnly');
@@ -177,6 +179,24 @@ function sanitizeName(name) {
   const clean = String(name || '').trim().replace(/\s+/g, ' ');
   if (clean.length < 1 || clean.length > 80) return null;
   return clean;
+}
+
+function shortPersonalName(name) {
+  const clean = sanitizeName(name) || 'Membre';
+  const first = clean.split(/\s+/)[0].normalize('NFC');
+  const safe = first.replace(/[^\p{L}\p{N}]/gu, '');
+  return (safe || 'Membre').slice(0, 40);
+}
+
+function makeShortPersonalToken(name) {
+  const digits = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+  return `${shortPersonalName(name)}${digits}`;
+}
+
+function shortPersonalTokenHash(raw) {
+  return crypto.createHmac('sha256', memberShortPepper)
+    .update(`member-short-v1:${String(raw || '').normalize('NFC')}`, 'utf8')
+    .digest('hex');
 }
 
 function publicSnapshot(state, currentMemberId = null) {
@@ -713,6 +733,15 @@ class FileStore {
     return m || null;
   }
 
+  findMemberByShortToken(rawToken) {
+    const clean = String(rawToken || '').normalize('NFC');
+    if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(clean)) return null;
+    const hash = shortPersonalTokenHash(clean);
+    const rec = this.state.memberTokens.find((t) => t.active && t.shortTokenHash === hash);
+    if (!rec) return null;
+    return this.state.members.find((x) => x.id === rec.memberId && x.active) || null;
+  }
+
   findMemberBySessionRawToken(rawToken) {
     const session = this.#findSession(rawToken, 'member');
     if (!session) return null;
@@ -723,7 +752,7 @@ class FileStore {
     return !!this.#findSession(rawToken, 'admin', credentialTag);
   }
 
-  async createMemberSession(memberId, ttlSeconds = 60 * 60 * 24 * 90) {
+  async createMemberSession(memberId, ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
     const raw = randomToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
@@ -846,6 +875,15 @@ class FileStore {
     }
   }
 
+  #newShortPersonalToken(s, displayName) {
+    for (let i = 0; i < 32; i++) {
+      const raw = makeShortPersonalToken(displayName);
+      const hash = shortPersonalTokenHash(raw);
+      if (!(s.memberTokens || []).some((t) => t.shortTokenHash === hash)) return { raw, hash };
+    }
+    throw new Error('Impossible de générer un lien personnel court unique.');
+  }
+
   #cleanupMemberTokens(s) {
     if (s.memberTokens.length <= 1500) return;
     const active = s.memberTokens.filter((x) => x.active);
@@ -884,6 +922,7 @@ class FileStore {
       if (!safeIsoInstant(m?.createdAt)) issues.push(`member_created_at_invalid:${m?.id || '?'}`);
     }
     const tokenHashes = new Set();
+    const shortTokenHashes = new Set();
     const activeTokenMembers = new Set();
     for (const t of this.state.memberTokens) {
       if (!memberIds.has(t?.memberId)) issues.push(`token_orphan:${t?.id || '?'}`);
@@ -892,6 +931,12 @@ class FileStore {
       if (!/^[a-f0-9]{64}$/i.test(String(t?.tokenHash || ''))) issues.push(`token_hash_invalid:${t?.id || '?'}`);
       else if (tokenHashes.has(t.tokenHash)) issues.push(`token_hash_duplicate:${t?.id || '?'}`);
       else tokenHashes.add(t.tokenHash);
+      if (t?.shortTokenHash != null) {
+        const shortHash = String(t.shortTokenHash || '');
+        if (!/^[a-f0-9]{64}$/i.test(shortHash)) issues.push(`short_token_hash_invalid:${t?.id || '?'}`);
+        else if (shortTokenHashes.has(shortHash)) issues.push(`short_token_hash_duplicate:${t?.id || '?'}`);
+        else shortTokenHashes.add(shortHash);
+      }
       if (!safeIsoInstant(t?.createdAt)) issues.push(`token_created_at_invalid:${t?.id || '?'}`);
       if (t?.revokedAt && !safeIsoInstant(t.revokedAt)) issues.push(`token_revoked_at_invalid:${t?.id || '?'}`);
     }
@@ -1026,15 +1071,19 @@ class FileStore {
       members.push({ id, displayName, active: !!m.active, createdAt: safeIsoInstant(m?.createdAt) || this.now().toISOString() });
     }
     if (!Array.isArray(src.memberTokens) || src.memberTokens.length > 1500) return { ok: false, status: 400, error: 'Liens personnels invalides dans la sauvegarde.' };
-    const memberTokens = []; const hashes = new Set(); const activeTokenMembers = new Set();
+    const memberTokens = []; const hashes = new Set(); const shortHashes = new Set(); const activeTokenMembers = new Set();
     for (const t of src.memberTokens) {
       const tokenHashValue = String(t?.tokenHash || '');
+      const shortTokenHashValue = t?.shortTokenHash == null ? '' : String(t.shortTokenHash || '');
       if (typeof t?.active !== 'boolean') return { ok: false, status: 400, error: 'État actif/révoqué invalide pour un lien personnel.' };
       if (t.active) { if (activeTokenMembers.has(t.memberId)) return { ok: false, status: 400, error: 'Plusieurs liens personnels actifs existent pour le même membre.' }; activeTokenMembers.add(t.memberId); }
       if (!ids.has(t?.memberId) || !/^[a-f0-9]{64}$/i.test(tokenHashValue) || hashes.has(tokenHashValue)) return { ok: false, status: 400, error: 'Lien personnel invalide dans la sauvegarde.' };
+      if (shortTokenHashValue && (!/^[a-f0-9]{64}$/i.test(shortTokenHashValue) || shortHashes.has(shortTokenHashValue.toLowerCase()))) return { ok: false, status: 400, error: 'Lien personnel court invalide dans la sauvegarde.' };
       hashes.add(tokenHashValue);
+      if (shortTokenHashValue) shortHashes.add(shortTokenHashValue.toLowerCase());
       memberTokens.push({
-        id: String(t.id || `t_${randomToken(10)}`).slice(0, 120), memberId: t.memberId, tokenHash: tokenHashValue.toLowerCase(), active: !!t.active,
+        id: String(t.id || `t_${randomToken(10)}`).slice(0, 120), memberId: t.memberId, tokenHash: tokenHashValue.toLowerCase(),
+        ...(shortTokenHashValue ? { shortTokenHash: shortTokenHashValue.toLowerCase() } : {}), active: !!t.active,
         createdAt: safeIsoInstant(t?.createdAt) || this.now().toISOString(), revokedAt: t.revokedAt ? safeIsoInstant(t.revokedAt) : null
       });
       if (t.revokedAt && !memberTokens.at(-1).revokedAt) warnings.push('date_revocation_corrigee');
@@ -1397,10 +1446,11 @@ class FileStore {
       if (s.members.length >= 500) return { ok: false, status: 409, error: 'Limite de membres atteinte.' };
       const member = { id, displayName: clean, active: true, createdAt: this.now().toISOString() };
       s.members.push(member);
-      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
+      const short = this.#newShortPersonalToken(s, clean);
+      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'membre_cree', null, { memberId: id, name: clean });
-      return { ok: true, member: { id, name: clean }, rawToken: raw };
+      return { ok: true, member: { id, name: clean }, rawToken: raw, shortToken: short.raw };
     });
   }
 
@@ -1454,12 +1504,14 @@ class FileStore {
           if (changedDay && !Object.keys(roles).length) delete s.roleAssignments[date];
         }
       }
+      let short = null;
       if (requested) {
-        s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
+        short = this.#newShortPersonalToken(s, m.displayName);
+        s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
         this.#cleanupMemberTokens(s);
       }
       this.#log(s, 'Administrateur', requested ? 'membre_reactive' : 'membre_desactive', null, { memberId, name: m.displayName, futureAttendanceRemoved });
-      return { ok: true, changed: true, member: { id: m.id, name: m.displayName }, rawToken: requested ? raw : undefined, futureAttendanceRemoved };
+      return { ok: true, changed: true, member: { id: m.id, name: m.displayName }, rawToken: requested ? raw : undefined, shortToken: requested ? short.raw : undefined, futureAttendanceRemoved };
     });
   }
 
@@ -1470,10 +1522,11 @@ class FileStore {
       if (!m) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
       for (const t of s.memberTokens.filter((t) => t.memberId === memberId && t.active)) { t.active = false; t.revokedAt = this.now().toISOString(); }
       this.#revokeMemberSessions(s, memberId);
-      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
+      const short = this.#newShortPersonalToken(s, m.displayName);
+      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'lien_regenere', null, { memberId, name: m.displayName });
-      return { ok: true, member: { id: m.id, name: m.displayName }, rawToken: raw };
+      return { ok: true, member: { id: m.id, name: m.displayName }, rawToken: raw, shortToken: short.raw };
     });
   }
 
@@ -1488,7 +1541,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.5.1-admin-code-vercel';
+const APP_VERSION = '0.15.6.0-short-member-links-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1518,6 +1571,12 @@ if (adminCode && (Array.from(adminCode).length !== 6 || /[\r\n\t]/.test(adminCod
   configurationError('ADMIN_CODE doit contenir exactement 6 caractères visibles.');
 }
 const adminCodeHash = adminCode ? tokenHash(`admin-code-v1:${adminCode}`) : '';
+// Le code membre court n'est jamais stocké en clair ni sous forme d'un simple SHA-256 brut.
+// Le long secret admin de secours sert de pepper afin qu'une copie isolée du Blob ne permette pas
+// de tester hors-ligne les 1 000 000 combinaisons numériques de chaque prénom.
+const memberShortPepper = crypto.createHash('sha256')
+  .update(`member-short-pepper-v1:${adminTokenHash || adminCodeHash}`, 'utf8')
+  .digest();
 const adminCredentialTag = (adminTokenHash || adminCodeHash)
   ? tokenHash(`admin-credential-v2:${adminTokenHash}:${adminCodeHash}`).slice(0, 32)
   : '';
@@ -1678,7 +1737,7 @@ export async function requestHandler(req, res) {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);
     }
-    if (['/calendar','/join','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
+    if (['/calendar','/join','/join-short','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
 
     // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
     // récente. Le chemin Blob conservateur courant utilise HEAD + GET.
@@ -1702,8 +1761,28 @@ export async function requestHandler(req, res) {
       if (!member) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
       const session = await store.createMemberSession(member.id);
       if (!session.ok) return json(res, session.status, { error: session.error });
-      const csrf = csrfCookie('club_member_csrf', secure, 60 * 60 * 24 * 90);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: 60 * 60 * 24 * 90 }), csrf.header] });
+      const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
+      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
+    }
+    if (pathname === '/api/session/member-short' && req.method === 'POST') {
+      const ip = getIp(req);
+      if (limited(`member-short-login:${ip}`, 8, 15 * 60_000) || limited('member-short-login-global', 240, 15 * 60_000)) {
+        return json(res, 429, { error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
+      }
+      if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
+      const b = await bodyJson(req, 4096);
+      const raw = String(b.shortToken || '').trim().normalize('NFC');
+      if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(raw)) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
+      const prefix = raw.slice(0, -6).toLocaleLowerCase('fr-FR');
+      if (limited(`member-short-name:${tokenHash(prefix).slice(0, 24)}`, 12, 60 * 60_000)) {
+        return json(res, 429, { error: 'Trop de tentatives pour ce lien. Réessaie plus tard.' });
+      }
+      const member = store.findMemberByShortToken(raw);
+      if (!member) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
+      const session = await store.createMemberSession(member.id);
+      if (!session.ok) return json(res, session.status, { error: session.error });
+      const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
+      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
     }
     if (pathname === '/api/session/admin' && req.method === 'POST') {
       const ip = getIp(req);
