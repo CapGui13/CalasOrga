@@ -40,7 +40,7 @@
     },
     {
       "source": "/admin-login",
-      "destination": "/index.html"
+      "destination": "/admin-login.html"
     }
   ],
   "headers": [
@@ -81,7 +81,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-YYOgZzrFu//lVHSbazEKwXIN31Cdo2eD6PpzO4o8lWE='; style-src 'self' 'sha256-d3Jw8nzya/Pn6nWwWo0G5M9PdpFHXIseJ55Emj/YdSE='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-kRzxoFLf+H28x5S6MVZKi/BWokTFUD4DLV4BhmWpAkM=' 'sha256-YYOgZzrFu//lVHSbazEKwXIN31Cdo2eD6PpzO4o8lWE='; style-src 'self' 'sha256-ImiPVOQT+YjjzzJNj2tCxHftqDUGSn3cWP887N2ydW8=' 'sha256-d3Jw8nzya/Pn6nWwWo0G5M9PdpFHXIseJ55Emj/YdSE='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         }
       ]
     }
