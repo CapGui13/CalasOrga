@@ -331,7 +331,7 @@ class FileStore {
     this.now = now;
     this.state = null;
     this.queue = Promise.resolve();
-    const configuredConfirmationBasis = process.env.CONFIRMATION_SECRET || process.env.ADMIN_TOKEN_SHA256 || process.env.ADMIN_TOKEN || '';
+    const configuredConfirmationBasis = process.env.CONFIRMATION_SECRET || process.env.ADMIN_TOKEN_SHA256 || process.env.ADMIN_TOKEN || process.env.ADMIN_CODE || '';
     this.confirmationSecret = configuredConfirmationBasis
       ? sha256Text(`confirmation-v1:${configuredConfirmationBasis}`)
       : randomToken(32);
@@ -1488,7 +1488,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.4.4-complete-vercel';
+const APP_VERSION = '0.15.5.0-admin-code-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1496,6 +1496,7 @@ let demoRootHits = 0;
 const trustProxy = isVercelRuntime || ['1', 'true', 'yes'].includes(String(process.env.TRUST_PROXY || '').toLowerCase());
 const adminToken = process.env.ADMIN_TOKEN || (demoMode ? 'demo-admin-V1' : '');
 const configuredAdminHash = String(process.env.ADMIN_TOKEN_SHA256 || '').trim().toLowerCase();
+const adminCode = String(process.env.ADMIN_CODE || '').trim();
 
 function configurationError(message) {
   if (isMainModule(import.meta.url)) {
@@ -1513,13 +1514,19 @@ if (isVercelRuntime && !process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_S
 }
 
 const adminTokenHash = configuredAdminHash || (adminToken ? tokenHash(adminToken) : '');
-const adminCredentialTag = adminTokenHash ? tokenHash(`admin-credential-v1:${adminTokenHash}`).slice(0, 32) : '';
+if (adminCode && !/^\d{8,12}$/.test(adminCode)) {
+  configurationError('ADMIN_CODE doit contenir uniquement 8 à 12 chiffres.');
+}
+const adminCodeHash = adminCode ? tokenHash(`admin-code-v1:${adminCode}`) : '';
+const adminCredentialTag = (adminTokenHash || adminCodeHash)
+  ? tokenHash(`admin-credential-v2:${adminTokenHash}:${adminCodeHash}`).slice(0, 32)
+  : '';
 const now = process.env.NODE_ENV === 'test' && process.env.NOW_OVERRIDE ? () => new Date(process.env.NOW_OVERRIDE) : () => new Date();
 
-if (!adminTokenHash) {
-  configurationError('ADMIN_TOKEN ou ADMIN_TOKEN_SHA256 est obligatoire hors DEMO_MODE.');
+if (!adminTokenHash && !adminCodeHash) {
+  configurationError('ADMIN_TOKEN/ADMIN_TOKEN_SHA256 ou ADMIN_CODE est obligatoire hors DEMO_MODE.');
 }
-if (!demoMode && !configuredAdminHash && adminToken.length < 24) {
+if (!demoMode && adminTokenHash && !configuredAdminHash && adminToken.length < 24) {
   configurationError('ADMIN_TOKEN est trop court : utilisez au moins 24 caractères, ou de préférence ADMIN_TOKEN_SHA256.');
 }
 
@@ -1699,13 +1706,20 @@ export async function requestHandler(req, res) {
       return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: 60 * 60 * 24 * 90 }), csrf.header] });
     }
     if (pathname === '/api/session/admin' && req.method === 'POST') {
-      if (limited(`admin-login:${getIp(req)}`, 20)) return json(res, 429, { error: 'Trop de tentatives.' });
+      const ip = getIp(req);
+      if (limited(`admin-login:${ip}`, 8, 10 * 60_000) || limited('admin-login-global', 80, 10 * 60_000)) {
+        return json(res, 429, { error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
+      }
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
-      const b = await bodyJson(req, 4096); const raw = String(b.token || '');
-      if (!timingSafeHexEqual(tokenHash(raw), adminTokenHash)) return json(res, 401, { error: 'Lien administrateur invalide.' });
+      const b = await bodyJson(req, 4096);
+      const raw = String(b.token || '');
+      const code = String(b.code || '').trim();
+      const tokenOk = !!(raw && adminTokenHash && timingSafeHexEqual(tokenHash(raw), adminTokenHash));
+      const codeOk = !!(code && adminCodeHash && timingSafeHexEqual(tokenHash(`admin-code-v1:${code}`), adminCodeHash));
+      if (!tokenOk && !codeOk) return json(res, 401, { error: 'Code administrateur incorrect.' });
       const session = await store.createAdminSession(60 * 60 * 8, adminCredentialTag);
       const csrf = csrfCookie('club_admin_csrf', secure, 60 * 60 * 8);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] });
+      return json(res, 200, { ok: true, loginMode: codeOk ? 'code' : 'recovery-token' }, { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] });
     }
 
     if (pathname === '/api/me' && req.method === 'GET') {
