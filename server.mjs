@@ -1541,7 +1541,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.6.0-short-member-links-vercel';
+const APP_VERSION = '0.15.6.1-short-member-links-switch-confirm-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1779,10 +1779,19 @@ export async function requestHandler(req, res) {
       }
       const member = store.findMemberByShortToken(raw);
       if (!member) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
+      const current = sessionMember(req).member;
+      if (current && current.id !== member.id && b.confirmSwitch !== true) {
+        return json(res, 409, {
+          error: `Cet appareil est déjà associé à ${current.displayName}.`,
+          requiresIdentitySwitch: true,
+          currentMember: { id: current.id, name: current.displayName },
+          targetMember: { id: member.id, name: member.displayName }
+        });
+      }
       const session = await store.createMemberSession(member.id);
       if (!session.ok) return json(res, session.status, { error: session.error });
       const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
+      return json(res, 200, { ok: true, member: { id: member.id, name: member.displayName } }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
     }
     if (pathname === '/api/session/admin' && req.method === 'POST') {
       const ip = getIp(req);
