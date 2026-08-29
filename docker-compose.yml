@@ -7,6 +7,8 @@ services:
     environment:
       ADMIN_TOKEN: "${ADMIN_TOKEN}"
       ADMIN_TOKEN_SHA256: "${ADMIN_TOKEN_SHA256:-}"
+      ADMIN_CODE: "${ADMIN_CODE:-}"
+      MEMBER_SHORT_SECRET: "${MEMBER_SHORT_SECRET:-}"
       DATA_FILE: /app/data/store.json
       PORT: 3000
       TRUST_PROXY: "${TRUST_PROXY:-0}"
