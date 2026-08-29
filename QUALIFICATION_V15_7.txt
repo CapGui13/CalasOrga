@@ -1,0 +1,20 @@
+CALASORGA V15.7 — QUALIFICATION
+
+Candidat : 0.15.7.0-device-security-performance-vercel
+
+Changements ciblés :
+- invalidation automatique du marqueur navigateur lorsque la session membre n’est plus valide ;
+- MEMBER_SHORT_SECRET indépendant, avec compatibilité des liens V15.6 ;
+- gestion des appareils depuis l’administration ;
+- connexion membre/admin optimisée : une lecture Blob et pas de snapshots auxiliaires pour une simple session ;
+- polling adaptatif 2 s / 5 s / 10 s ;
+- dépôt et documentation alignés sur V15.7 ;
+- vouvoiement généralisé dans les textes utilisateur.
+
+Gates attendus :
+- npm run check
+- npm test
+- contrôle CSP du script inline
+- test réel Vercel : admin, un lien membre, révocation d’appareil, reconnexion
+
+Note : MEMBER_SHORT_SECRET doit être configuré dans Vercel avec au moins 32 caractères et rester stable.

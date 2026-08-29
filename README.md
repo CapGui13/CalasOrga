@@ -1,80 +1,87 @@
-# CalasOrga — V15.4 complète
+# CalasOrga — V15.7
 
-Calendrier partagé du club, prêt pour les tests réels multi-téléphones sur Vercel.
+Calendrier partagé du club. Production : **Vercel + Vercel Blob privé**. GitHub Pages sert de porte d’entrée stable pour les membres et l’administration.
 
-## Interface membre
+## Accès membre
 
-Une ligne par date et cinq colonnes d'inscription : **Accueil / TPE / MEP / Arbitrage / Présent**.
-Chaque membre voit les personnes déjà inscrites et ne peut modifier que ses propres cases.
-Les jours ouverts par défaut sont **lundi, mardi et jeudi**.
-
-Membres initiaux : **Odile, Guillaume, Sylvie, Caroline, Véronique, Gérard, Patrick, Christian, Armelle, Pascal**.
-
-## V15.4 — réactivité
-
-- affichage optimiste : le nom apparaît immédiatement au clic ;
-- si le serveur refuse l'écriture, l'interface revient automatiquement à l'état confirmé et affiche l'erreur ;
-- rafraîchissement membre toutes les **5 secondes** uniquement lorsque la page est visible et qu'aucune écriture locale n'est en cours ;
-- ouverture de l'HTML sans lecture Blob inutile ;
-- lecture Blob principale en **GET unique** avec récupération de l'ETag, sans HEAD systématique ;
-- GET conditionnel (`ifNoneMatch`) lors des rafraîchissements ;
-- une mutation normale n'effectue plus une seconde relecture avant le PUT : l'ETag `ifMatch` protège toujours la concurrence et force une relecture/retry en cas de conflit ;
-- les snapshots de récupération `.bak` et `.good` restent conservés ;
-- `/` ou `/calendar` sans lien personnel affichent désormais une explication au lieu d'une page blanche ;
-- `/admin-login` sans clé affiche une explication au lieu d'une page blanche.
-
-## Sécurité et robustesse conservées
-
-- stockage partagé **Vercel Blob privé** ;
-- liens personnels révocables ;
-- sessions membre et administrateur ;
-- permissions contrôlées côté serveur ;
-- cookies SameSite/HttpOnly/Secure ;
-- protections CSRF, origine, CSP et Sec-Fetch-Site ;
-- ETag + retry pour empêcher les écrasements lors de modifications simultanées ;
-- historique ;
-- sauvegarde complète, validation et restauration ;
-- récupération depuis `.good` / `.bak` si le stockage principal est illisible ;
-- fermetures exceptionnelles avec confirmation liée à l'état exact des inscriptions ;
-- export CSV et correction administrateur ;
-- horizon membre limité à 366 jours.
-
-## Déploiement Vercel
-
-Le projet Vercel doit disposer de :
-
-- `ADMIN_TOKEN` (secret administrateur long) ;
-- un **Blob privé connecté** au projet, qui crée `BLOB_STORE_ID` et `BLOB_READ_WRITE_TOKEN` ;
-- `BLOB_STATE_PATH=calasorga/store.json` si l'on souhaite conserver ce chemin explicite.
-
-Contrôle de santé :
+Les liens personnels courts ont la forme :
 
 ```text
-https://TON-PROJET.vercel.app/healthz
+https://capgui13.github.io/CalasOrga/#Prenom123456
 ```
 
-Résultat attendu :
+Lors de la première ouverture, le lien est vérifié côté serveur et une session longue durée est créée sur l’appareil. Ensuite, l’ouverture de `https://capgui13.github.io/CalasOrga/` renvoie automatiquement vers le calendrier de ce membre. Si la session a été révoquée ou a expiré, le marqueur local est supprimé et l’application demande d’ouvrir à nouveau le lien personnel.
+
+Les anciens liens longs V15.6 restent acceptés pendant la transition.
+
+## Administration
+
+Porte d’entrée stable :
+
+```text
+https://capgui13.github.io/CalasOrga/Admin/
+```
+
+Le code administrateur de 6 caractères est vérifié côté serveur. Le long `ADMIN_TOKEN` reste utilisable comme secret de secours.
+
+L’administration affiche le nombre d’appareils actuellement connectés pour chaque membre et permet de **déconnecter tous ses appareils** sans révoquer son lien personnel.
+
+## Synchronisation et performance
+
+- affichage optimiste lors d’une inscription ;
+- rafraîchissement membre adaptatif : **2 s** après activité récente, puis **5 s**, puis **10 s** après une longue période sans interaction ;
+- rafraîchissement immédiat au retour sur la page ;
+- le polling est suspendu lorsque la page n’est pas visible ;
+- les connexions membre/admin évitent désormais la double lecture Blob et n’écrivent pas les snapshots `.bak/.good` pour une simple création de session ;
+- les mutations métier conservent ETag + retry et les snapshots de récupération.
+
+## Sécurité
+
+- stockage partagé Vercel Blob privé ;
+- permissions contrôlées côté serveur ;
+- cookies `HttpOnly`, `Secure`, `SameSite=Strict` en HTTPS ;
+- protections CSRF, origine, CSP et `Sec-Fetch-Site` ;
+- liens personnels révocables ;
+- maximum de 5 sessions membre actives par personne ;
+- changement d’identité sur un appareil déjà associé soumis à confirmation ;
+- codes courts membres protégés par HMAC ;
+- `MEMBER_SHORT_SECRET` indépendant des identifiants administrateur ;
+- compatibilité avec le pepper V15.6 pour les liens courts déjà distribués ;
+- récupération `.good` / `.bak` avec révocation de toutes les sessions et de tous les liens actifs ;
+- sauvegarde, validation, restauration et protection contre les écritures concurrentes.
+
+## Variables Vercel
+
+Variables requises/recommandées :
+
+```text
+ADMIN_TOKEN=<secret long de secours>
+ADMIN_CODE=<code administrateur de 6 caractères>
+MEMBER_SHORT_SECRET=<secret aléatoire indépendant, au moins 32 caractères>
+BLOB_STATE_PATH=calasorga/store.json
+```
+
+Vercel ajoute les variables du Blob privé (`BLOB_STORE_ID`, `BLOB_READ_WRITE_TOKEN`).
+
+**Important :** `MEMBER_SHORT_SECRET` doit rester stable. Une fois configuré, ne le changez pas. Les liens V15.6 historiques restent compatibles grâce au pepper de transition.
+
+## Santé
+
+```text
+https://calasorga.vercel.app/healthz
+```
+
+Réponse attendue en V15.7 :
 
 ```json
-{"ok":true,"appVersion":"0.15.4-complete-vercel","storage":"vercel-blob","integrity":true}
+{"ok":true,"appVersion":"0.15.7.0-device-security-performance-vercel","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
-Lien administrateur :
+## Tests
 
-```text
-https://TON-PROJET.vercel.app/admin-login#TON_SECRET_ADMIN
+```bash
+npm run check
+npm test
 ```
 
-Les liens membres sont générés depuis l'administration et ont la forme :
-
-```text
-https://TON-PROJET.vercel.app/join#SECRET_PERSONNEL
-```
-
-## GitHub Pages / fichier HTML local
-
-`index.html` reste autonome pour tester l'interface en mode local. Dans ce mode les données restent dans le navigateur et ne sont pas synchronisées avec Vercel.
-
-## Node / Docker
-
-Le mode serveur Node classique reste disponible. Variables usuelles : `ADMIN_TOKEN`, `DATA_FILE`, `PORT` et éventuellement `TRUST_PROXY=1` derrière un proxy HTTPS.
+Le test V15.7 démarre un serveur local isolé et vérifie notamment : connexion admin, création de liens courts, association d’un appareil, confirmation de changement d’identité, comptage des appareils et révocation des sessions membre.

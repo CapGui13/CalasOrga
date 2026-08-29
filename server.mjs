@@ -193,10 +193,16 @@ function makeShortPersonalToken(name) {
   return `${shortPersonalName(name)}${digits}`;
 }
 
-function shortPersonalTokenHash(raw) {
-  return crypto.createHmac('sha256', memberShortPepper)
+function shortPersonalTokenHash(raw, pepper = memberShortPepper) {
+  return crypto.createHmac('sha256', pepper)
     .update(`member-short-v1:${String(raw || '').normalize('NFC')}`, 'utf8')
     .digest('hex');
+}
+
+function shortPersonalTokenHashCandidates(raw) {
+  const primary = shortPersonalTokenHash(raw, memberShortPepper);
+  const legacy = shortPersonalTokenHash(raw, legacyMemberShortPepper);
+  return primary === legacy ? [primary] : [primary, legacy];
 }
 
 function publicSnapshot(state, currentMemberId = null) {
@@ -598,7 +604,7 @@ class FileStore {
     }
   }
 
-  async #persist({ preserveCurrent = true } = {}) {
+  async #persist({ preserveCurrent = true, snapshots = true } = {}) {
     const text = JSON.stringify(this.state, null, 2);
 
     if (this.remoteBlob) {
@@ -625,14 +631,15 @@ class FileStore {
       }
       this.remoteCurrentText = text;
 
+      // Les écritures de session n'ont pas besoin de réécrire .bak/.good : en cas de
+      // récupération exceptionnelle, toutes les sessions sont de toute façon révoquées.
+      if (!snapshots) return;
       // Les copies auxiliaires n'entrent jamais dans la transaction principale :
       // la réussite du blob principal suffit à valider l'écriture.
-      const snapshots = [];
-      if (preserveCurrent && previousText) {
-        snapshots.push(['.bak', previousText]);
-      }
-      snapshots.push(['.good', text]);
-      const settled = await Promise.allSettled(snapshots.map(([suffix, body]) =>
+      const snapshotWrites = [];
+      if (preserveCurrent && previousText) snapshotWrites.push(['.bak', previousText]);
+      snapshotWrites.push(['.good', text]);
+      const settled = await Promise.allSettled(snapshotWrites.map(([suffix, body]) =>
         api.put(`${this.blobPath}${suffix}`, body, { access: 'private', token, allowOverwrite: true })
       ));
       for (const item of settled) {
@@ -643,7 +650,7 @@ class FileStore {
 
     const tmp = `${this.filePath}.tmp-${process.pid}-${Date.now()}-${randomToken(4)}`;
     await this.#writeDurable(tmp, text);
-    if (preserveCurrent) {
+    if (preserveCurrent && snapshots) {
       try {
         const current = await fs.readFile(this.filePath, 'utf8');
         const backupTmp = `${this.filePath}.bak.tmp-${process.pid}-${Date.now()}-${randomToken(4)}`;
@@ -656,20 +663,22 @@ class FileStore {
     }
     await fs.rename(tmp, this.filePath);
     await this.#syncParentDir();
-    // Dernier état intégralement écrit : utile si le fichier principal est ensuite endommagé.
-    // Cette copie est auxiliaire : son échec ne doit pas transformer une écriture principale déjà validée en erreur ambiguë côté utilisateur.
-    const goodTmp = `${this.filePath}.good.tmp-${process.pid}-${Date.now()}-${randomToken(4)}`;
-    try {
-      await this.#writeDurable(goodTmp, text);
-      await fs.rename(goodTmp, `${this.filePath}.good`);
-      await this.#syncParentDir();
-    } catch (err) {
-      try { await fs.rm(goodTmp, { force: true }); } catch {}
-      console.warn(`Impossible de mettre à jour le snapshot .good : ${err?.message || err}`);
+    if (snapshots) {
+      // Dernier état intégralement écrit : utile si le fichier principal est ensuite endommagé.
+      // Cette copie est auxiliaire : son échec ne doit pas transformer une écriture principale déjà validée en erreur ambiguë côté utilisateur.
+      const goodTmp = `${this.filePath}.good.tmp-${process.pid}-${Date.now()}-${randomToken(4)}`;
+      try {
+        await this.#writeDurable(goodTmp, text);
+        await fs.rename(goodTmp, `${this.filePath}.good`);
+        await this.#syncParentDir();
+      } catch (err) {
+        try { await fs.rm(goodTmp, { force: true }); } catch {}
+        console.warn(`Impossible de mettre à jour le snapshot .good : ${err?.message || err}`);
+      }
     }
   }
 
-  async mutate(fn) {
+  async mutate(fn, { snapshots = true } = {}) {
     const task = this.queue.then(async () => {
       if (this.remoteBlob) {
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -683,7 +692,7 @@ class FileStore {
           if (result && result.ok === false) return result;
           this.state = draft;
           try {
-            await this.#persist();
+            await this.#persist({ snapshots });
             return result;
           } catch (err) {
             this.state = previous;
@@ -703,7 +712,7 @@ class FileStore {
       if (result && result.ok === false) return result;
       this.state = draft;
       try {
-        await this.#persist();
+        await this.#persist({ snapshots });
         return result;
       } catch (err) {
         // Si la persistance échoue avant validation, le serveur revient à l'état précédemment confirmé.
@@ -719,10 +728,14 @@ class FileStore {
     return !!rec?.active && new Date(rec.expiresAt).getTime() > this.now().getTime();
   }
 
-  #findSession(rawToken, kind, credentialTag = null) {
+  #findSessionInState(state, rawToken, kind, credentialTag = null) {
     const hash = tokenHash(rawToken);
     if (!rawToken || !hash) return null;
-    return this.state.sessions.find((s) => s.kind === kind && s.tokenHash === hash && this.#sessionAlive(s) && (credentialTag == null || s.credentialTag === credentialTag)) || null;
+    return state.sessions.find((s) => s.kind === kind && s.tokenHash === hash && this.#sessionAlive(s) && (credentialTag == null || s.credentialTag === credentialTag)) || null;
+  }
+
+  #findSession(rawToken, kind, credentialTag = null) {
+    return this.#findSessionInState(this.state, rawToken, kind, credentialTag);
   }
 
   findMemberByRawToken(rawToken) {
@@ -736,8 +749,8 @@ class FileStore {
   findMemberByShortToken(rawToken) {
     const clean = String(rawToken || '').normalize('NFC');
     if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(clean)) return null;
-    const hash = shortPersonalTokenHash(clean);
-    const rec = this.state.memberTokens.find((t) => t.active && t.shortTokenHash === hash);
+    const hashes = new Set(shortPersonalTokenHashCandidates(clean));
+    const rec = this.state.memberTokens.find((t) => t.active && hashes.has(t.shortTokenHash));
     if (!rec) return null;
     return this.state.members.find((x) => x.id === rec.memberId && x.active) || null;
   }
@@ -752,27 +765,76 @@ class FileStore {
     return !!this.#findSession(rawToken, 'admin', credentialTag);
   }
 
+  #appendMemberSession(s, memberId, raw, expiresAt, now) {
+    const member = s.members.find((m) => m.id === memberId && m.active);
+    if (!member) return { ok: false, status: 401, error: 'Membre inactif ou introuvable.' };
+    this.#cleanupSessions(s);
+    const activeForMember = s.sessions.filter((rec) => rec.kind === 'member' && rec.memberId === memberId && rec.active && this.#sessionAlive(rec))
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    while (activeForMember.length >= 5) {
+      const oldest = activeForMember.shift();
+      oldest.active = false; oldest.revokedAt = now.toISOString();
+    }
+    s.sessions.push({
+      id: `s_${randomToken(10)}`, kind: 'member', memberId,
+      tokenHash: tokenHash(raw), active: true,
+      createdAt: now.toISOString(), expiresAt, revokedAt: null
+    });
+    return { ok: true, rawToken: raw, expiresAt, member: { id: member.id, name: member.displayName } };
+  }
+
   async createMemberSession(memberId, ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
     const raw = randomToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
+    return this.mutate((s) => this.#appendMemberSession(s, memberId, raw, expiresAt, now), { snapshots: false });
+  }
+
+  async loginMemberByRawToken(rawToken, currentRawSession = '', ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
+    const rawSession = randomToken();
+    const now = this.now();
+    const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
+    const linkHash = tokenHash(rawToken);
     return this.mutate((s) => {
-      const member = s.members.find((m) => m.id === memberId && m.active);
-      if (!member) return { ok: false, status: 401, error: 'Membre inactif ou introuvable.' };
-      this.#cleanupSessions(s);
-      const activeForMember = s.sessions.filter((rec) => rec.kind === 'member' && rec.memberId === memberId && rec.active && this.#sessionAlive(rec))
-        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
-      while (activeForMember.length >= 5) {
-        const oldest = activeForMember.shift();
-        oldest.active = false; oldest.revokedAt = now.toISOString();
+      const rec = s.memberTokens.find((t) => t.active && t.tokenHash === linkHash);
+      if (!rec) return { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
+      const currentSession = currentRawSession ? this.#findSessionInState(s, currentRawSession, 'member') : null;
+      if (currentSession?.memberId === rec.memberId) {
+        currentSession.active = false;
+        currentSession.revokedAt = now.toISOString();
       }
-      s.sessions.push({
-        id: `s_${randomToken(10)}`, kind: 'member', memberId,
-        tokenHash: tokenHash(raw), active: true,
-        createdAt: now.toISOString(), expiresAt, revokedAt: null
-      });
-      return { ok: true, rawToken: raw, expiresAt };
-    });
+      return this.#appendMemberSession(s, rec.memberId, rawSession, expiresAt, now);
+    }, { snapshots: false });
+  }
+
+  async loginMemberByShortToken(rawToken, currentRawSession = '', confirmSwitch = false, ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
+    const clean = String(rawToken || '').trim().normalize('NFC');
+    if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(clean)) return { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
+    const hashes = new Set(shortPersonalTokenHashCandidates(clean));
+    const rawSession = randomToken();
+    const now = this.now();
+    const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
+    return this.mutate((s) => {
+      const rec = s.memberTokens.find((t) => t.active && hashes.has(t.shortTokenHash));
+      const target = rec ? s.members.find((m) => m.id === rec.memberId && m.active) : null;
+      if (!target) return { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
+      const currentSession = currentRawSession ? this.#findSessionInState(s, currentRawSession, 'member') : null;
+      const current = currentSession ? s.members.find((m) => m.id === currentSession.memberId && m.active) : null;
+      if (current && current.id !== target.id && confirmSwitch !== true) {
+        return {
+          ok: false, status: 409,
+          error: `Cet appareil est déjà associé à ${current.displayName}.`,
+          requiresIdentitySwitch: true,
+          currentMember: { id: current.id, name: current.displayName },
+          targetMember: { id: target.id, name: target.displayName }
+        };
+      }
+      if (currentSession) {
+        currentSession.active = false;
+        currentSession.revokedAt = now.toISOString();
+      }
+      return this.#appendMemberSession(s, target.id, rawSession, expiresAt, now);
+    }, { snapshots: false });
   }
 
   async createAdminSession(ttlSeconds = 60 * 60 * 8, credentialTag = null) {
@@ -787,7 +849,7 @@ class FileStore {
         createdAt: now.toISOString(), expiresAt, revokedAt: null
       });
       return { ok: true, rawToken: raw, expiresAt };
-    });
+    }, { snapshots: false });
   }
 
   async revokeSessionRaw(rawToken) {
@@ -802,7 +864,7 @@ class FileStore {
         }
       }
       return { ok: true, changed };
-    });
+    }, { snapshots: false });
   }
 
 
@@ -817,6 +879,16 @@ class FileStore {
         }
       }
       if (revoked) this.#log(s, 'Administrateur', 'sessions_admin_revoquees', null, { count: revoked });
+      return { ok: true, revoked };
+    });
+  }
+
+  async revokeMemberSessionsByAdmin(memberId) {
+    return this.mutate((s) => {
+      const member = s.members.find((m) => m.id === memberId);
+      if (!member) return { ok: false, status: 404, error: 'Membre introuvable.' };
+      const revoked = this.#revokeMemberSessions(s, memberId);
+      if (revoked) this.#log(s, 'Administrateur', 'sessions_membre_revoquees', null, { memberId, name: member.displayName, count: revoked });
       return { ok: true, revoked };
     });
   }
@@ -845,12 +917,15 @@ class FileStore {
     }
   }
   #revokeMemberSessions(s, memberId) {
+    let revoked = 0;
     for (const rec of s.sessions) {
       if (rec.kind === 'member' && rec.memberId === memberId && rec.active) {
         rec.active = false;
         rec.revokedAt = this.now().toISOString();
+        revoked += 1;
       }
     }
+    return revoked;
   }
 
   #cleanupSessions(s) {
@@ -1213,6 +1288,17 @@ class FileStore {
     const n = Math.max(1, Math.min(5000, Number(limit) || 5000));
     return clone(this.state.auditLog.slice(-n).reverse());
   }
+  #memberSessionSummary(memberId) {
+    const active = this.state.sessions
+      .filter((rec) => rec.kind === 'member' && rec.memberId === memberId && this.#sessionAlive(rec))
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    return {
+      deviceCount: active.length,
+      oldestDeviceAt: active[0]?.createdAt || null,
+      latestDeviceAt: active.at(-1)?.createdAt || null
+    };
+  }
+
   adminSnapshot() {
     const base = publicSnapshot(this.state);
     base.members = this.state.members.map((m) => ({ id: m.id, name: m.displayName, active: !!m.active }));
@@ -1227,7 +1313,8 @@ class FileStore {
         name: m.displayName,
         active: !!m.active,
         createdAt: m.createdAt,
-        hasActiveLink: this.state.memberTokens.some((t) => t.memberId === m.id && t.active)
+        hasActiveLink: this.state.memberTokens.some((t) => t.memberId === m.id && t.active),
+        ...this.#memberSessionSummary(m.id)
       })),
       auditLog: this.state.auditLog.slice(-200).reverse(),
       integrity: this.integrityReport()
@@ -1262,7 +1349,7 @@ class FileStore {
 
   #setRoleInState(s, member, date, role, present, actor, action) {
     if (!Object.hasOwn(s.roleAssignments, date) && present && Object.keys(s.roleAssignments).length >= 5000) {
-      return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archive ou nettoie les anciennes données.' };
+      return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
     }
     const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object' ? clone(s.roleAssignments[date]) : {};
     const set = new Set(Array.isArray(roles[role]) ? roles[role] : []);
@@ -1296,7 +1383,7 @@ class FileStore {
 
   #setAttendanceInState(s, member, date, present, actor, action) {
     if (present && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
-      return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archive ou nettoie les anciennes données.' };
+      return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archivez ou nettoyez les anciennes données.' };
     }
     const set = new Set(Array.isArray(s.attendance[date]) ? s.attendance[date] : []);
     const had = set.has(member.id);
@@ -1541,7 +1628,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.6.1-short-member-links-switch-confirm-vercel';
+const APP_VERSION = '0.15.7.0-device-security-performance-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1550,6 +1637,7 @@ const trustProxy = isVercelRuntime || ['1', 'true', 'yes'].includes(String(proce
 const adminToken = process.env.ADMIN_TOKEN || (demoMode ? 'demo-admin-V1' : '');
 const configuredAdminHash = String(process.env.ADMIN_TOKEN_SHA256 || '').trim().toLowerCase();
 const adminCode = String(process.env.ADMIN_CODE || '').trim();
+const memberShortSecret = String(process.env.MEMBER_SHORT_SECRET || '').trim();
 
 function configurationError(message) {
   if (isMainModule(import.meta.url)) {
@@ -1571,12 +1659,22 @@ if (adminCode && (Array.from(adminCode).length !== 6 || /[\r\n\t]/.test(adminCod
   configurationError('ADMIN_CODE doit contenir exactement 6 caractères visibles.');
 }
 const adminCodeHash = adminCode ? tokenHash(`admin-code-v1:${adminCode}`) : '';
-// Le code membre court n'est jamais stocké en clair ni sous forme d'un simple SHA-256 brut.
-// Le long secret admin de secours sert de pepper afin qu'une copie isolée du Blob ne permette pas
-// de tester hors-ligne les 1 000 000 combinaisons numériques de chaque prénom.
-const memberShortPepper = crypto.createHash('sha256')
+if (memberShortSecret && memberShortSecret.length < 32) {
+  configurationError('MEMBER_SHORT_SECRET doit contenir au moins 32 caractères.');
+}
+// V15.7 : les liens courts membres utilisent un secret indépendant des identifiants admin.
+// Le pepper historique reste accepté uniquement pour que les liens V15.6 déjà distribués
+// continuent de fonctionner pendant la transition.
+const legacyMemberShortPepper = crypto.createHash('sha256')
   .update(`member-short-pepper-v1:${adminTokenHash || adminCodeHash}`, 'utf8')
   .digest();
+const memberShortPepper = memberShortSecret
+  ? crypto.createHash('sha256').update(`member-short-secret-v1:${memberShortSecret}`, 'utf8').digest()
+  : legacyMemberShortPepper;
+const memberShortSecretMode = memberShortSecret ? 'dedicated' : 'legacy-fallback';
+if (!demoMode && !memberShortSecret) {
+  console.warn('MEMBER_SHORT_SECRET absent : compatibilité V15.6 active. Configurez un secret dédié d’au moins 32 caractères.');
+}
 const adminCredentialTag = (adminTokenHash || adminCodeHash)
   ? tokenHash(`admin-credential-v2:${adminTokenHash}:${adminCodeHash}`).slice(0, 32)
   : '';
@@ -1739,35 +1837,23 @@ export async function requestHandler(req, res) {
     }
     if (['/calendar','/join','/join-short','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
 
-    // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
-    // récente. Le chemin Blob conservateur courant utilise HEAD + GET.
-    await store.refresh();
 
-    if (pathname === '/healthz' && req.method === 'GET') {
-      const integrity = store.integrityReport();
-      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', integrity: integrity.ok });
-    }
-    if (pathname === '/readyz' && req.method === 'GET') {
-      const integrity = store.integrityReport();
-      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file' });
-    }
-    if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
-
+    // Connexions : une seule lecture Blob + une seule écriture principale. Les snapshots
+    // auxiliaires ne sont pas réécrits pour une simple création de session.
     if (pathname === '/api/session/member' && req.method === 'POST') {
       if (limited(`member-login:${getIp(req)}`, 40)) return json(res, 429, { error: 'Trop de tentatives.' });
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
       const b = await bodyJson(req, 4096); const raw = String(b.token || '');
-      const member = raw ? store.findMemberByRawToken(raw) : null;
-      if (!member) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
-      const session = await store.createMemberSession(member.id);
-      if (!session.ok) return json(res, session.status, { error: session.error });
+      const cookies = parseCookies(req.headers.cookie || '');
+      const result = raw ? await store.loginMemberByRawToken(raw, cookies.club_session || '') : { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
+      if (!result.ok) return json(res, result.status, { error: result.error });
       const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
-      return json(res, 200, { ok: true }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
+      return json(res, 200, { ok: true, member: result.member }, { 'Set-Cookie': [cookie('club_session', result.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
     }
     if (pathname === '/api/session/member-short' && req.method === 'POST') {
       const ip = getIp(req);
       if (limited(`member-short-login:${ip}`, 8, 15 * 60_000) || limited('member-short-login-global', 240, 15 * 60_000)) {
-        return json(res, 429, { error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
+        return json(res, 429, { error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
       }
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
       const b = await bodyJson(req, 4096);
@@ -1775,28 +1861,18 @@ export async function requestHandler(req, res) {
       if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(raw)) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
       const prefix = raw.slice(0, -6).toLocaleLowerCase('fr-FR');
       if (limited(`member-short-name:${tokenHash(prefix).slice(0, 24)}`, 12, 60 * 60_000)) {
-        return json(res, 429, { error: 'Trop de tentatives pour ce lien. Réessaie plus tard.' });
+        return json(res, 429, { error: 'Trop de tentatives pour ce lien. Réessayez plus tard.' });
       }
-      const member = store.findMemberByShortToken(raw);
-      if (!member) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
-      const current = sessionMember(req).member;
-      if (current && current.id !== member.id && b.confirmSwitch !== true) {
-        return json(res, 409, {
-          error: `Cet appareil est déjà associé à ${current.displayName}.`,
-          requiresIdentitySwitch: true,
-          currentMember: { id: current.id, name: current.displayName },
-          targetMember: { id: member.id, name: member.displayName }
-        });
-      }
-      const session = await store.createMemberSession(member.id);
-      if (!session.ok) return json(res, session.status, { error: session.error });
+      const cookies = parseCookies(req.headers.cookie || '');
+      const result = await store.loginMemberByShortToken(raw, cookies.club_session || '', b.confirmSwitch === true);
+      if (!result.ok) return json(res, result.status, { ...result });
       const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
-      return json(res, 200, { ok: true, member: { id: member.id, name: member.displayName } }, { 'Set-Cookie': [cookie('club_session', session.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
+      return json(res, 200, { ok: true, member: result.member }, { 'Set-Cookie': [cookie('club_session', result.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
     }
     if (pathname === '/api/session/admin' && req.method === 'POST') {
       const ip = getIp(req);
       if (limited(`admin-login:${ip}`, 8, 10 * 60_000) || limited('admin-login-global', 80, 10 * 60_000)) {
-        return json(res, 429, { error: 'Trop de tentatives. Réessaie dans quelques minutes.' });
+        return json(res, 429, { error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
       }
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
       const b = await bodyJson(req, 4096);
@@ -1810,6 +1886,21 @@ export async function requestHandler(req, res) {
       return json(res, 200, { ok: true, loginMode: codeOk ? 'code' : 'recovery-token' }, { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] });
     }
 
+    // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
+    // récente. Le chemin Blob conservateur courant utilise HEAD + GET.
+    await store.refresh();
+
+    if (pathname === '/healthz' && req.method === 'GET') {
+      const integrity = store.integrityReport();
+      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', integrity: integrity.ok, memberShortSecretMode });
+    }
+    if (pathname === '/readyz' && req.method === 'GET') {
+      const integrity = store.integrityReport();
+      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', memberShortSecretMode });
+    }
+    if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
+
+
     if (pathname === '/api/me' && req.method === 'GET') {
       const { member } = sessionMember(req); if (!member) return json(res, 401, { error: 'Lien personnel invalide ou expiré.' });
       return json(res, 200, store.memberSnapshot(member.id));
@@ -1817,7 +1908,7 @@ export async function requestHandler(req, res) {
     if (pathname === '/api/me/attendance' && (req.method === 'POST' || req.method === 'DELETE')) {
       const { member, cookies, rawSession } = sessionMember(req); if (!member) return json(res, 401, { error: 'Session invalide.' });
       if (!sameOriginCsrfOk(req, cookies, 'club_member_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
-      if (limited(`member-write:${member.id}`, 30)) return json(res, 429, { error: 'Trop de modifications en peu de temps. Réessaie dans une minute.' });
+      if (limited(`member-write:${member.id}`, 30)) return json(res, 429, { error: 'Trop de modifications en peu de temps. Réessayez dans une minute.' });
       const body = req.method === 'POST' ? await bodyJson(req) : { date: url.searchParams.get('date') };
       const result = await store.setAttendance(member.id, body.date, req.method === 'POST');
       if (!result.ok) return json(res, result.status, { error: result.error });
@@ -1826,7 +1917,7 @@ export async function requestHandler(req, res) {
     if (pathname === '/api/me/assignment' && req.method === 'POST') {
       const { member, cookies } = sessionMember(req); if (!member) return json(res, 401, { error: 'Session invalide.' });
       if (!sameOriginCsrfOk(req, cookies, 'club_member_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
-      if (limited(`member-write:${member.id}`, 30)) return json(res, 429, { error: 'Trop de modifications en peu de temps. Réessaie dans une minute.' });
+      if (limited(`member-write:${member.id}`, 30)) return json(res, 429, { error: 'Trop de modifications en peu de temps. Réessayez dans une minute.' });
       const body = await bodyJson(req);
       const result = await store.setRoleAssignment(member.id, body.date, body.role, !!body.present);
       if (!result.ok) return json(res, result.status, { error: result.error });
@@ -1860,7 +1951,7 @@ export async function requestHandler(req, res) {
     if (pathname === '/api/admin/backup' && req.method === 'GET') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
       const integrity = store.integrityReport();
-      if (!integrity.ok) return json(res, 409, { error: 'Sauvegarde restaurable refusée : le stockage est incohérent. Utilise l’export diagnostic et corrige d’abord les données.' });
+      if (!integrity.ok) return json(res, 409, { error: 'Sauvegarde restaurable refusée : le stockage est incohérent. Utilisez l’export diagnostic et corrigez d’abord les données.' });
       securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="club-presences-backup-${now().toISOString().slice(0,10)}.json"`);
       res.end(JSON.stringify(store.portableBackup(), null, 2)); return;
@@ -1942,6 +2033,16 @@ export async function requestHandler(req, res) {
       if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req); const r = await store.createMember(b.name);
       if (!r.ok) return json(res, r.status, { error: r.error }); return json(res, 201, { ...r, personalPath: `/join#${r.rawToken}`, snapshot: store.adminSnapshot() });
+    }
+    const memberSessionsMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)\/sessions\/revoke$/);
+    if (memberSessionsMatch && req.method === 'POST') {
+      const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
+      if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      const memberId = decodeURIComponent(memberSessionsMatch[1]);
+      const r = await store.revokeMemberSessionsByAdmin(memberId);
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
     const memberMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)(?:\/(rotate))?$/);
     if (memberMatch && req.method === 'POST') {
