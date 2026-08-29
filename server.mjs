@@ -1488,7 +1488,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.5.0-admin-code-vercel';
+const APP_VERSION = '0.15.5.1-admin-code-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1514,8 +1514,8 @@ if (isVercelRuntime && !process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_S
 }
 
 const adminTokenHash = configuredAdminHash || (adminToken ? tokenHash(adminToken) : '');
-if (adminCode && !/^\d{8,12}$/.test(adminCode)) {
-  configurationError('ADMIN_CODE doit contenir uniquement 8 à 12 chiffres.');
+if (adminCode && (Array.from(adminCode).length !== 6 || /[\r\n\t]/.test(adminCode))) {
+  configurationError('ADMIN_CODE doit contenir exactement 6 caractères visibles.');
 }
 const adminCodeHash = adminCode ? tokenHash(`admin-code-v1:${adminCode}`) : '';
 const adminCredentialTag = (adminTokenHash || adminCodeHash)
