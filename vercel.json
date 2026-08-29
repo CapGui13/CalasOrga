@@ -5,6 +5,13 @@
       "maxDuration": 15
     }
   },
+  "redirects": [
+    {
+      "source": "/admin-login",
+      "destination": "/admin-login-v1572",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -39,7 +46,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/admin-login",
+      "source": "/admin-login-v1572",
       "destination": "/admin-login.html"
     }
   ],
