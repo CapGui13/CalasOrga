@@ -1071,11 +1071,49 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.12.2 — ALTERNANCE DE SEMAINES PLUS MARQUÉE
+   ========================================================= */
+.admin-schedule tr.week-a .date-cell,
+.admin-schedule tr.week-a .role-cell{
+  background:#fcfdfc;
+}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  background:#f1f6f3;
+}
+.admin-schedule tr.week-b .date-cell{
+  background:#eef4f0;
+}
+.admin-schedule tr.week-b .role-display.empty{
+  color:#718078;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell{
+    background:#f7fbf8;
+  }
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#e8f1eb;
+  }
+}
+
+/* Mobile : alternance visible aussi sur les cartes dates */
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#fcfdfc;
+}
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#f1f6f3;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.12.1 · planning affiné · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.12.2 · alternance de semaines renforcée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
