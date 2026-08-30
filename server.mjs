@@ -1429,11 +1429,39 @@ class FileStore {
         return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte.' };
       }
 
+      // V15.18 : si deux postes principaux mono-occupés sont concernés,
+      // le glisser-déposer est un véritable échange, jamais un remplacement destructif.
+      const canSwap =
+        ROLE_KEYS.includes(sourceRole) &&
+        ROLE_KEYS.includes(targetRole) &&
+        sourceIds.length === 1 &&
+        targetIds.length === 1 &&
+        targetIds[0] !== memberId;
+
+      if (canSwap) {
+        const displacedMemberId = targetIds[0];
+        if (!active.has(displacedMemberId)) {
+          return { ok: false, status: 409, error: 'La personne à échanger n’est plus active.' };
+        }
+        writeIds(sourceDate, sourceRole, [displacedMemberId]);
+        writeIds(targetDate, targetRole, [memberId]);
+        return {
+          ok: true,
+          changed: true,
+          swapped: true,
+          displacedMemberId,
+          source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
+          target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
+        };
+      }
+
       writeIds(sourceDate, sourceRole, sourceIds.filter((id) => id !== memberId));
       writeIds(targetDate, targetRole, targetRole === 'present' ? [...targetIds, memberId] : [memberId]);
 
       return {
-        ok: true, changed: true,
+        ok: true,
+        changed: true,
+        swapped: false,
         source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
         target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
       };
@@ -1866,7 +1894,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.16.0-optimistic-perf-vercel';
+const APP_VERSION = '0.15.18.0-available-full-swap-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
