@@ -1785,15 +1785,17 @@ body.modal-open{overflow:hidden}
 
 /* Le sélecteur Disponible affiche toute la liste sans scroll interne. */
 #adminCellAvailableChoices.available-checklist{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:6px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
   max-height:none;
   overflow:visible;
-  padding:8px;
+  padding:6px;
 }
 #adminCellAvailableChoices .available-check{
   min-width:0;
+  min-height:30px;
+  padding:4px 6px;
 }
 
 /* Si la fenêtre devient plus haute que l'écran, c'est l'overlay entier
@@ -1817,11 +1819,6 @@ body.modal-open{overflow:hidden}
   box-shadow:inset 0 0 0 2px #7aa9cf!important;
 }
 
-@media(max-width:620px){
-  #adminCellAvailableChoices.available-checklist{
-    grid-template-columns:1fr;
-  }
-}
 
 
 /* =========================================================
@@ -1836,7 +1833,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.21 · synchronisation admin automatique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.1 · modal disponible simplifié · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -1992,7 +1989,7 @@ body.modal-open{overflow:hidden}
       <div class="confirm-dialog admin-cell-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCellTitle">
         <div class="section-head">
           <div>
-            <h2 id="adminCellTitle">Modifier une position</h2>
+            <h2 id="adminCellTitle">Faire un changement</h2>
             <div class="muted small" id="adminCellContext"></div>
           </div>
           <button class="btn" type="button" id="adminCellClose">Fermer</button>
@@ -2005,7 +2002,6 @@ body.modal-open{overflow:hidden}
             <select id="adminCellMember"></select>
           </div>
           <div class="field hidden" id="adminCellAvailableField">
-            <label>Personnes disponibles</label>
             <div id="adminCellAvailableChoices" class="available-checklist"></div>
           </div>
           <div class="notice warn hidden spaced" id="adminCellWarning"></div>
@@ -2064,7 +2060,7 @@ const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
-let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'upcoming', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
 function parisToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
 function addDays(s,n){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d+n));return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth()+1)}-${pad(dt.getUTCDate())}`}
 function monthKey(s){return s.slice(0,7)}
@@ -2250,6 +2246,15 @@ function adminNextOpenDates(limit=6,from=parisToday()){
   }
   return out
 }
+function adminHomeMode(today=parisToday()){
+  const[y,m,d]=today.split('-').map(Number);
+  const remaining=daysInMonth(y,m)-d;
+  return remaining<14?'upcoming':'month'
+}
+function adminHomeMonth(today=parisToday()){
+  return monthKey(today)
+}
+
 function adminDatesForMonth(k){
   const[y,m]=k.split('-').map(Number),out=[],today=parisToday();
   for(let d=1;d<=daysInMonth(y,m);d++){
@@ -2551,16 +2556,23 @@ function makeAdminChipDraggable(chip,date,role,memberId){
 
 function renderAdminCalendar(){
   if(!adminData)return;
-  const nextOpen=nextAdminOpenDate(),firstMonth=monthKey(nextOpen),max=shiftMonth(firstMonth,12);
-  if(adminCalendarMode==='upcoming'){
-    adminMonth='';
+  const today=parisToday();
+  const homeMonth=adminHomeMonth(today);
+  const homeMode=adminHomeMode(today);
+  const effectiveMode=adminCalendarMode==='auto'?homeMode:adminCalendarMode;
+  const nextOpen=nextAdminOpenDate(today);
+  const max=shiftMonth(homeMonth,12);
+
+  if(effectiveMode==='upcoming'){
+    if(adminCalendarMode==='auto')adminMonth='';
     q('#adminMonthLabel').textContent='Deux prochaines semaines';
     q('#adminPrevMonth').disabled=true;
     q('#adminNextMonth').disabled=false
   }else{
-    if(!adminMonth)adminMonth=shiftMonth(firstMonth,1);
+    if(adminCalendarMode==='auto')adminMonth=homeMonth;
+    else if(!adminMonth)adminMonth=homeMonth;
     q('#adminMonthLabel').textContent=monthLabel(adminMonth);
-    q('#adminPrevMonth').disabled=false;
+    q('#adminPrevMonth').disabled=adminCalendarMode==='auto'||adminMonth<=homeMonth;
     q('#adminNextMonth').disabled=adminMonth>=max
   }
 
@@ -2568,7 +2580,7 @@ function renderAdminCalendar(){
   body.innerHTML='';mobile.innerHTML='';
   const nameMap=Object.fromEntries((adminData.membersAdmin||adminData.members||[]).map(m=>[m.id,m.name]));
   let prevWeek='',weekIndex=-1;
-  const dates=adminCalendarMode==='upcoming'?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth);
+  const dates=effectiveMode==='upcoming'?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth);
 
   for(const date of dates){
     const open=adminIsOpen(date);
@@ -2846,7 +2858,28 @@ async function boot(){
 }
 
 // --- Listeners ---
-q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{if(adminCalendarMode==='upcoming')return;const firstMonth=monthKey(nextAdminOpenDate()),firstMonthly=shiftMonth(firstMonth,1);if(adminMonth<=firstMonthly){adminCalendarMode='upcoming';adminMonth=''}else adminMonth=shiftMonth(adminMonth,-1);renderAdminCalendar()});q('#adminNextMonth').addEventListener('click',()=>{const firstMonth=monthKey(nextAdminOpenDate()),max=shiftMonth(firstMonth,12);if(adminCalendarMode==='upcoming'){adminCalendarMode='month';adminMonth=shiftMonth(firstMonth,1)}else{const n=shiftMonth(adminMonth,1);if(n<=max)adminMonth=n}renderAdminCalendar()});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
+q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{
+  if(adminCalendarMode==='auto')return;
+  const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
+  if(n<=homeMonth){
+    adminCalendarMode='auto';
+    adminMonth=''
+  }else{
+    adminMonth=n
+  }
+  renderAdminCalendar()
+});
+q('#adminNextMonth').addEventListener('click',()=>{
+  const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
+  if(adminCalendarMode==='auto'){
+    adminCalendarMode='month';
+    adminMonth=shiftMonth(homeMonth,1)
+  }else{
+    const n=shiftMonth(adminMonth,1);
+    if(n<=max)adminMonth=n
+  }
+  renderAdminCalendar()
+});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
