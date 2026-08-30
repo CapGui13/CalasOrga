@@ -1182,6 +1182,38 @@ body.modal-open{overflow:hidden}
   .day-editor-actions .btn{width:100%}
 }
 
+
+/* =========================================================
+   V15.14 — ÉDITION RAPIDE PAR DOUBLE-CLIC
+   ========================================================= */
+.admin-role-editable{
+  cursor:pointer;
+  position:relative;
+  transition:background .14s ease,box-shadow .14s ease;
+}
+.admin-role-editable:focus{
+  outline:2px solid rgba(25,138,73,.24);
+  outline-offset:-2px;
+}
+@media(hover:hover){
+  .admin-role-editable:hover{
+    background:#edf7f1!important;
+    box-shadow:inset 0 0 0 1px #bedbc9;
+  }
+}
+.admin-cell-dialog{
+  width:min(460px,100%);
+}
+.admin-cell-dialog .section-head{
+  margin-bottom:18px;
+}
+.admin-cell-dialog select{
+  min-height:44px;
+}
+.admin-cell-dialog .actions{
+  justify-content:flex-end;
+}
+
 </style>
 </head>
 <body>
@@ -1339,6 +1371,31 @@ body.modal-open{overflow:hidden}
     </div>
 
     
+    <div id="adminCellOverlay" class="confirm-overlay hidden" aria-hidden="true">
+      <div class="confirm-dialog admin-cell-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCellTitle">
+        <div class="section-head">
+          <div>
+            <h2 id="adminCellTitle">Modifier une position</h2>
+            <div class="muted small" id="adminCellContext"></div>
+          </div>
+          <button class="btn" type="button" id="adminCellClose">Fermer</button>
+        </div>
+        <form id="adminCellForm">
+          <input type="hidden" id="adminCellDate">
+          <input type="hidden" id="adminCellRole">
+          <div class="field">
+            <label for="adminCellMember">Membre</label>
+            <select id="adminCellMember"></select>
+          </div>
+          <div class="notice warn hidden spaced" id="adminCellWarning"></div>
+          <div class="actions spaced">
+            <button class="btn" type="button" id="adminCellCancel">Annuler</button>
+            <button class="btn primary" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div id="adminSupport" class="hidden" aria-hidden="true">
       <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Présent » sert uniquement à signaler du renfort.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
       <section class="card spaced" id="adminExceptions"><div class="section-head"><h2>Exceptions calendrier</h2><span class="muted small">Fermer un jour habituel ou ouvrir exceptionnellement un autre jour.</span></div><form id="exceptionForm" class="form-row"><div class="exception-fields"><div class="field"><label for="exceptionDate">Date</label><input type="date" id="exceptionDate" required></div><div class="field"><label for="exceptionState">État</label><select id="exceptionState"><option value="closed">Fermé</option><option value="open">Ouvert</option></select></div><div class="field"><label for="exceptionNote">Remarque</label><input id="exceptionNote" maxlength="200" placeholder="Vacances, ouverture exceptionnelle…"></div></div><button class="btn primary" type="submit">Enregistrer</button></form><div class="sep"></div><form id="bulkExceptionForm" class="form-row"><div class="bulk-exception-fields"><div class="field"><label for="bulkFrom">Du</label><input type="date" id="bulkFrom" required></div><div class="field"><label for="bulkTo">Au</label><input type="date" id="bulkTo" required></div><div class="field"><label for="bulkState">État</label><select id="bulkState"><option value="closed">Fermé</option><option value="normal">Horaires habituels</option><option value="open">Ouvert tous les jours</option></select></div><div class="field"><label for="bulkNote">Remarque</label><input id="bulkNote" maxlength="200" placeholder="Vacances, ouverture spéciale…"></div></div><button class="btn primary" type="submit">Appliquer à la période</button></form><div class="exception-list spaced" id="exceptionList"></div></section>
@@ -1522,6 +1579,89 @@ function closeAdminCorrection(){
   if(q('#confirmOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
 }
 function adminCorrectionForDate(date){openAdminCorrection(date)}
+function populateAdminCellEditor(date,role){
+  const active=(adminData.membersAdmin||[]).filter(m=>m.active);
+  const assignments=adminData.assignments?.[date]||{};
+  const ids=Array.isArray(assignments[role])?assignments[role]:[];
+  q('#adminCellDate').value=date;
+  q('#adminCellRole').value=role;
+  q('#adminCellContext').textContent=`${dayLabel(date)} · ${ROLE_LABELS[role]}`;
+  const select=q('#adminCellMember');
+  select.innerHTML='';
+  const empty=document.createElement('option');
+  empty.value='';
+  empty.textContent=role==='present'?'— Aucun renfort —':'— À pourvoir —';
+  select.append(empty);
+  for(const m of active){
+    const o=document.createElement('option');
+    o.value=m.id;
+    o.textContent=m.name;
+    select.append(o)
+  }
+  select.value=ids[0]||'';
+  const warning=q('#adminCellWarning');
+  if(ids.length>1){
+    warning.textContent=`${ids.length} membres sont actuellement affectés à cette position. Enregistrer remplacera ces affectations par le choix sélectionné.`;
+    warning.classList.remove('hidden')
+  }else{
+    warning.textContent='';
+    warning.classList.add('hidden')
+  }
+}
+function openAdminCellEditor(date,role){
+  populateAdminCellEditor(date,role);
+  const overlay=q('#adminCellOverlay');
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  setTimeout(()=>q('#adminCellMember')?.focus(),0)
+}
+function closeAdminCellEditor(){
+  const overlay=q('#adminCellOverlay');
+  if(!overlay||overlay.classList.contains('hidden'))return;
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  if(q('#confirmOverlay')?.classList.contains('hidden')&&q('#adminCorrectionOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
+}
+function setLocalCellAssignment(date,role,memberId){
+  const old=(localAssignmentsSnapshot()[date]?.[role]||[]).map(String);
+  const next=memberId?[String(memberId)]:[];
+  if(role==='present'){
+    for(const id of old)if(!next.includes(id))audit('Administrateur','admin_retrait',date,{memberId:id});
+    for(const id of next)if(!old.includes(id))audit('Administrateur','admin_inscription',date,{memberId:id});
+    if(next.length)localState.attendance[date]=next;else delete localState.attendance[date]
+  }else{
+    const roles={...(localState.roleAssignments[date]||{})};
+    for(const id of old)if(!next.includes(id))audit('Administrateur','admin_role_retrait',date,{memberId:id,role});
+    for(const id of next)if(!old.includes(id))audit('Administrateur','admin_role_inscription',date,{memberId:id,role});
+    if(next.length)roles[role]=next;else delete roles[role];
+    if(Object.keys(roles).length)localState.roleAssignments[date]=roles;else delete localState.roleAssignments[date]
+  }
+  saveLocal();
+  adminData=localAdminSnapshot()
+}
+async function saveAdminCell(btn=null){
+  const date=q('#adminCellDate').value;
+  const role=q('#adminCellRole').value;
+  const memberId=q('#adminCellMember').value||'';
+  setButtonBusy(btn,true,'Enregistrement…');
+  try{
+    if(LOCAL)setLocalCellAssignment(date,role,memberId);
+    else{
+      const j=await netApi('/api/admin/cell-assignment',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({date,role,memberId})
+      });
+      adminData=j.snapshot
+    }
+    renderAdmin();
+    closeAdminCellEditor();
+    toast(`${ROLE_LABELS[role]} mis à jour`)
+  }catch(e){setNotice(q('#adminError'),e.message)}
+  finally{setButtonBusy(btn,false)}
+}
+
 function renderAdminCalendar(){
   if(!adminData)return;
   const nextOpen=nextAdminOpenDate(),firstMonth=monthKey(nextOpen),max=shiftMonth(firstMonth,12);
@@ -1579,6 +1719,13 @@ function renderAdminCalendar(){
     for(const role of ROLE_KEYS){
       const td=document.createElement('td');td.className='role-cell';
       const display=document.createElement('div');display.className='admin-role-display';
+      if(open){
+        td.classList.add('admin-role-editable');
+        td.tabIndex=0;
+        td.title=`Double-cliquez pour modifier ${ROLE_LABELS[role]}`;
+        td.addEventListener('dblclick',()=>openAdminCellEditor(date,role));
+        td.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openAdminCellEditor(date,role)}})
+      }
       if(!open){
         display.classList.add('closed');display.textContent='—'
       }else{
@@ -1726,9 +1873,13 @@ async function boot(){
 q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{if(adminCalendarMode==='upcoming')return;const firstMonth=monthKey(nextAdminOpenDate()),firstMonthly=shiftMonth(firstMonth,1);if(adminMonth<=firstMonthly){adminCalendarMode='upcoming';adminMonth=''}else adminMonth=shiftMonth(adminMonth,-1);renderAdminCalendar()});q('#adminNextMonth').addEventListener('click',()=>{const firstMonth=monthKey(nextAdminOpenDate()),max=shiftMonth(firstMonth,12);if(adminCalendarMode==='upcoming'){adminCalendarMode='month';adminMonth=shiftMonth(firstMonth,1)}else{const n=shiftMonth(adminMonth,1);if(n<=max)adminMonth=n}renderAdminCalendar()});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminRefreshNow').addEventListener('click',e=>refreshAdmin(e.currentTarget));q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
-q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});q('#adminCorrectionCancel').addEventListener('click',closeAdminCorrection);q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
+q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});q('#adminCorrectionCancel').addEventListener('click',closeAdminCorrection);
+q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
+q('#adminCellCancel').addEventListener('click',closeAdminCellEditor);
+q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
+q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
 q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
-q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
+q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{e.preventDefault();showAdminPage(tab.dataset.adminPage,{push:true})});
 window.addEventListener('popstate',()=>{if(!q('#adminRoot').classList.contains('hidden'))showAdminPage(adminPageFromPath(location.pathname),{push:false})});
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);

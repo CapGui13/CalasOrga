@@ -1362,6 +1362,75 @@ class FileStore {
   }
 
 
+  async setCellAssignmentAsAdmin(date, role, memberId) {
+    if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+    role = String(role || '').toLowerCase();
+    if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Position invalide.' };
+    memberId = String(memberId || '').trim();
+
+    return this.mutate((s) => {
+      if (!effectiveIsOpen(s, date)) return { ok: false, status: 409, error: "Le club n'est pas ouvert ce jour-là." };
+
+      const active = new Map(s.members.filter((m) => m.active).map((m) => [m.id, m]));
+      if (memberId && !active.has(memberId)) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
+
+      const nextIds = memberId ? [memberId] : [];
+      let changed = false;
+
+      if (role === 'present') {
+        if (memberId && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
+          return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archivez ou nettoyez les anciennes données.' };
+        }
+        const oldIds = Array.isArray(s.attendance[date]) ? [...new Set(s.attendance[date].map(String))] : [];
+        for (const oldId of oldIds) {
+          if (nextIds.includes(oldId)) continue;
+          const member = s.members.find((m) => m.id === oldId);
+          this.#log(s, 'Administrateur', 'admin_retrait', date, { memberId: oldId, name: member?.displayName || '' });
+          changed = true;
+        }
+        for (const newId of nextIds) {
+          if (oldIds.includes(newId)) continue;
+          const member = active.get(newId);
+          this.#log(s, 'Administrateur', 'admin_inscription', date, { memberId: newId, name: member.displayName });
+          changed = true;
+        }
+        if (nextIds.length) s.attendance[date] = nextIds;
+        else delete s.attendance[date];
+        return { ok: true, changed, role, memberId };
+      }
+
+      if (memberId && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
+        return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
+      }
+
+      const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object'
+        ? clone(s.roleAssignments[date])
+        : {};
+      const oldIds = Array.isArray(roles[role]) ? [...new Set(roles[role].map(String))] : [];
+
+      for (const oldId of oldIds) {
+        if (nextIds.includes(oldId)) continue;
+        const member = s.members.find((m) => m.id === oldId);
+        this.#log(s, 'Administrateur', 'admin_role_retrait', date, { memberId: oldId, name: member?.displayName || '', role });
+        changed = true;
+      }
+      for (const newId of nextIds) {
+        if (oldIds.includes(newId)) continue;
+        const member = active.get(newId);
+        this.#log(s, 'Administrateur', 'admin_role_inscription', date, { memberId: newId, name: member.displayName, role });
+        changed = true;
+      }
+
+      if (nextIds.length) roles[role] = nextIds;
+      else delete roles[role];
+
+      if (Object.keys(roles).length) s.roleAssignments[date] = roles;
+      else delete s.roleAssignments[date];
+
+      return { ok: true, changed, role, memberId };
+    });
+  }
+
   async setDayAssignmentsAsAdmin(date, assignments) {
     if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
     const raw = assignments && typeof assignments === 'object' ? assignments : {};
@@ -1702,7 +1771,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.13.0-admin-day-editor-vercel';
+const APP_VERSION = '0.15.14.0-admin-cell-editor-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2053,6 +2122,15 @@ export async function requestHandler(req, res) {
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req);
       const r = await store.setDayAssignmentsAsAdmin(b.date, b.assignments);
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+    }
+    if (pathname === '/api/admin/cell-assignment' && req.method === 'POST') {
+      const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
+      if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      const b = await bodyJson(req);
+      const r = await store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId);
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
