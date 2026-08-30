@@ -1823,11 +1823,20 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.20 — DND : SWAP SANS CONFIRMATION + COPIE ENTRE DATES
+   ========================================================= */
+.admin-role-editable.admin-drop-copy{
+  background:#eef8f1!important;
+  box-shadow:inset 0 0 0 2px #73b68a!important;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.19 · membres classés alphabétiquement · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.20 · copie inter-dates + DnD sans confirmation · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2422,8 +2431,11 @@ function moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,tar
   const source=currentAdminRoleIds(sourceDate,sourceRole);
   if(!source.includes(memberId))throw new Error('Cette affectation a déjà changé.');
   const target=currentAdminRoleIds(targetDate,targetRole);
-  const canSwap=CORE_ROLE_KEYS.includes(sourceRole)&&CORE_ROLE_KEYS.includes(targetRole)&&source.length===1&&target.length===1&&target[0]!==memberId;
-  if(canSwap){
+  const copySameRoleAcrossDates=sourceDate!==targetDate&&sourceRole===targetRole;
+  const canSwap=!copySameRoleAcrossDates&&CORE_ROLE_KEYS.includes(sourceRole)&&CORE_ROLE_KEYS.includes(targetRole)&&source.length===1&&target.length===1&&target[0]!==memberId;
+  if(copySameRoleAcrossDates){
+    localWriteAdminRoleIds(targetDate,targetRole,targetRole==='present'?[...target,memberId]:[memberId])
+  }else if(canSwap){
     const displaced=target[0];
     localWriteAdminRoleIds(sourceDate,sourceRole,[displaced]);
     localWriteAdminRoleIds(targetDate,targetRole,[memberId])
@@ -2444,45 +2456,61 @@ async function moveAdminAssignment(payload,targetDate,targetRole){
   if(!sourceIds.includes(String(memberId))){toast('Cette affectation a déjà changé.');return}
   const targetIds=currentAdminRoleIds(targetDate,targetRole);
   const memberName=adminMemberName(memberId);
-  const sourceLabel=`${dayLabel(sourceDate)} · ${ROLE_LABELS[sourceRole]}`;
-  const targetLabel=`${dayLabel(targetDate)} · ${ROLE_LABELS[targetRole]}`;
-  const canSwap=CORE_ROLE_KEYS.includes(sourceRole)&&CORE_ROLE_KEYS.includes(targetRole)&&sourceIds.length===1&&targetIds.length===1&&targetIds[0]!==String(memberId);
+
+  const copySameRoleAcrossDates=sourceDate!==targetDate&&sourceRole===targetRole;
+  const canSwap=!copySameRoleAcrossDates&&CORE_ROLE_KEYS.includes(sourceRole)&&CORE_ROLE_KEYS.includes(targetRole)&&sourceIds.length===1&&targetIds.length===1&&targetIds[0]!==String(memberId);
   const displacedId=canSwap?targetIds[0]:'';
   const displacedName=displacedId?adminMemberName(displacedId):'';
 
-  let message='';
-  let confirmText='Déplacer';
-  let confirmTitle='Déplacer une affectation';
-  if(canSwap){
-    message=`Échanger ${memberName} (${ROLE_LABELS[sourceRole]}) et ${displacedName} (${ROLE_LABELS[targetRole]})${sourceDate===targetDate?'':` entre ${dayLabel(sourceDate)} et ${dayLabel(targetDate)}`} ?`;
-    confirmText='Échanger';
-    confirmTitle='Échanger deux affectations'
-  }else{
+  // Pas de confirmation pour :
+  // - un échange réel ;
+  // - toute opération entre deux dates différentes.
+  // On conserve seulement une confirmation pour un remplacement destructif
+  // sur la même journée qui n'est pas un échange.
+  if(sourceDate===targetDate&&!canSwap){
     const replacements=targetRole==='present'?[]:targetIds.filter(id=>id!==memberId);
-    if(sourceDate!==targetDate)message=`Déplacer ${memberName} de « ${sourceLabel} » vers « ${targetLabel} » ?`;
     if(replacements.length){
       const names=replacements.map(adminMemberName).join(', ');
-      message=(message?`${message}\n\n`:'')+`La case cible contient ${names}. ${memberName} le remplacera.`
+      if(!await confirmModal(`La case ${ROLE_LABELS[targetRole]} contient ${names}. ${memberName} le remplacera.`,{
+        title:'Remplacer une affectation',
+        confirmText:'Remplacer'
+      }))return
     }
   }
-  if(message&&!await confirmModal(message,{title:confirmTitle,confirmText}))return;
 
   if(LOCAL){
     try{
       moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,targetRole});
       renderAdmin();
-      toast(canSwap?`${memberName} et ${displacedName} échangés`:`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`)
+      toast(
+        copySameRoleAcrossDates
+          ?`${memberName} copié sur ${dayLabel(targetDate)}`
+          :canSwap
+            ?`${memberName} et ${displacedName} échangés`
+            :`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`
+      )
     }catch(e){setNotice(q('#adminError'),e.message)}
     return
   }
 
-  const sourceAfter=canSwap?[displacedId]:sourceIds.filter(id=>id!==String(memberId));
-  const targetAfter=targetRole==='present'?[...new Set([...targetIds,String(memberId)])]:[String(memberId)];
-  const tx=optimisticAdminChanges([
-    {date:sourceDate,role:sourceRole,ids:sourceAfter},
-    {date:targetDate,role:targetRole,ids:targetAfter}
-  ]);
+  const sourceAfter=copySameRoleAcrossDates
+    ?sourceIds
+    :canSwap
+      ?[displacedId]
+      :sourceIds.filter(id=>id!==String(memberId));
+  const targetAfter=targetRole==='present'
+    ?[...new Set([...targetIds,String(memberId)])]
+    :[String(memberId)];
+
+  const changes=copySameRoleAcrossDates
+    ?[{date:targetDate,role:targetRole,ids:targetAfter}]
+    :[
+      {date:sourceDate,role:sourceRole,ids:sourceAfter},
+      {date:targetDate,role:targetRole,ids:targetAfter}
+    ];
+  const tx=optimisticAdminChanges(changes);
   beginAdminSave();
+
   try{
     const j=await netApi('/api/admin/move-assignment',{
       method:'POST',
@@ -2490,17 +2518,23 @@ async function moveAdminAssignment(payload,targetDate,targetRole){
       body:JSON.stringify({memberId,sourceDate,sourceRole,targetDate,targetRole})
     });
     const canonical=[];
-    if(j.source)canonical.push({date:j.source.date,role:j.source.role,ids:j.source.memberIds||[]});
+    if(j.source&&!j.copied)canonical.push({date:j.source.date,role:j.source.role,ids:j.source.memberIds||[]});
     if(j.target)canonical.push({date:j.target.date,role:j.target.role,ids:j.target.memberIds||[]});
     reconcileAdminChanges(tx,canonical);
     endAdminSave(true);
-    toast(j.swapped?`${memberName} et ${adminMemberName(j.displacedMemberId)} échangés`:`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`);
+    toast(
+      j.copied
+        ?`${memberName} copié sur ${dayLabel(targetDate)}`
+        :j.swapped
+          ?`${memberName} et ${adminMemberName(j.displacedMemberId)} échangés`
+          :`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`
+    );
     scheduleAdminReconcile()
   }catch(e){
     rollbackAdminChanges(tx);
     endAdminSave(false);
     setNotice(q('#adminError'),e.message);
-    toast((canSwap?'Échange':'Déplacement')+' annulé : '+e.message)
+    toast((copySameRoleAcrossDates?'Copie':canSwap?'Échange':'Déplacement')+' annulé : '+e.message)
   }
 }
 function makeAdminChipDraggable(chip,date,role,memberId){
@@ -2509,13 +2543,13 @@ function makeAdminChipDraggable(chip,date,role,memberId){
   chip.addEventListener('dragstart',e=>{
     adminDragPayload={memberId:String(memberId),sourceDate:date,sourceRole:role};
     chip.classList.add('dragging');
-    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.effectAllowed='copyMove';
     e.dataTransfer.setData('text/plain',JSON.stringify(adminDragPayload))
   });
   chip.addEventListener('dragend',()=>{
     adminDragPayload=null;
     chip.classList.remove('dragging');
-    for(const cell of document.querySelectorAll('.admin-drop-target,.admin-drop-invalid,.admin-drop-swap'))cell.classList.remove('admin-drop-target','admin-drop-invalid','admin-drop-swap')
+    for(const cell of document.querySelectorAll('.admin-drop-target,.admin-drop-invalid,.admin-drop-swap,.admin-drop-copy'))cell.classList.remove('admin-drop-target','admin-drop-invalid','admin-drop-swap','admin-drop-copy')
   })
 }
 
@@ -2586,15 +2620,17 @@ function renderAdminCalendar(){
         td.addEventListener('dragover',e=>{
           if(!adminDragPayload)return;
           e.preventDefault();
-          e.dataTransfer.dropEffect='move';
           const sourceIds=currentAdminRoleIds(adminDragPayload.sourceDate,adminDragPayload.sourceRole);
           const targetIds=currentAdminRoleIds(date,role);
-          const swap=CORE_ROLE_KEYS.includes(adminDragPayload.sourceRole)&&CORE_ROLE_KEYS.includes(role)&&sourceIds.length===1&&targetIds.length===1&&targetIds[0]!==adminDragPayload.memberId;
+          const copy=adminDragPayload.sourceDate!==date&&adminDragPayload.sourceRole===role;
+          const swap=!copy&&CORE_ROLE_KEYS.includes(adminDragPayload.sourceRole)&&CORE_ROLE_KEYS.includes(role)&&sourceIds.length===1&&targetIds.length===1&&targetIds[0]!==adminDragPayload.memberId;
+          e.dataTransfer.dropEffect=copy?'copy':'move';
+          td.classList.toggle('admin-drop-copy',copy);
           td.classList.toggle('admin-drop-swap',swap);
-          td.classList.toggle('admin-drop-target',!swap)
+          td.classList.toggle('admin-drop-target',!copy&&!swap)
         });
         td.addEventListener('dragleave',e=>{if(!td.contains(e.relatedTarget))td.classList.remove('admin-drop-target')});
-        td.addEventListener('drop',e=>{e.preventDefault();td.classList.remove('admin-drop-target','admin-drop-swap');const payload=adminDragPayload||(()=>{try{return JSON.parse(e.dataTransfer.getData('text/plain'))}catch{return null}})();moveAdminAssignment(payload,date,role)})
+        td.addEventListener('drop',e=>{e.preventDefault();td.classList.remove('admin-drop-target','admin-drop-swap','admin-drop-copy');const payload=adminDragPayload||(()=>{try{return JSON.parse(e.dataTransfer.getData('text/plain'))}catch{return null}})();moveAdminAssignment(payload,date,role)})
       }
       if(!open){
         display.classList.add('closed');display.textContent='—'

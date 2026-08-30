@@ -1429,8 +1429,26 @@ class FileStore {
         return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte.' };
       }
 
-      // V15.18 : si deux postes principaux mono-occupés sont concernés,
-      // le glisser-déposer est un véritable échange, jamais un remplacement destructif.
+      // V15.20 : même poste vers une autre date = COPIE.
+      // La source reste inchangée, ce qui permet de recopier une affectation régulière.
+      const copySameRoleAcrossDates = sourceDate !== targetDate && sourceRole === targetRole;
+      if (copySameRoleAcrossDates) {
+        const targetAfter = targetRole === 'present'
+          ? [...new Set([...targetIds, memberId])]
+          : [memberId];
+        const changed = JSON.stringify(targetAfter) !== JSON.stringify(targetIds);
+        if (changed) writeIds(targetDate, targetRole, targetAfter);
+        return {
+          ok: true,
+          changed,
+          copied: true,
+          swapped: false,
+          source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
+          target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
+        };
+      }
+
+      // Deux postes principaux mono-occupés = échange atomique.
       const canSwap =
         ROLE_KEYS.includes(sourceRole) &&
         ROLE_KEYS.includes(targetRole) &&
@@ -1449,6 +1467,7 @@ class FileStore {
           ok: true,
           changed: true,
           swapped: true,
+          copied: false,
           displacedMemberId,
           source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
           target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
@@ -1462,6 +1481,7 @@ class FileStore {
         ok: true,
         changed: true,
         swapped: false,
+        copied: false,
         source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
         target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
       };
@@ -1894,7 +1914,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.18.0-available-full-swap-vercel';
+const APP_VERSION = '0.15.20.0-dnd-copy-no-confirm-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
