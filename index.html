@@ -1269,6 +1269,45 @@ body.modal-open{overflow:hidden}
   color:#849088;
 }
 
+
+/* =========================================================
+   V15.16 — PERFORMANCE UX / ENREGISTREMENT OPTIMISTE
+   ========================================================= */
+.admin-save-state{
+  min-height:34px;
+  padding:7px 10px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border-radius:999px;
+  border:1px solid #dbe7df;
+  background:#f7faf8;
+  color:#536158;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.admin-save-state.saving:before{
+  content:"";
+  width:11px;height:11px;border-radius:50%;
+  border:2px solid #b8d7c3;border-top-color:var(--accent);
+  animation:adminSaveSpin .7s linear infinite;
+}
+.admin-save-state.saved{
+  color:var(--accent-strong);
+  background:#eef8f2;
+  border-color:#cde6d6;
+}
+.admin-save-state.error{
+  color:var(--danger);
+  background:#fff4f2;
+  border-color:#efcbc6;
+}
+@keyframes adminSaveSpin{to{transform:rotate(360deg)}}
+@media(max-width:820px){
+  .admin-save-state{order:-1;width:100%;justify-content:center}
+}
+
 </style>
 </head>
 <body>
@@ -1348,6 +1387,7 @@ body.modal-open{overflow:hidden}
         
       </div>
       <div class="top-actions">
+        <span class="admin-save-state hidden" id="adminSaveState" role="status" aria-live="polite"></span>
         <button class="btn server-only" type="button" id="adminRefreshNow">Actualiser</button>
         <button class="btn" type="button" id="adminExit">Quitter l’administration</button>
       </div>
@@ -1481,7 +1521,7 @@ const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
-let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'upcoming', currentAdminPage = 'calendar', memberBusy = false, latestPersonalUrl = '';
+let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'upcoming', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
 function parisToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
 function addDays(s,n){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d+n));return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth()+1)}-${pad(dt.getUTCDate())}`}
 function monthKey(s){return s.slice(0,7)}
@@ -1532,6 +1572,88 @@ let confirmResolve=null,confirmLastFocus=null;
 function closeConfirmModal(value){const overlay=q('#confirmOverlay');if(!overlay||overlay.classList.contains('hidden'))return;overlay.classList.add('hidden');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');const resolve=confirmResolve;confirmResolve=null;if(confirmLastFocus?.focus)confirmLastFocus.focus();confirmLastFocus=null;if(resolve)resolve(Boolean(value))}
 function confirmModal(message,{title='Confirmation',confirmText='Confirmer',danger=false}={}){if(confirmResolve)closeConfirmModal(false);confirmLastFocus=document.activeElement;const overlay=q('#confirmOverlay'),dialog=overlay.querySelector('.confirm-dialog');q('#confirmTitle').textContent=title;q('#confirmMessage').textContent=message;q('#confirmAccept').textContent=confirmText;dialog.classList.toggle('danger',danger);overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>q('#confirmCancel').focus(),0);return new Promise(resolve=>{confirmResolve=resolve})}
 function setButtonBusy(btn,busy,label='Enregistrement…'){if(!btn)return;if(busy){if(!btn.dataset.busyLabel)btn.dataset.busyLabel=btn.textContent;btn.classList.add('is-busy');btn.disabled=true;btn.textContent=label}else{btn.classList.remove('is-busy');btn.disabled=false;if(btn.dataset.busyLabel){btn.textContent=btn.dataset.busyLabel;delete btn.dataset.busyLabel}}}
+function setAdminSaveState(mode,text){
+  const el=q('#adminSaveState');if(!el)return;
+  clearTimeout(adminSaveTimer);
+  el.className='admin-save-state '+(mode||'');
+  el.textContent=text||'';
+  el.classList.toggle('hidden',!text);
+  if(mode==='saved')adminSaveTimer=setTimeout(()=>el.classList.add('hidden'),1400);
+  if(mode==='error')adminSaveTimer=setTimeout(()=>el.classList.add('hidden'),2800)
+}
+function beginAdminSave(){
+  adminSavePending++;
+  setAdminSaveState('saving',adminSavePending>1?`${adminSavePending} enregistrements…`:'Enregistrement…')
+}
+function endAdminSave(ok=true){
+  adminSavePending=Math.max(0,adminSavePending-1);
+  if(adminSavePending){
+    setAdminSaveState('saving',adminSavePending>1?`${adminSavePending} enregistrements…`:'Enregistrement…');
+    return
+  }
+  setAdminSaveState(ok?'saved':'error',ok?'Enregistré ✓':'Échec de l’enregistrement')
+}
+function adminIds(v){return[...new Set((Array.isArray(v)?v:[]).map(String).filter(Boolean))]}
+function sameAdminIds(a,b){
+  a=adminIds(a);b=adminIds(b);
+  return a.length===b.length&&a.every((x,i)=>x===b[i])
+}
+function writeAdminRoleIds(date,role,ids){
+  if(!adminData)return;
+  const next=adminIds(ids);
+  adminData.assignments=adminData.assignments||{};
+  const day={...(adminData.assignments[date]||{})};
+  day[role]=next;
+  if(ROLE_KEYS.some(r=>(day[r]||[]).length))adminData.assignments[date]=day;
+  else delete adminData.assignments[date];
+
+  if(role==='present'){
+    adminData.attendance=adminData.attendance||{};
+    if(next.length)adminData.attendance[date]=next;else delete adminData.attendance[date]
+  }else{
+    adminData.roleAssignments=adminData.roleAssignments||{};
+    const roles={...(adminData.roleAssignments[date]||{})};
+    if(next.length)roles[role]=next;else delete roles[role];
+    if(Object.keys(roles).length)adminData.roleAssignments[date]=roles;
+    else delete adminData.roleAssignments[date]
+  }
+}
+function optimisticAdminChanges(changes){
+  const tx=(changes||[]).map(c=>({date:c.date,role:c.role,before:currentAdminRoleIds(c.date,c.role),after:adminIds(c.ids)}));
+  for(const c of tx)writeAdminRoleIds(c.date,c.role,c.after);
+  renderAdminCalendar();
+  return tx
+}
+function rollbackAdminChanges(tx){
+  let changed=false;
+  for(const c of [...(tx||[])].reverse()){
+    if(!sameAdminIds(currentAdminRoleIds(c.date,c.role),c.after))continue;
+    writeAdminRoleIds(c.date,c.role,c.before);changed=true
+  }
+  if(changed)renderAdminCalendar()
+}
+function reconcileAdminChanges(tx,canonical){
+  let changed=false;
+  const map=new Map((canonical||[]).map(c=>[`${c.date}|${c.role}`,adminIds(c.ids)]));
+  for(const c of tx||[]){
+    const ids=map.get(`${c.date}|${c.role}`);
+    if(!ids||!sameAdminIds(currentAdminRoleIds(c.date,c.role),c.after))continue;
+    if(!sameAdminIds(ids,c.after)){writeAdminRoleIds(c.date,c.role,ids);changed=true}
+  }
+  if(changed)renderAdminCalendar()
+}
+function scheduleAdminReconcile(delay=8000){
+  if(LOCAL)return;
+  clearTimeout(adminReconcileTimer);
+  adminReconcileTimer=setTimeout(async()=>{
+    if(adminSavePending||adminDragPayload||!q('#adminCellOverlay')?.classList.contains('hidden')||!q('#adminCorrectionOverlay')?.classList.contains('hidden')){
+      scheduleAdminReconcile(3000);return
+    }
+    if(q('#adminRoot')?.classList.contains('hidden'))return;
+    try{adminData=await netApi('/api/admin');renderAdmin()}catch{}
+  },delay)
+}
+
 function localSeed(){return {schema:2,members:INITIAL_NAMES.map((name,i)=>({id:`m${i+1}`,name,active:true,createdAt:nowIso()})),attendance:{},roleAssignments:{},scheduleExceptions:{},settings:{minRequired:1},auditLog:[]}}
 function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(x&&Array.isArray(x.members)&&x.attendance&&x.scheduleExceptions){x.roleAssignments=x.roleAssignments&&typeof x.roleAssignments==='object'?x.roleAssignments:{};return x}}catch{}return localSeed()}
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(localState))}catch{}}
@@ -1719,26 +1841,24 @@ function setLocalCellAssignment(date,role,value){
   adminData=localAdminSnapshot()
 }
 async function saveAdminCell(btn=null){
-  const date=q('#adminCellDate').value;
-  const role=q('#adminCellRole').value;
+  const date=q('#adminCellDate').value,role=q('#adminCellRole').value;
   const value=role==='present'?checkedAvailableIds(q('#adminCellAvailableChoices')):(q('#adminCellMember').value||'');
-  setButtonBusy(btn,true,'Enregistrement…');
+  if(LOCAL){
+    try{setLocalCellAssignment(date,role,value);renderAdmin();closeAdminCellEditor();toast(`${ROLE_LABELS[role]} mis à jour`)}
+    catch(e){setNotice(q('#adminError'),e.message)}
+    return
+  }
+  const nextIds=role==='present'?value:(value?[value]:[]);
+  const tx=optimisticAdminChanges([{date,role,ids:nextIds}]);
+  closeAdminCellEditor();beginAdminSave();
   try{
-    if(LOCAL)setLocalCellAssignment(date,role,value);
-    else{
-      const body=role==='present'?{date,role,memberIds:value}:{date,role,memberId:value};
-      const j=await netApi('/api/admin/cell-assignment',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-      adminData=j.snapshot
-    }
-    renderAdmin();
-    closeAdminCellEditor();
-    toast(`${ROLE_LABELS[role]} mis à jour`)
-  }catch(e){setNotice(q('#adminError'),e.message)}
-  finally{setButtonBusy(btn,false)}
+    const body=role==='present'?{date,role,memberIds:value}:{date,role,memberId:value};
+    const j=await netApi('/api/admin/cell-assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const canonicalIds=role==='present'?(j.memberIds||[]):(j.memberId?[j.memberId]:[]);
+    reconcileAdminChanges(tx,[{date,role,ids:canonicalIds}]);endAdminSave(true);toast(`${ROLE_LABELS[role]} enregistré`);scheduleAdminReconcile()
+  }catch(e){
+    rollbackAdminChanges(tx);endAdminSave(false);setNotice(q('#adminError'),e.message);toast('Modification annulée : '+e.message)
+  }
 }
 
 
@@ -1778,10 +1898,10 @@ async function moveAdminAssignment(payload,targetDate,targetRole){
   if(!payload||!targetDate||!targetRole)return;
   const {memberId,sourceDate,sourceRole}=payload;
   if(sourceDate===targetDate&&sourceRole===targetRole)return;
+  const sourceIds=currentAdminRoleIds(sourceDate,sourceRole);
+  if(!sourceIds.includes(String(memberId))){toast('Cette affectation a déjà changé.');return}
   const targetIds=currentAdminRoleIds(targetDate,targetRole);
-  const memberName=adminMemberName(memberId);
-  const sourceLabel=`${dayLabel(sourceDate)} · ${ROLE_LABELS[sourceRole]}`;
-  const targetLabel=`${dayLabel(targetDate)} · ${ROLE_LABELS[targetRole]}`;
+  const memberName=adminMemberName(memberId),sourceLabel=`${dayLabel(sourceDate)} · ${ROLE_LABELS[sourceRole]}`,targetLabel=`${dayLabel(targetDate)} · ${ROLE_LABELS[targetRole]}`;
   const replacements=targetRole==='present'?[]:targetIds.filter(id=>id!==memberId);
   let message='';
   if(sourceDate!==targetDate)message=`Déplacer ${memberName} de « ${sourceLabel} » vers « ${targetLabel} » ?`;
@@ -1790,19 +1910,24 @@ async function moveAdminAssignment(payload,targetDate,targetRole){
     message=(message?`${message}\n\n`:'')+`La case cible contient ${names}. ${memberName} le remplacera.`
   }
   if(message&&!await confirmModal(message,{title:'Déplacer une affectation',confirmText:'Déplacer'}))return;
+  if(LOCAL){
+    try{moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,targetRole});renderAdmin();toast(`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`)}
+    catch(e){setNotice(q('#adminError'),e.message)}
+    return
+  }
+  const sourceAfter=sourceIds.filter(id=>id!==String(memberId));
+  const targetAfter=targetRole==='present'?[...new Set([...targetIds,String(memberId)])]:[String(memberId)];
+  const tx=optimisticAdminChanges([{date:sourceDate,role:sourceRole,ids:sourceAfter},{date:targetDate,role:targetRole,ids:targetAfter}]);
+  beginAdminSave();
   try{
-    if(LOCAL)moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,targetRole});
-    else{
-      const j=await netApi('/api/admin/move-assignment',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({memberId,sourceDate,sourceRole,targetDate,targetRole})
-      });
-      adminData=j.snapshot
-    }
-    renderAdmin();
-    toast(`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`)
-  }catch(e){setNotice(q('#adminError'),e.message)}
+    const j=await netApi('/api/admin/move-assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({memberId,sourceDate,sourceRole,targetDate,targetRole})});
+    const canonical=[];
+    if(j.source)canonical.push({date:j.source.date,role:j.source.role,ids:j.source.memberIds||[]});
+    if(j.target)canonical.push({date:j.target.date,role:j.target.role,ids:j.target.memberIds||[]});
+    reconcileAdminChanges(tx,canonical);endAdminSave(true);toast(`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`);scheduleAdminReconcile()
+  }catch(e){
+    rollbackAdminChanges(tx);endAdminSave(false);setNotice(q('#adminError'),e.message);toast('Déplacement annulé : '+e.message)
+  }
 }
 function makeAdminChipDraggable(chip,date,role,memberId){
   chip.draggable=true;
@@ -1989,16 +2114,23 @@ async function saveAdminDay(btn=null){
   const date=q('#dayEditorDate').value;
   const assignments=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[role,q(`[data-day-role="${role}"]`).value||'']));
   assignments.present=checkedAvailableIds(q('#dayPresentChoices'));
-  setButtonBusy(btn,true,'Enregistrement…');
+  if(LOCAL){
+    try{setLocalDayAssignments(date,assignments);renderAdmin();closeAdminCorrection();toast('Journée mise à jour')}
+    catch(e){setNotice(q('#adminError'),e.message)}
+    return
+  }
+  const changes=CORE_ROLE_KEYS.map(role=>({date,role,ids:assignments[role]?[assignments[role]]:[]}));
+  changes.push({date,role:'present',ids:assignments.present});
+  const tx=optimisticAdminChanges(changes);
+  closeAdminCorrection();beginAdminSave();
   try{
-    if(LOCAL)setLocalDayAssignments(date,assignments);
-    else{
-      const j=await netApi('/api/admin/day-assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,assignments})});
-      adminData=j.snapshot
-    }
-    renderAdmin();closeAdminCorrection();toast('Journée mise à jour')
-  }catch(e){setNotice(q('#adminError'),e.message)}
-  finally{setButtonBusy(btn,false)}
+    const j=await netApi('/api/admin/day-assignments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,assignments})});
+    const canonical=CORE_ROLE_KEYS.map(role=>({date,role,ids:j.assignments?.[role]?[j.assignments[role]]:[]}));
+    canonical.push({date,role:'present',ids:j.assignments?.present||[]});
+    reconcileAdminChanges(tx,canonical);endAdminSave(true);toast('Journée enregistrée');scheduleAdminReconcile()
+  }catch(e){
+    rollbackAdminChanges(tx);endAdminSave(false);setNotice(q('#adminError'),e.message);toast('Modification annulée : '+e.message)
+  }
 }
 function futureAttendanceAffected(willOpen,date){if(willOpen||date<parisToday())return 0;const a=localAssignmentsSnapshot()[date]||{};return ROLE_KEYS.reduce((n,r)=>n+(a[r]||[]).length,0)}
 function clearLocalDateAssignments(date){delete localState.attendance[date];delete localState.roleAssignments[date]}

@@ -678,14 +678,16 @@ class FileStore {
     }
   }
 
-  async mutate(fn, { snapshots = true } = {}) {
+  async mutate(fn, { snapshots = true, useCurrentRemote = false } = {}) {
     const task = this.queue.then(async () => {
       if (this.remoteBlob) {
         for (let attempt = 0; attempt < 8; attempt++) {
-          // Chemin conservateur Vercel : relire HEAD + GET avant chaque écriture.
-          // Plus coûteux qu'une optimisation ETag-only, mais validé sur le Blob réel et
-          // robuste aux différences de comportement du SDK entre runtimes serverless.
-          await this.#loadRemotePrimary();
+          // requestHandler a déjà rafraîchi l'état partagé juste avant ces mutations.
+          // Le premier essai réutilise donc cet état et son ETag. En cas de conflit,
+          // les tentatives suivantes relisent intégralement le Blob.
+          if (!(useCurrentRemote && attempt === 0 && this.remoteCurrentText != null)) {
+            await this.#loadRemotePrimary();
+          }
           const previous = this.state;
           const draft = clone(previous);
           const result = await fn(draft);
@@ -1430,8 +1432,12 @@ class FileStore {
       writeIds(sourceDate, sourceRole, sourceIds.filter((id) => id !== memberId));
       writeIds(targetDate, targetRole, targetRole === 'present' ? [...targetIds, memberId] : [memberId]);
 
-      return { ok: true, changed: true };
-    });
+      return {
+        ok: true, changed: true,
+        source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
+        target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
+      };
+    }, { useCurrentRemote: true });
   }
 
   async setCellAssignmentAsAdmin(date, role, memberId, memberIds = null) {
@@ -1509,7 +1515,7 @@ class FileStore {
       else delete s.roleAssignments[date];
 
       return { ok: true, changed, role, memberId };
-    });
+    }, { useCurrentRemote: true });
   }
 
   async setDayAssignmentsAsAdmin(date, assignments) {
@@ -1590,7 +1596,7 @@ class FileStore {
       else delete s.attendance[date];
 
       return { ok: true, changed, assignments: desired };
-    });
+    }, { useCurrentRemote: true });
   }
 
   async setAttendance(memberId, date, present) {
@@ -1860,7 +1866,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.15.0-available-multi-dnd-vercel';
+const APP_VERSION = '0.15.16.0-optimistic-perf-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2212,7 +2218,7 @@ export async function requestHandler(req, res) {
       const b = await bodyJson(req);
       const r = await store.setDayAssignmentsAsAdmin(b.date, b.assignments);
       if (!r.ok) return json(res, r.status, { error: r.error });
-      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+      return json(res, 200, r);
     }
     if (pathname === '/api/admin/cell-assignment' && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
@@ -2221,7 +2227,7 @@ export async function requestHandler(req, res) {
       const b = await bodyJson(req);
       const r = await store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId, b.memberIds);
       if (!r.ok) return json(res, r.status, { error: r.error });
-      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+      return json(res, 200, r);
     }    if (pathname === '/api/admin/move-assignment' && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
@@ -2229,7 +2235,7 @@ export async function requestHandler(req, res) {
       const b = await bodyJson(req);
       const r = await store.moveAssignmentAsAdmin(b);
       if (!r.ok) return json(res, r.status, { error: r.error });
-      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+      return json(res, 200, r);
     }
 
 
