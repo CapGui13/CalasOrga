@@ -890,7 +890,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.11.1 · calendrier admin à partir de la prochaine date · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.11.2 · correctif calendrier admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -1147,10 +1147,8 @@ function scheduleMemberPoll(){clearTimeout(memberPollTimer);memberPollTimer=setT
 // --- Vue admin ---
 function adminIsOpen(d){return effectiveOpen(adminData,d)}
 function nextAdminOpenDate(from=parisToday()){
-  const start=parseIso(from);
   for(let i=0;i<=366;i++){
-    const dt=new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth(),start.getUTCDate()+i));
-    const s=`${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+    const s=addDays(from,i);
     if(adminIsOpen(s))return s
   }
   return from
