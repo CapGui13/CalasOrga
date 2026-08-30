@@ -1362,24 +1362,105 @@ class FileStore {
   }
 
 
-  async setCellAssignmentAsAdmin(date, role, memberId) {
+  async moveAssignmentAsAdmin({ memberId, sourceDate, sourceRole, targetDate, targetRole } = {}) {
+    memberId = String(memberId || '').trim();
+    sourceRole = String(sourceRole || '').toLowerCase();
+    targetRole = String(targetRole || '').toLowerCase();
+    if (!memberId) return { ok: false, status: 400, error: 'Membre invalide.' };
+    if (!isIsoDate(sourceDate) || !isIsoDate(targetDate)) return { ok: false, status: 400, error: 'Date invalide.' };
+    if (!ALL_ROLE_KEYS.includes(sourceRole) || !ALL_ROLE_KEYS.includes(targetRole)) return { ok: false, status: 400, error: 'Position invalide.' };
+    if (sourceDate === targetDate && sourceRole === targetRole) return { ok: true, changed: false };
+
+    return this.mutate((s) => {
+      if (!effectiveIsOpen(s, sourceDate) || !effectiveIsOpen(s, targetDate)) {
+        return { ok: false, status: 409, error: "Une des journées n'est pas ouverte." };
+      }
+      const active = new Map(s.members.filter((m) => m.active).map((m) => [m.id, m]));
+      const member = active.get(memberId);
+      if (!member) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
+
+      const readIds = (date, role) => {
+        if (role === 'present') return Array.isArray(s.attendance[date]) ? [...new Set(s.attendance[date].map(String))] : [];
+        const roles = s.roleAssignments?.[date] || {};
+        return Array.isArray(roles[role]) ? [...new Set(roles[role].map(String))] : [];
+      };
+      const writeIds = (date, role, ids) => {
+        const next = [...new Set((ids || []).map(String).filter(Boolean))];
+        const old = readIds(date, role);
+        if (role === 'present') {
+          for (const oldId of old) {
+            if (next.includes(oldId)) continue;
+            const m = s.members.find((x) => x.id === oldId);
+            this.#log(s, 'Administrateur', 'admin_retrait', date, { memberId: oldId, name: m?.displayName || '' });
+          }
+          for (const newId of next) {
+            if (old.includes(newId)) continue;
+            const m = active.get(newId);
+            this.#log(s, 'Administrateur', 'admin_inscription', date, { memberId: newId, name: m?.displayName || '' });
+          }
+          if (next.length) s.attendance[date] = next; else delete s.attendance[date];
+          return
+        }
+        const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object' ? clone(s.roleAssignments[date]) : {};
+        for (const oldId of old) {
+          if (next.includes(oldId)) continue;
+          const m = s.members.find((x) => x.id === oldId);
+          this.#log(s, 'Administrateur', 'admin_role_retrait', date, { memberId: oldId, name: m?.displayName || '', role });
+        }
+        for (const newId of next) {
+          if (old.includes(newId)) continue;
+          const m = active.get(newId);
+          this.#log(s, 'Administrateur', 'admin_role_inscription', date, { memberId: newId, name: m?.displayName || '', role });
+        }
+        if (next.length) roles[role] = next; else delete roles[role];
+        if (Object.keys(roles).length) s.roleAssignments[date] = roles; else delete s.roleAssignments[date]
+      };
+
+      const sourceIds = readIds(sourceDate, sourceRole);
+      if (!sourceIds.includes(memberId)) return { ok: false, status: 409, error: 'Cette affectation a déjà changé.' };
+      const targetIds = readIds(targetDate, targetRole);
+
+      if (targetRole === 'present' && !Object.hasOwn(s.attendance, targetDate) && Object.keys(s.attendance).length >= 5000) {
+        return { ok: false, status: 409, error: 'Limite de dates de disponibilité atteinte.' };
+      }
+      if (targetRole !== 'present' && !Object.hasOwn(s.roleAssignments, targetDate) && Object.keys(s.roleAssignments).length >= 5000) {
+        return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte.' };
+      }
+
+      writeIds(sourceDate, sourceRole, sourceIds.filter((id) => id !== memberId));
+      writeIds(targetDate, targetRole, targetRole === 'present' ? [...targetIds, memberId] : [memberId]);
+
+      return { ok: true, changed: true };
+    });
+  }
+
+  async setCellAssignmentAsAdmin(date, role, memberId, memberIds = null) {
     if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
     role = String(role || '').toLowerCase();
     if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Position invalide.' };
     memberId = String(memberId || '').trim();
+    const requestedAvailable = role === 'present'
+      ? [...new Set((Array.isArray(memberIds) ? memberIds : (memberId ? [memberId] : [])).map((id) => String(id || '').trim()).filter(Boolean))]
+      : [];
 
     return this.mutate((s) => {
       if (!effectiveIsOpen(s, date)) return { ok: false, status: 409, error: "Le club n'est pas ouvert ce jour-là." };
 
       const active = new Map(s.members.filter((m) => m.active).map((m) => [m.id, m]));
-      if (memberId && !active.has(memberId)) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
+      if (role === 'present') {
+        for (const id of requestedAvailable) {
+          if (!active.has(id)) return { ok: false, status: 404, error: 'Membre actif introuvable pour Disponible.' };
+        }
+      } else if (memberId && !active.has(memberId)) {
+        return { ok: false, status: 404, error: 'Membre actif introuvable.' };
+      }
 
-      const nextIds = memberId ? [memberId] : [];
+      const nextIds = role === 'present' ? requestedAvailable : (memberId ? [memberId] : []);
       let changed = false;
 
       if (role === 'present') {
-        if (memberId && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
-          return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archivez ou nettoyez les anciennes données.' };
+        if (nextIds.length && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
+          return { ok: false, status: 409, error: 'Limite de dates de disponibilité atteinte. Archivez ou nettoyez les anciennes données.' };
         }
         const oldIds = Array.isArray(s.attendance[date]) ? [...new Set(s.attendance[date].map(String))] : [];
         for (const oldId of oldIds) {
@@ -1396,7 +1477,7 @@ class FileStore {
         }
         if (nextIds.length) s.attendance[date] = nextIds;
         else delete s.attendance[date];
-        return { ok: true, changed, role, memberId };
+        return { ok: true, changed, role, memberIds: nextIds };
       }
 
       if (memberId && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
@@ -1434,23 +1515,31 @@ class FileStore {
   async setDayAssignmentsAsAdmin(date, assignments) {
     if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
     const raw = assignments && typeof assignments === 'object' ? assignments : {};
-    const desired = Object.fromEntries(ALL_ROLE_KEYS.map((role) => [role, String(raw[role] || '').trim()]));
+    const desired = Object.fromEntries(ROLE_KEYS.map((role) => [role, String(raw[role] || '').trim()]));
+    desired.present = [...new Set(
+      (Array.isArray(raw.present) ? raw.present : (raw.present ? [raw.present] : []))
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    )];
 
     return this.mutate((s) => {
       if (!effectiveIsOpen(s, date)) return { ok: false, status: 409, error: "Le club n'est pas ouvert ce jour-là." };
 
       const active = new Map(s.members.filter((m) => m.active).map((m) => [m.id, m]));
-      for (const role of ALL_ROLE_KEYS) {
+      for (const role of ROLE_KEYS) {
         const id = desired[role];
         if (id && !active.has(id)) return { ok: false, status: 404, error: `Membre actif introuvable pour ${role}.` };
+      }
+      for (const id of desired.present) {
+        if (!active.has(id)) return { ok: false, status: 404, error: 'Membre actif introuvable pour Disponible.' };
       }
 
       const wantsRoles = ROLE_KEYS.some((role) => desired[role]);
       if (wantsRoles && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
         return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
       }
-      if (desired.present && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
-        return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archivez ou nettoyez les anciennes données.' };
+      if (desired.present.length && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
+        return { ok: false, status: 409, error: 'Limite de dates de disponibilité atteinte. Archivez ou nettoyez les anciennes données.' };
       }
 
       let changed = false;
@@ -1482,7 +1571,7 @@ class FileStore {
       else delete s.roleAssignments[date];
 
       const oldPresent = Array.isArray(s.attendance[date]) ? [...new Set(s.attendance[date].map(String))] : [];
-      const newPresent = desired.present ? [desired.present] : [];
+      const newPresent = desired.present;
 
       for (const oldId of oldPresent) {
         if (newPresent.includes(oldId)) continue;
@@ -1771,7 +1860,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.14.0-admin-cell-editor-vercel';
+const APP_VERSION = '0.15.15.0-available-multi-dnd-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -1879,7 +1968,7 @@ function planningCsv(snapshot, from, to) {
   const dates = isoDateRange(from, to, 366);
   if (!dates) return null;
   const names = Object.fromEntries((snapshot.members || []).map((m) => [m.id, m.name]));
-  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'MEP', 'Arbitrage', 'Présent', 'Nombre présent', 'Postes pourvus', 'Postes requis', 'Couverture', 'Remarque']];
+  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'MEP', 'Arbitrage', 'Disponible', 'Nombre disponibles', 'Postes pourvus', 'Postes requis', 'Couverture', 'Remarque']];
   for (const date of dates) {
     if (!effectiveIsOpen(snapshot, date)) continue;
     const dayAssignments = snapshot.assignments?.[date] || {};
@@ -2130,10 +2219,20 @@ export async function requestHandler(req, res) {
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req);
-      const r = await store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId);
+      const r = await store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId, b.memberIds);
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+    }    if (pathname === '/api/admin/move-assignment' && req.method === 'POST') {
+      const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
+      if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      const b = await bodyJson(req);
+      const r = await store.moveAssignmentAsAdmin(b);
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
+
+
     if (pathname === '/api/admin/assignment' && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });

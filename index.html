@@ -1214,11 +1214,66 @@ body.modal-open{overflow:hidden}
   justify-content:flex-end;
 }
 
+
+/* =========================================================
+   V15.15 — DISPONIBLE MULTIPLE + GLISSER-DÉPOSER
+   ========================================================= */
+.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:250px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+}
+.available-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  padding:5px 7px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.available-check:hover{background:#f4f8f5}
+.available-check input{width:16px;height:16px;margin:0}
+.day-editor-position .available-checklist{
+  max-height:220px;
+  padding:6px;
+}
+.day-editor-position .available-check{
+  font-size:12px;
+}
+.admin-role-editable.admin-drop-target{
+  background:#e6f5eb!important;
+  box-shadow:inset 0 0 0 2px #79bb91!important;
+}
+.admin-role-editable.admin-drop-invalid{
+  background:#fff2f0!important;
+}
+.admin-role-display .role-chip[draggable="true"]{
+  cursor:grab;
+  user-select:none;
+}
+.admin-role-display .role-chip[draggable="true"]:active{cursor:grabbing}
+.admin-role-display .role-chip.dragging{
+  opacity:.45;
+}
+.drag-hint{
+  display:block;
+  margin-top:4px;
+  font-size:10px;
+  color:#849088;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.13 · édition complète d’une journée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.15 · Disponible multiple et glisser-déposer · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -1280,7 +1335,7 @@ body.modal-open{overflow:hidden}
       <div class="monthlabel" id="monthLabel" aria-live="polite"></div>
       <button class="btn icon-btn" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
     </nav>
-    <div class="schedule-wrap"><table class="schedule" aria-label="Tableau des permanences"><thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Présent</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
+    <div class="schedule-wrap"><table class="schedule" aria-label="Tableau des permanences"><thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
     <div class="schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
   </section>
 
@@ -1323,7 +1378,7 @@ body.modal-open{overflow:hidden}
       </nav>
       <div class="schedule-wrap admin-schedule-wrap">
         <table class="schedule admin-schedule" aria-label="Calendrier administrateur des permanences">
-          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Présent</th></tr></thead>
+          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
           <tbody id="adminScheduleBody"></tbody>
         </table>
       </div>
@@ -1359,7 +1414,7 @@ body.modal-open{overflow:hidden}
             <div class="day-editor-position"><label for="dayTpe">TPE</label><select id="dayTpe" data-day-role="tpe"></select></div>
             <div class="day-editor-position"><label for="dayMep">MEP</label><select id="dayMep" data-day-role="mep"></select></div>
             <div class="day-editor-position"><label for="dayArbitrage">Arbitrage</label><select id="dayArbitrage" data-day-role="arbitrage"></select></div>
-            <div class="day-editor-position"><label for="dayPresent">Présent</label><select id="dayPresent" data-day-role="present"></select></div>
+            <div class="day-editor-position"><label>Disponible</label><div id="dayPresentChoices" class="available-checklist" data-day-role="present" aria-label="Membres disponibles"></div></div>
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
           <div class="actions day-editor-actions">
@@ -1383,9 +1438,13 @@ body.modal-open{overflow:hidden}
         <form id="adminCellForm">
           <input type="hidden" id="adminCellDate">
           <input type="hidden" id="adminCellRole">
-          <div class="field">
+          <div class="field" id="adminCellSingleField">
             <label for="adminCellMember">Membre</label>
             <select id="adminCellMember"></select>
+          </div>
+          <div class="field hidden" id="adminCellAvailableField">
+            <label>Personnes disponibles</label>
+            <div id="adminCellAvailableChoices" class="available-checklist"></div>
           </div>
           <div class="notice warn hidden spaced" id="adminCellWarning"></div>
           <div class="actions spaced">
@@ -1397,7 +1456,7 @@ body.modal-open{overflow:hidden}
     </div>
 
     <div id="adminSupport" class="hidden" aria-hidden="true">
-      <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Présent » sert uniquement à signaler du renfort.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
+      <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Disponible » peut contenir plusieurs personnes disponibles.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
       <section class="card spaced" id="adminExceptions"><div class="section-head"><h2>Exceptions calendrier</h2><span class="muted small">Fermer un jour habituel ou ouvrir exceptionnellement un autre jour.</span></div><form id="exceptionForm" class="form-row"><div class="exception-fields"><div class="field"><label for="exceptionDate">Date</label><input type="date" id="exceptionDate" required></div><div class="field"><label for="exceptionState">État</label><select id="exceptionState"><option value="closed">Fermé</option><option value="open">Ouvert</option></select></div><div class="field"><label for="exceptionNote">Remarque</label><input id="exceptionNote" maxlength="200" placeholder="Vacances, ouverture exceptionnelle…"></div></div><button class="btn primary" type="submit">Enregistrer</button></form><div class="sep"></div><form id="bulkExceptionForm" class="form-row"><div class="bulk-exception-fields"><div class="field"><label for="bulkFrom">Du</label><input type="date" id="bulkFrom" required></div><div class="field"><label for="bulkTo">Au</label><input type="date" id="bulkTo" required></div><div class="field"><label for="bulkState">État</label><select id="bulkState"><option value="closed">Fermé</option><option value="normal">Horaires habituels</option><option value="open">Ouvert tous les jours</option></select></div><div class="field"><label for="bulkNote">Remarque</label><input id="bulkNote" maxlength="200" placeholder="Vacances, ouverture spéciale…"></div></div><button class="btn primary" type="submit">Appliquer à la période</button></form><div class="exception-list spaced" id="exceptionList"></div></section>
     </div>
 
@@ -1416,7 +1475,7 @@ const STORAGE_KEY = 'club-presences-complete-v14';
 const INITIAL_NAMES = ['Odile','Guillaume','Sylvie','Caroline','Véronique','Gérard','Patrick','Christian','Armelle','Pascal'];
 const CORE_ROLE_KEYS=['accueil','tpe','mep','arbitrage'];
 const ROLE_KEYS=[...CORE_ROLE_KEYS,'present'];
-const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Présent'};
+const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
 const q = (s) => document.querySelector(s);
 const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -1484,7 +1543,7 @@ function csrf(name){const m=document.cookie.match(new RegExp('(?:^|; )'+name+'=(
 async function netApi(url,opts={}){const h=new Headers(opts.headers||{});if(opts.method&&opts.method!=='GET')h.set('X-CSRF-Token',url.startsWith('/api/admin')?csrf('club_admin_csrf'):csrf('club_member_csrf'));const r=await fetch(url,{...opts,headers:h,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(j.error||'Erreur'),{status:r.status,payload:j});return j}
 function downloadBlob(name,type,text){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)}
 function csvCell(v){let t=String(v??'');if(/^[\t \r\n]*[=+\-@]/.test(t))t="'"+t;return /[;"\n\r]/.test(t)?'"'+t.replaceAll('"','""')+'"':t}
-function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=addDays(from,365),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','MEP','Arbitrage','Présent','Nombre présent','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>(a[r]||[]).map(id=>byId[id]).filter(Boolean).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
+function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=addDays(from,365),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','MEP','Arbitrage','Disponible','Nombre disponibles','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>(a[r]||[]).map(id=>byId[id]).filter(Boolean).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
 function actionLabel(a){return ({inscription:'inscription',retrait:'retrait',membre_cree:'membre créé',membre_renomme:'membre renommé',membre_desactive:'membre désactivé',membre_reactive:'membre réactivé',lien_regenere:'nouveau lien',fermeture_exceptionnelle:'fermeture',ouverture_exceptionnelle:'ouverture',fermeture_periode:'fermeture de période',ouverture_periode:'ouverture de période',exception_supprimee:'exception supprimée',exceptions_periode_supprimees:'horaires habituels rétablis',minimum_modifie:'minimum modifié',admin_inscription:'présence ajoutée par admin',admin_retrait:'présence retirée par admin',sauvegarde_importee:'sauvegarde restaurée',presence_retiree_fermeture:'présence retirée lors d’une fermeture',presence_retiree_desactivation:'présence retirée lors d’une désactivation',role_inscription:'inscription à un rôle',role_retrait:'retrait d’un rôle',admin_role_inscription:'rôle ajouté par admin',admin_role_retrait:'rôle retiré par admin',role_retire_fermeture:'rôle retiré lors d’une fermeture',role_retire_desactivation:'rôle retiré lors d’une désactivation',sessions_membre_revoquees:'appareils membre déconnectés'})[a]||String(a||'').replaceAll('_',' ')}
 
 // --- Choix local / liens locaux ---
@@ -1500,8 +1559,8 @@ function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC
 function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new Intl.DateTimeFormat('fr-FR',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad(d)}/${pad(m)}`}
 function renderUpcoming(){const box=q('#myUpcoming'),badge=q('#myUpcomingCount'),today=parisToday();box.innerHTML='';const dates=Object.entries(memberData.assignments||{}).filter(([d,roles])=>d>=today&&effectiveOpen(memberData,d)&&ROLE_KEYS.some(role=>(roles[role]||[]).includes(memberData.me.id))).map(([d])=>d).sort();badge.textContent=dates.length?`${dates.length} date${dates.length>1?'s':''}`:'Aucune';if(!dates.length){const e=document.createElement('span');e.className='muted small';e.textContent='Vous n’avez encore aucune inscription future.';box.append(e);return}for(const d of dates.slice(0,8)){const b=document.createElement('button');b.className='upcoming-chip';b.textContent=shortDayLabel(d);b.addEventListener('click',()=>{memberMonth=monthKey(d);renderMember();setTimeout(()=>document.getElementById('date-'+d)?.scrollIntoView({behavior:'smooth',block:'center'}),30)});box.append(b)}}
 function mobileRoleButton(date,role,assignments,open,past,outside,map){const ids=assignments[role]||[],mine=ids.includes(memberData.me.id),btn=document.createElement('button');btn.className='mobile-role-button'+(mine?' mine':'');btn.disabled=!open||past||outside||memberBusy;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];const value=document.createElement('span');value.className='mobile-role-value';if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=btn.disabled?'—':'Disponible · touchez pour vous inscrire';value.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;value.append(chip)}btn.append(label,value);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));return btn}
-function renderMember(){if(!memberData)return;setNotice(q('#memberError'));q('#welcome').textContent=`Bonjour ${memberData.me.name}`;q('#lastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#monthLabel').textContent=monthLabel(memberMonth);const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;q('#prevMonth').disabled=memberMonth<=monthKey(from);q('#nextMonth').disabled=memberMonth>=monthKey(to);renderUpcoming();const body=q('#scheduleBody'),mobile=q('#scheduleMobile');body.innerHTML='';mobile.innerHTML='';const map=Object.fromEntries(memberData.members.map(m=>[m.id,m])),today=parisToday();let prevWeek='',weekIndex=-1;for(const date of memberDatesForMonth(memberMonth)){const open=effectiveOpen(memberData,date);if(!open&&memberData.scheduleExceptions?.[date]?.isOpen!==false)continue;const wk=weekStart(date);if(wk!==prevWeek){weekIndex++;if(prevWeek){const sr=document.createElement('tr');sr.className='week-separator';const td=document.createElement('td');td.colSpan=6;const ln=document.createElement('div');ln.className='week-separator-line';td.append(ln);sr.append(td);body.append(sr)}prevWeek=wk}const row=document.createElement('tr');row.id='date-'+date;row.className=weekIndex%2?'week-b':'week-a';const assignments=memberData.assignments?.[date]||{accueil:[],tpe:[],mep:[],arbitrage:[],present:memberData.attendance?.[date]||[]},present=assignments.present||[],past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered,missingCount=coverageState.missing.length;const dateTd=document.createElement('td');dateTd.className='date-cell';const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);const note=document.createElement('div');note.className='date-note';note.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} renfort${present.length>1?'s':''}`:''}`;const badge=document.createElement('span');badge.className='date-status '+(!open?'closed':covered?'':'alert');badge.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;dateTd.append(dm,note,badge);row.append(dateTd);for(const role of ROLE_KEYS){const td=document.createElement('td');td.className='role-cell';const btn=document.createElement('button');btn.className='role-button';const ids=assignments[role]||[],mine=ids.includes(memberData.me.id);if(mine)btn.classList.add('mine');if(!ids.length)btn.classList.add('empty');btn.disabled=!open||past||outside||memberBusy;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const stack=document.createElement('div');stack.className='role-stack';if(!open){const x=document.createElement('span');x.className='muted small';x.textContent='—';stack.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='muted small';x.textContent=btn.disabled?'—':'Cliquer pour s’inscrire';stack.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)}btn.append(stack);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));td.append(btn);row.append(td)}body.append(row);
-const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} renfort${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}} 
+function renderMember(){if(!memberData)return;setNotice(q('#memberError'));q('#welcome').textContent=`Bonjour ${memberData.me.name}`;q('#lastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#monthLabel').textContent=monthLabel(memberMonth);const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;q('#prevMonth').disabled=memberMonth<=monthKey(from);q('#nextMonth').disabled=memberMonth>=monthKey(to);renderUpcoming();const body=q('#scheduleBody'),mobile=q('#scheduleMobile');body.innerHTML='';mobile.innerHTML='';const map=Object.fromEntries(memberData.members.map(m=>[m.id,m])),today=parisToday();let prevWeek='',weekIndex=-1;for(const date of memberDatesForMonth(memberMonth)){const open=effectiveOpen(memberData,date);if(!open&&memberData.scheduleExceptions?.[date]?.isOpen!==false)continue;const wk=weekStart(date);if(wk!==prevWeek){weekIndex++;if(prevWeek){const sr=document.createElement('tr');sr.className='week-separator';const td=document.createElement('td');td.colSpan=6;const ln=document.createElement('div');ln.className='week-separator-line';td.append(ln);sr.append(td);body.append(sr)}prevWeek=wk}const row=document.createElement('tr');row.id='date-'+date;row.className=weekIndex%2?'week-b':'week-a';const assignments=memberData.assignments?.[date]||{accueil:[],tpe:[],mep:[],arbitrage:[],present:memberData.attendance?.[date]||[]},present=assignments.present||[],past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered,missingCount=coverageState.missing.length;const dateTd=document.createElement('td');dateTd.className='date-cell';const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);const note=document.createElement('div');note.className='date-note';note.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;const badge=document.createElement('span');badge.className='date-status '+(!open?'closed':covered?'':'alert');badge.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;dateTd.append(dm,note,badge);row.append(dateTd);for(const role of ROLE_KEYS){const td=document.createElement('td');td.className='role-cell';const btn=document.createElement('button');btn.className='role-button';const ids=assignments[role]||[],mine=ids.includes(memberData.me.id);if(mine)btn.classList.add('mine');if(!ids.length)btn.classList.add('empty');btn.disabled=!open||past||outside||memberBusy;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const stack=document.createElement('div');stack.className='role-stack';if(!open){const x=document.createElement('span');x.className='muted small';x.textContent='—';stack.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='muted small';x.textContent=btn.disabled?'—':'Cliquer pour s’inscrire';stack.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)}btn.append(stack);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));td.append(btn);row.append(td)}body.append(row);
+const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}} 
 function optimisticAssignment(data,date,role,present){const next=JSON.parse(JSON.stringify(data)),id=next.me.id;next.assignments ||= {};next.attendance ||= {};next.roleAssignments ||= {};const emptyDay=()=>({accueil:[],tpe:[],mep:[],arbitrage:[],present:[]});const day={...emptyDay(),...(next.assignments[date]||{})};const set=new Set(day[role]||[]);present?set.add(id):set.delete(id);day[role]=[...set];next.assignments[date]=day;if(role==='present'){if(day.present.length)next.attendance[date]=[...day.present];else delete next.attendance[date]}else{const roles={...(next.roleAssignments[date]||{})};if(day[role].length)roles[role]=[...day[role]];else delete roles[role];if(Object.keys(roles).length)next.roleAssignments[date]=roles;else delete next.roleAssignments[date]}return next}
 async function toggleAssignment(date,role,present){if(memberBusy)return;markMemberActivity();const before=memberData;memberBusy=true;if(!LOCAL){memberData=optimisticAssignment(memberData,date,role,present);renderMember();q('#lastRefresh').textContent='Enregistrement…'}else renderMember();try{if(LOCAL){if(role==='present'){const ids=localState.attendance[date]||[];if(present)localState.attendance[date]=[...new Set([...ids,currentLocalMemberId])];else{localState.attendance[date]=ids.filter(x=>x!==currentLocalMemberId);if(!localState.attendance[date].length)delete localState.attendance[date]}}else{const day=localState.roleAssignments[date]||{},ids=day[role]||[];if(present)day[role]=[...new Set([...ids,currentLocalMemberId])];else{day[role]=ids.filter(x=>x!==currentLocalMemberId);if(!day[role].length)delete day[role]}if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date]}const m=localState.members.find(x=>x.id===currentLocalMemberId);audit(m.name,present?'role_inscription':'role_retrait',date,{role});saveLocal();memberData=localMemberSnapshot(currentLocalMemberId)}else{const j=await netApi('/api/me/assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,role,present})});memberData=j.snapshot}q('#lastRefresh').textContent='Enregistré ✓';toast(present?`${ROLE_LABELS[role]} : inscrit`:`${ROLE_LABELS[role]} : retiré`)}catch(e){if(!LOCAL)memberData=before;if(e.status===401){memberBusy=false;invalidMemberSession();return}setNotice(q('#memberError'),`Modification non enregistrée : ${e.message}`)}finally{memberBusy=false;if(!q('#memberRoot').classList.contains('hidden'))renderMember()}}
 function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
@@ -1539,27 +1598,42 @@ function adminDatesForMonth(k){
   return out
 }
 function fillDayEditorSelect(select,role,currentIds,members){
-  const emptyLabel=role==='present'?'— Aucun renfort —':'— À pourvoir —';
+  const emptyLabel=role==='present'?'— Personne disponible —':'— À pourvoir —';
   select.innerHTML='';
   const empty=document.createElement('option');empty.value='';empty.textContent=emptyLabel;select.append(empty);
   for(const m of members){const o=document.createElement('option');o.value=m.id;o.textContent=m.name;select.append(o)}
   select.value=currentIds[0]||''
 }
+function fillAvailableChecklist(container,currentIds,members,prefix){
+  const current=new Set((currentIds||[]).map(String));
+  container.innerHTML='';
+  for(const m of members){
+    const label=document.createElement('label');label.className='available-check';
+    const box=document.createElement('input');box.type='checkbox';box.value=m.id;box.name=`${prefix}-${m.id}`;box.checked=current.has(String(m.id));
+    const span=document.createElement('span');span.textContent=m.name;
+    label.append(box,span);container.append(label)
+  }
+}
+function checkedAvailableIds(container){
+  return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(x=>String(x.value))
+}
+
 function populateDayEditor(date){
   const active=(adminData.membersAdmin||[]).filter(m=>m.active);
   const assignments=adminData.assignments?.[date]||{};
   q('#dayEditorDate').value=date;
   q('#dayEditorDateLabel').textContent=dayLabel(date);
   const warnings=[];
-  for(const role of ROLE_KEYS){
+  for(const role of CORE_ROLE_KEYS){
     const ids=Array.isArray(assignments[role])?assignments[role]:[];
     const select=q(`[data-day-role="${role}"]`);
     fillDayEditorSelect(select,role,ids,active);
     if(ids.length>1)warnings.push(`${ROLE_LABELS[role]} : ${ids.length} membres actuellement affectés`)
   }
+  fillAvailableChecklist(q('#dayPresentChoices'),assignments.present||[],active,'day-available');
   const warning=q('#dayEditorWarning');
   if(warnings.length){
-    warning.textContent=`Attention : ${warnings.join(' · ')}. L’enregistrement conservera uniquement le membre sélectionné dans chaque colonne.`;
+    warning.textContent=`Attention : ${warnings.join(' · ')}. L’enregistrement conservera uniquement le membre sélectionné pour ces postes.`;
     warning.classList.remove('hidden')
   }else{warning.textContent='';warning.classList.add('hidden')}
 }
@@ -1586,26 +1660,28 @@ function populateAdminCellEditor(date,role){
   q('#adminCellDate').value=date;
   q('#adminCellRole').value=role;
   q('#adminCellContext').textContent=`${dayLabel(date)} · ${ROLE_LABELS[role]}`;
-  const select=q('#adminCellMember');
-  select.innerHTML='';
-  const empty=document.createElement('option');
-  empty.value='';
-  empty.textContent=role==='present'?'— Aucun renfort —':'— À pourvoir —';
-  select.append(empty);
-  for(const m of active){
-    const o=document.createElement('option');
-    o.value=m.id;
-    o.textContent=m.name;
-    select.append(o)
-  }
-  select.value=ids[0]||'';
+  const single=q('#adminCellSingleField'),multiple=q('#adminCellAvailableField');
   const warning=q('#adminCellWarning');
-  if(ids.length>1){
-    warning.textContent=`${ids.length} membres sont actuellement affectés à cette position. Enregistrer remplacera ces affectations par le choix sélectionné.`;
-    warning.classList.remove('hidden')
+  warning.textContent='';warning.classList.add('hidden');
+  if(role==='present'){
+    single.classList.add('hidden');
+    multiple.classList.remove('hidden');
+    fillAvailableChecklist(q('#adminCellAvailableChoices'),ids,active,'cell-available')
   }else{
-    warning.textContent='';
-    warning.classList.add('hidden')
+    multiple.classList.add('hidden');
+    single.classList.remove('hidden');
+    const select=q('#adminCellMember');
+    select.innerHTML='';
+    const empty=document.createElement('option');
+    empty.value='';empty.textContent='— À pourvoir —';select.append(empty);
+    for(const m of active){
+      const o=document.createElement('option');o.value=m.id;o.textContent=m.name;select.append(o)
+    }
+    select.value=ids[0]||'';
+    if(ids.length>1){
+      warning.textContent=`${ids.length} membres sont actuellement affectés à cette position. Enregistrer conservera uniquement le choix sélectionné.`;
+      warning.classList.remove('hidden')
+    }
   }
 }
 function openAdminCellEditor(date,role){
@@ -1614,7 +1690,7 @@ function openAdminCellEditor(date,role){
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('modal-open');
-  setTimeout(()=>q('#adminCellMember')?.focus(),0)
+  setTimeout(()=>role==='present'?q('#adminCellAvailableChoices input')?.focus():q('#adminCellMember')?.focus(),0)
 }
 function closeAdminCellEditor(){
   const overlay=q('#adminCellOverlay');
@@ -1623,9 +1699,11 @@ function closeAdminCellEditor(){
   overlay.setAttribute('aria-hidden','true');
   if(q('#confirmOverlay')?.classList.contains('hidden')&&q('#adminCorrectionOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
 }
-function setLocalCellAssignment(date,role,memberId){
+function setLocalCellAssignment(date,role,value){
   const old=(localAssignmentsSnapshot()[date]?.[role]||[]).map(String);
-  const next=memberId?[String(memberId)]:[];
+  const next=role==='present'
+    ?[...new Set((Array.isArray(value)?value:[]).map(String).filter(Boolean))]
+    :(value?[String(value)]:[]);
   if(role==='present'){
     for(const id of old)if(!next.includes(id))audit('Administrateur','admin_retrait',date,{memberId:id});
     for(const id of next)if(!old.includes(id))audit('Administrateur','admin_inscription',date,{memberId:id});
@@ -1643,15 +1721,16 @@ function setLocalCellAssignment(date,role,memberId){
 async function saveAdminCell(btn=null){
   const date=q('#adminCellDate').value;
   const role=q('#adminCellRole').value;
-  const memberId=q('#adminCellMember').value||'';
+  const value=role==='present'?checkedAvailableIds(q('#adminCellAvailableChoices')):(q('#adminCellMember').value||'');
   setButtonBusy(btn,true,'Enregistrement…');
   try{
-    if(LOCAL)setLocalCellAssignment(date,role,memberId);
+    if(LOCAL)setLocalCellAssignment(date,role,value);
     else{
+      const body=role==='present'?{date,role,memberIds:value}:{date,role,memberId:value};
       const j=await netApi('/api/admin/cell-assignment',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({date,role,memberId})
+        body:JSON.stringify(body)
       });
       adminData=j.snapshot
     }
@@ -1660,6 +1739,85 @@ async function saveAdminCell(btn=null){
     toast(`${ROLE_LABELS[role]} mis à jour`)
   }catch(e){setNotice(q('#adminError'),e.message)}
   finally{setButtonBusy(btn,false)}
+}
+
+
+let adminDragPayload=null;
+function currentAdminRoleIds(date,role){
+  const a=adminData?.assignments?.[date]||{};
+  return (Array.isArray(a[role])?a[role]:[]).map(String)
+}
+function localWriteAdminRoleIds(date,role,nextIds){
+  const next=[...new Set((nextIds||[]).map(String).filter(Boolean))];
+  const old=currentAdminRoleIds(date,role);
+  if(role==='present'){
+    for(const id of old)if(!next.includes(id))audit('Administrateur','admin_retrait',date,{memberId:id});
+    for(const id of next)if(!old.includes(id))audit('Administrateur','admin_inscription',date,{memberId:id});
+    if(next.length)localState.attendance[date]=next;else delete localState.attendance[date];
+    return
+  }
+  const roles={...(localState.roleAssignments[date]||{})};
+  for(const id of old)if(!next.includes(id))audit('Administrateur','admin_role_retrait',date,{memberId:id,role});
+  for(const id of next)if(!old.includes(id))audit('Administrateur','admin_role_inscription',date,{memberId:id,role});
+  if(next.length)roles[role]=next;else delete roles[role];
+  if(Object.keys(roles).length)localState.roleAssignments[date]=roles;else delete localState.roleAssignments[date]
+}
+function moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,targetRole}){
+  if(sourceDate===targetDate&&sourceRole===targetRole)return;
+  const source=currentAdminRoleIds(sourceDate,sourceRole);
+  if(!source.includes(memberId))throw new Error('Cette affectation a déjà changé.');
+  const target=currentAdminRoleIds(targetDate,targetRole);
+  localWriteAdminRoleIds(sourceDate,sourceRole,source.filter(id=>id!==memberId));
+  localWriteAdminRoleIds(targetDate,targetRole,targetRole==='present'?[...target,memberId]:[memberId]);
+  saveLocal();adminData=localAdminSnapshot()
+}
+function adminMemberName(id){
+  return (adminData.membersAdmin||adminData.members||[]).find(m=>String(m.id)===String(id))?.name||'Membre'
+}
+async function moveAdminAssignment(payload,targetDate,targetRole){
+  if(!payload||!targetDate||!targetRole)return;
+  const {memberId,sourceDate,sourceRole}=payload;
+  if(sourceDate===targetDate&&sourceRole===targetRole)return;
+  const targetIds=currentAdminRoleIds(targetDate,targetRole);
+  const memberName=adminMemberName(memberId);
+  const sourceLabel=`${dayLabel(sourceDate)} · ${ROLE_LABELS[sourceRole]}`;
+  const targetLabel=`${dayLabel(targetDate)} · ${ROLE_LABELS[targetRole]}`;
+  const replacements=targetRole==='present'?[]:targetIds.filter(id=>id!==memberId);
+  let message='';
+  if(sourceDate!==targetDate)message=`Déplacer ${memberName} de « ${sourceLabel} » vers « ${targetLabel} » ?`;
+  if(replacements.length){
+    const names=replacements.map(adminMemberName).join(', ');
+    message=(message?`${message}\n\n`:'')+`La case cible contient ${names}. ${memberName} le remplacera.`
+  }
+  if(message&&!await confirmModal(message,{title:'Déplacer une affectation',confirmText:'Déplacer'}))return;
+  try{
+    if(LOCAL)moveLocalAdminAssignment({memberId,sourceDate,sourceRole,targetDate,targetRole});
+    else{
+      const j=await netApi('/api/admin/move-assignment',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({memberId,sourceDate,sourceRole,targetDate,targetRole})
+      });
+      adminData=j.snapshot
+    }
+    renderAdmin();
+    toast(`${memberName} déplacé vers ${ROLE_LABELS[targetRole]}`)
+  }catch(e){setNotice(q('#adminError'),e.message)}
+}
+function makeAdminChipDraggable(chip,date,role,memberId){
+  chip.draggable=true;
+  chip.dataset.memberId=memberId;
+  chip.addEventListener('dragstart',e=>{
+    adminDragPayload={memberId:String(memberId),sourceDate:date,sourceRole:role};
+    chip.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',JSON.stringify(adminDragPayload))
+  });
+  chip.addEventListener('dragend',()=>{
+    adminDragPayload=null;
+    chip.classList.remove('dragging');
+    for(const cell of document.querySelectorAll('.admin-drop-target,.admin-drop-invalid'))cell.classList.remove('admin-drop-target','admin-drop-invalid')
+  })
 }
 
 function renderAdminCalendar(){
@@ -1708,7 +1866,7 @@ function renderAdminCalendar(){
     const dateTd=document.createElement('td');dateTd.className='date-cell';
     const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
     const note=document.createElement('div');note.className='date-note';
-    note.textContent=!open?(adminData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} renfort${present.length>1?'s':''}`:''}`;
+    note.textContent=!open?(adminData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;
     const badge=document.createElement('span');
     badge.className='date-status '+(!open?'closed':coverageState.covered?'':'alert');
     badge.textContent=!open?'Fermé':coverageState.covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;
@@ -1718,13 +1876,17 @@ function renderAdminCalendar(){
 
     for(const role of ROLE_KEYS){
       const td=document.createElement('td');td.className='role-cell';
+      td.dataset.date=date;td.dataset.role=role;
       const display=document.createElement('div');display.className='admin-role-display';
       if(open){
         td.classList.add('admin-role-editable');
         td.tabIndex=0;
-        td.title=`Double-cliquez pour modifier ${ROLE_LABELS[role]}`;
+        td.title=`Double-cliquez pour modifier ${ROLE_LABELS[role]} · vous pouvez aussi y déposer un nom`;
         td.addEventListener('dblclick',()=>openAdminCellEditor(date,role));
-        td.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openAdminCellEditor(date,role)}})
+        td.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openAdminCellEditor(date,role)}});
+        td.addEventListener('dragover',e=>{if(!adminDragPayload)return;e.preventDefault();e.dataTransfer.dropEffect='move';td.classList.add('admin-drop-target')});
+        td.addEventListener('dragleave',e=>{if(!td.contains(e.relatedTarget))td.classList.remove('admin-drop-target')});
+        td.addEventListener('drop',e=>{e.preventDefault();td.classList.remove('admin-drop-target');const payload=adminDragPayload||(()=>{try{return JSON.parse(e.dataTransfer.getData('text/plain'))}catch{return null}})();moveAdminAssignment(payload,date,role)})
       }
       if(!open){
         display.classList.add('closed');display.textContent='—'
@@ -1735,11 +1897,12 @@ function renderAdminCalendar(){
           for(const id of ids){
             const chip=document.createElement('span');chip.className='role-chip';
             chip.textContent=nameMap[id]||'Membre';
+            makeAdminChipDraggable(chip,date,role,String(id));
             stack.append(chip)
           }
           display.append(stack)
         }else{
-          display.classList.add('empty');display.textContent=role==='present'?'Aucun renfort':'À pourvoir'
+          display.classList.add('empty');display.textContent=role==='present'?'Personne disponible':'À pourvoir'
         }
       }
       td.append(display);row.append(td)
@@ -1769,7 +1932,7 @@ function renderAdminCalendar(){
             const chip=document.createElement('span');chip.className='role-chip';chip.textContent=nameMap[id]||'Membre';val.append(chip)
           }
         }else{
-          const e=document.createElement('span');e.className='mobile-role-empty';e.textContent=role==='present'?'Aucun renfort':'À pourvoir';val.append(e)
+          const e=document.createElement('span');e.className='mobile-role-empty';e.textContent=role==='present'?'Personne disponible':'À pourvoir';val.append(e)
         }
       }
       line.append(lab,val);roles.append(line)
@@ -1785,7 +1948,7 @@ function renderAdminCalendar(){
 function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=addDays(parisToday(),i);if(!adminIsOpen(d))continue;open++;if(assignmentCoverage(adminData,d).covered)covered++}return{open,covered,missing:open-covered,pct:open?Math.round(covered/open*100):100}}
 function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#memberCount').textContent=`${adminData.membersAdmin.filter(m=>m.active).length} actifs`;renderAdminCalendar();renderMembers();renderDayEditorMembers();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
 function renderCoverage(){for(const[n,id,detail]of [[30,'coverage30','coverage30Detail'],[90,'coverage90','coverage90Detail']]){const c=coverage(n);q('#'+id).textContent=`${c.pct}% couvert`;q('#'+detail).textContent=`${c.covered}/${c.open} journées · ${c.missing} à pourvoir`}let next=null;for(let i=0;i<=365;i++){const d=addDays(parisToday(),i),c=assignmentCoverage(adminData,d);if(adminIsOpen(d)&&!c.covered){next={d,c};break}}q('#nextUncovered').textContent=next?dayLabel(next.d):'Aucune';q('#nextUncoveredDetail').textContent=next?`${next.c.filled}/${CORE_ROLE_KEYS.length} postes pourvus · manque${next.c.missing.length>1?'nt':''} : ${next.c.missing.map(r=>ROLE_LABELS[r]).join(', ')}`:'Toutes les dates sont couvertes.'}
-function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=ids.map(id=>byId[id]).filter(Boolean);line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=present.map(id=>byId[id]).filter(Boolean);line.textContent=`Présent (renfort) : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
+function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=ids.map(id=>byId[id]).filter(Boolean);line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=present.map(id=>byId[id]).filter(Boolean);line.textContent=`Disponible : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
 function renderMembers(){const body=q('#membersTable');body.innerHTML='';for(const m of adminData.membersAdmin){const tr=document.createElement('tr'),nameTd=document.createElement('td'),stateTd=document.createElement('td'),actTd=document.createElement('td');const input=document.createElement('input');input.className='member-name-input';input.value=m.name;input.maxLength=80;input.addEventListener('change',()=>renameMember(m.id,input.value,input));nameTd.append(input);const state=document.createElement('div');state.textContent=m.active?'Actif':'Inactif';stateTd.append(state);const devices=document.createElement('div');devices.className='device-info';const n=Number(m.deviceCount||0);devices.textContent=n?`${n} appareil${n>1?'s':''} connecté${n>1?'s':''}${m.latestDeviceAt?' · dernier : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt)):''}`:'Aucun appareil connecté';stateTd.append(devices);const box=document.createElement('div');box.className='member-action-wrap';if(m.active){const rot=document.createElement('button');rot.className='btn primary';rot.textContent='Nouveau lien';rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));box.append(rot);const menu=document.createElement('details');menu.className='member-menu';const summary=document.createElement('summary');summary.className='btn';summary.textContent='•••';summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);const panel=document.createElement('div');panel.className='member-menu-panel';if(n){const kick=document.createElement('button');kick.type='button';kick.className='btn';kick.textContent='Déconnecter les appareils';kick.addEventListener('click',()=>{menu.open=false;revokeMemberDevices(m.id,m.name,n,kick)});panel.append(kick)}const disable=document.createElement('button');disable.type='button';disable.className='btn danger-option';disable.textContent='Désactiver le membre';disable.addEventListener('click',()=>{menu.open=false;setMemberActive(m.id,false,m.name,disable)});panel.append(disable);menu.append(summary,panel);box.append(menu)}else{const reactivate=document.createElement('button');reactivate.className='btn primary';reactivate.textContent='Réactiver';reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));box.append(reactivate)}actTd.append(box);tr.append(nameTd,stateTd,actTd);body.append(tr)}}
 function renderDayEditorMembers(){const date=q('#dayEditorDate')?.value;if(date&&!q('#adminCorrectionOverlay').classList.contains('hidden'))populateDayEditor(date)}
 function renderExceptions(){const box=q('#exceptionList');box.innerHTML='';const entries=Object.entries(adminData.scheduleExceptions||{}).sort(([a],[b])=>a.localeCompare(b));for(const[d,ex]of entries){const row=document.createElement('div');row.className='exception-item';const t=document.createElement('div');const s=document.createElement('strong');s.textContent=dayLabel(d,true);const p=document.createElement('div');p.className='muted small';p.textContent=`${ex.isOpen?'Ouvert':'Fermé'}${ex.note?' · '+ex.note:''}`;t.append(s,p);const del=document.createElement('button');del.className='btn danger';del.textContent='Supprimer';del.addEventListener('click',()=>removeException(d));row.append(t,del);box.append(row)}if(!entries.length){const e=document.createElement('div');e.className='muted small';e.textContent='Aucune exception.';box.append(e)}}
@@ -1801,10 +1964,12 @@ async function revokeMemberDevices(id,name,count,btn=null){const ok=await confir
 function setLocalDayAssignments(date,selections){
   if(!effectiveOpen(localAdminSnapshot(),date))throw new Error("Le club n'est pas ouvert ce jour-là.");
   const active=new Map(localState.members.filter(m=>m.active).map(m=>[m.id,m]));
-  for(const role of ROLE_KEYS){
+  for(const role of CORE_ROLE_KEYS){
     const id=String(selections[role]||'');
     if(id&&!active.has(id))throw new Error(`Membre introuvable pour ${ROLE_LABELS[role]}.`)
   }
+  const available=[...new Set((Array.isArray(selections.present)?selections.present:[]).map(String).filter(Boolean))];
+  for(const id of available)if(!active.has(id))throw new Error('Membre introuvable pour Disponible.');
   const before=localAssignmentsSnapshot()[date]||{};
   const day=localState.roleAssignments[date]&&typeof localState.roleAssignments[date]==='object'?clone(localState.roleAssignments[date]):{};
   for(const role of CORE_ROLE_KEYS){
@@ -1814,15 +1979,16 @@ function setLocalDayAssignments(date,selections){
     if(nextIds.length)day[role]=nextIds;else delete day[role]
   }
   if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date];
-  const oldPresent=Array.isArray(before.present)?before.present:[],presentId=String(selections.present||''),nextPresent=presentId?[presentId]:[];
-  for(const oldId of oldPresent)if(!nextPresent.includes(oldId))audit('Administrateur','admin_retrait',date,{memberId:oldId});
-  for(const newId of nextPresent)if(!oldPresent.includes(newId))audit('Administrateur','admin_inscription',date,{memberId:newId});
-  if(nextPresent.length)localState.attendance[date]=nextPresent;else delete localState.attendance[date];
+  const oldPresent=Array.isArray(before.present)?before.present:[];
+  for(const oldId of oldPresent)if(!available.includes(oldId))audit('Administrateur','admin_retrait',date,{memberId:oldId});
+  for(const newId of available)if(!oldPresent.includes(newId))audit('Administrateur','admin_inscription',date,{memberId:newId});
+  if(available.length)localState.attendance[date]=available;else delete localState.attendance[date];
   saveLocal();adminData=localAdminSnapshot()
 }
 async function saveAdminDay(btn=null){
   const date=q('#dayEditorDate').value;
-  const assignments=Object.fromEntries(ROLE_KEYS.map(role=>[role,q(`[data-day-role="${role}"]`).value||'']));
+  const assignments=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[role,q(`[data-day-role="${role}"]`).value||'']));
+  assignments.present=checkedAvailableIds(q('#dayPresentChoices'));
   setButtonBusy(btn,true,'Enregistrement…');
   try{
     if(LOCAL)setLocalDayAssignments(date,assignments);
