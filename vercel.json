@@ -35,6 +35,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/membres",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/historique",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin",
       "destination": "/index.html"
     },
@@ -81,7 +89,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-pPoJq/4cUwJtRl4YPNgwjlL25+KWzN2yN74iC90+KrI='; style-src 'self' 'sha256-GBeew0V/s0Dp4KRpko5xLxUBKL2WasdbSeqyq91ckSA='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-aG+d8k8eE58azCnt7X3dWEpvdzDKOPpMAO4rU3buOGk='; style-src 'self' 'sha256-GuvjFKLdD1+XdY5R1IF+YRN6Z5ZeLYRDpEeKxVd5fHA='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         }
       ]
     }

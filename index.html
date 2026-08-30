@@ -802,11 +802,95 @@ body.modal-open{overflow:hidden}
   .admin-monthnav{width:100%}
 }
 
+
+/* =========================================================
+   V15.11 — ADMINISTRATION SIMPLE, 3 PAGES INSTANTANÉES
+   ========================================================= */
+.admin-tabs{
+  width:max-content;
+  max-width:100%;
+  margin:0 auto 22px;
+  padding:5px;
+  display:flex;
+  gap:4px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.admin-tabs a{
+  min-width:120px;
+  min-height:38px;
+  padding:9px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  color:#536158;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:800;
+  transition:background .15s ease,color .15s ease;
+}
+.admin-tabs a:hover{
+  background:#f4f8f5;
+  color:var(--accent-strong);
+}
+.admin-tabs a.active,
+.admin-tabs a[aria-current="page"]{
+  background:var(--accent-bg);
+  color:var(--accent-strong);
+}
+.admin-page{width:100%}
+.admin-page>.admin-calendar-card,
+.admin-members-page,
+.admin-history-page{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+.admin-members-page>#adminMembers,
+.admin-history-page>#adminHistory{
+  width:100%;
+  margin:0;
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+#adminMembers .table-wrap{overflow:visible}
+.admin-correction-dialog{width:min(720px,100%)}
+.admin-correction-dialog .section-head{margin-bottom:18px}
+.admin-correction-dialog #adminAttendanceForm{margin-top:0}
+.admin-correction-dialog .attendance-admin-fields{
+  grid-template-columns:1fr 1.25fr 1fr 1fr;
+}
+#adminSupport{display:none!important}
+.admin-jump-nav{display:none!important}
+#adminRoot .admin-calendar-card{margin-top:0}
+
+@media(max-width:820px){
+  .admin-tabs{
+    width:100%;
+    margin-bottom:15px;
+  }
+  .admin-tabs a{
+    min-width:0;
+    flex:1 1 0;
+    padding:9px 7px;
+  }
+  .admin-members-page>#adminMembers,
+  .admin-history-page>#adminHistory{
+    padding:16px;
+  }
+  .admin-correction-dialog .attendance-admin-fields{
+    grid-template-columns:1fr;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.10 · calendrier admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.11 · administration 3 pages · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -872,21 +956,31 @@ body.modal-open{overflow:hidden}
     <div class="schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
   </section>
 
+
   <section id="adminRoot" class="view-root hidden">
-    <header class="topbar"><div><div class="brand">Administration</div><div class="muted">Calendrier des permanences</div><div class="muted small sync-state" id="adminLastRefresh"></div></div><div class="top-actions"><button class="btn server-only" type="button" id="adminRefreshNow">Actualiser</button><button class="btn" type="button" id="adminExit">Quitter l’administration</button></div></header>
-    <div class="notice error hidden" id="adminError" aria-live="polite"></div><div class="notice ok hidden" id="adminOk" aria-live="polite"></div>
-    <nav class="admin-jump-nav" aria-label="Navigation dans l’administration">
-      <button type="button" data-scroll-target="adminOverview">Synthèse</button>
-      <button type="button" data-scroll-target="adminCalendar">Calendrier</button>
-      <button type="button" data-scroll-target="adminPermanences">Permanences</button>
-      <button type="button" data-scroll-target="adminMembers">Membres</button>
-      <button type="button" data-scroll-target="attendanceCorrection">Inscriptions</button>
-      <button type="button" data-scroll-target="adminExceptions">Exceptions</button>
-      <button type="button" data-scroll-target="adminHistory">Historique</button>
-      <button type="button" data-scroll-target="adminSettings">Sauvegarde</button>
+    <header class="topbar">
+      <div>
+        <div class="brand">Administration</div>
+        <div class="muted" id="adminSubtitle">Calendrier des permanences</div>
+        <div class="muted small sync-state" id="adminLastRefresh"></div>
+      </div>
+      <div class="top-actions">
+        <button class="btn server-only" type="button" id="adminRefreshNow">Actualiser</button>
+        <button class="btn" type="button" id="adminExit">Quitter l’administration</button>
+      </div>
+    </header>
+    <div class="notice error hidden" id="adminError" aria-live="polite"></div>
+    <div class="notice ok hidden" id="adminOk" aria-live="polite"></div>
+
+    <nav class="admin-tabs" aria-label="Pages de l’administration">
+      <a href="/admin" data-admin-page="calendar">Calendrier</a>
+      <a href="/admin/membres" data-admin-page="members">Membres</a>
+      <a href="/admin/historique" data-admin-page="history">Historique</a>
     </nav>
-    <section class="coverage-summary" id="adminOverview" aria-label="Résumé de couverture"><div class="metric-card"><span class="muted small">30 prochains jours</span><strong id="coverage30">—</strong><span class="small" id="coverage30Detail"></span></div><div class="metric-card"><span class="muted small">90 prochains jours</span><strong id="coverage90">—</strong><span class="small" id="coverage90Detail"></span></div><div class="metric-card"><span class="muted small">Prochaine alerte</span><strong id="nextUncovered">—</strong><span class="small" id="nextUncoveredDetail"></span></div></section>
-    <section class="card admin-calendar-card spaced" id="adminCalendar" aria-labelledby="adminCalendarTitle">
+
+    
+    <div class="admin-page" data-admin-view="calendar">
+      <section class="card admin-calendar-card spaced" id="adminCalendar" aria-labelledby="adminCalendarTitle">
       <div class="section-head admin-calendar-head">
         <div>
           <h2 id="adminCalendarTitle">Calendrier des permanences</h2>
@@ -907,15 +1001,40 @@ body.modal-open{overflow:hidden}
       </div>
       <div class="schedule-mobile admin-schedule-mobile" id="adminScheduleMobile" aria-label="Calendrier administrateur des permanences"></div>
     </section>
-    <section class="card attention-card" id="adminPermanences"><div class="section-head"><div><h2>Prochaines permanences</h2><div class="muted small">Toutes les dates restent affichées : vert = Accueil, TPE, MEP et Arbitrage pourvus ; rouge = au moins un poste manque. « Présent » indique seulement le renfort.</div></div><span class="pill" id="uncoveredCount"></span></div><div class="uncovered-grid spaced" id="uncoveredList"></div></section>
-    <div class="admin-grid spaced">
-      <section class="card" id="adminMembers"><div class="section-head"><h2>Membres</h2><span class="pill" id="memberCount"></span></div><form id="addMember" class="form-row"><div class="field"><label for="newName">Ajouter un membre</label><input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom"></div><button class="btn primary" type="submit">Créer</button></form><div class="secret-box hidden" id="newLinkBox"><strong>Nouveau lien personnel</strong><div id="newLink" class="small link-line"></div><div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Nom</th><th>État</th><th>Actions</th></tr></thead><tbody id="membersTable"></tbody></table></div></section>
-      <section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Présent » sert uniquement à signaler du renfort.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section>
     </div>
-    <section class="card spaced" id="attendanceCorrection"><div class="section-head"><div><h2>Corriger une inscription</h2><div class="muted small">Ajouter ou retirer une personne dans Accueil, TPE, MEP, Arbitrage ou Présent.</div></div></div><form id="adminAttendanceForm" class="form-row"><div class="attendance-admin-fields"><div class="field"><label for="attendanceDate">Date</label><input type="date" id="attendanceDate" required></div><div class="field"><label for="attendanceMember">Membre</label><select id="attendanceMember" required></select></div><div class="field"><label for="attendanceRole">Colonne</label><select id="attendanceRole"><option value="accueil">Accueil</option><option value="tpe">TPE</option><option value="mep">MEP</option><option value="arbitrage">Arbitrage</option><option value="present">Présent</option></select></div><div class="field"><label for="attendanceAction">Action</label><select id="attendanceAction"><option value="present">Ajouter</option><option value="absent">Retirer</option></select></div></div><button class="btn primary" type="submit">Appliquer</button></form></section>
-    <section class="card spaced" id="adminExceptions"><div class="section-head"><h2>Exceptions calendrier</h2><span class="muted small">Fermer un jour habituel ou ouvrir exceptionnellement un autre jour.</span></div><form id="exceptionForm" class="form-row"><div class="exception-fields"><div class="field"><label for="exceptionDate">Date</label><input type="date" id="exceptionDate" required></div><div class="field"><label for="exceptionState">État</label><select id="exceptionState"><option value="closed">Fermé</option><option value="open">Ouvert</option></select></div><div class="field"><label for="exceptionNote">Remarque</label><input id="exceptionNote" maxlength="200" placeholder="Vacances, ouverture exceptionnelle…"></div></div><button class="btn primary" type="submit">Enregistrer</button></form><div class="sep"></div><form id="bulkExceptionForm" class="form-row"><div class="bulk-exception-fields"><div class="field"><label for="bulkFrom">Du</label><input type="date" id="bulkFrom" required></div><div class="field"><label for="bulkTo">Au</label><input type="date" id="bulkTo" required></div><div class="field"><label for="bulkState">État</label><select id="bulkState"><option value="closed">Fermé</option><option value="normal">Horaires habituels</option><option value="open">Ouvert tous les jours</option></select></div><div class="field"><label for="bulkNote">Remarque</label><input id="bulkNote" maxlength="200" placeholder="Vacances, ouverture spéciale…"></div></div><button class="btn primary" type="submit">Appliquer à la période</button></form><div class="exception-list spaced" id="exceptionList"></div></section>
-    <section class="card spaced" id="adminHistory"><div class="section-head"><div><h2>Historique récent</h2><div class="muted small">Les dernières modifications enregistrées.</div></div><button class="btn" type="button" id="downloadAudit">Historique CSV</button></div><div class="audit-tools spaced"><div class="field"><label for="auditSearch">Rechercher</label><input id="auditSearch" type="search" autocomplete="off" placeholder="Nom, action ou date"></div><div class="field"><label for="auditAction">Type d’action</label><select id="auditAction"><option value="">Toutes les actions</option></select></div><button class="btn" type="button" id="auditClear">Effacer les filtres</button><span class="muted small" id="auditShown"></span></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Quand</th><th>Acteur</th><th>Action</th><th>Date</th></tr></thead><tbody id="logsTable"></tbody></table></div></section>
+
+    
+    <div class="admin-page hidden" data-admin-view="members">
+      <div class="admin-members-page"><section class="card" id="adminMembers"><div class="section-head"><h2>Membres</h2><span class="pill" id="memberCount"></span></div><form id="addMember" class="form-row"><div class="field"><label for="newName">Ajouter un membre</label><input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom"></div><button class="btn primary" type="submit">Créer</button></form><div class="secret-box hidden" id="newLinkBox"><strong>Nouveau lien personnel</strong><div id="newLink" class="small link-line"></div><div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Nom</th><th>État</th><th>Actions</th></tr></thead><tbody id="membersTable"></tbody></table></div></section></div>
+    </div>
+
+    
+    <div class="admin-page hidden" data-admin-view="history">
+      <div class="admin-history-page"><section class="card spaced" id="adminHistory"><div class="section-head"><div><h2>Historique récent</h2><div class="muted small">Les dernières modifications enregistrées.</div></div><button class="btn" type="button" id="downloadAudit">Historique CSV</button></div><div class="audit-tools spaced"><div class="field"><label for="auditSearch">Rechercher</label><input id="auditSearch" type="search" autocomplete="off" placeholder="Nom, action ou date"></div><div class="field"><label for="auditAction">Type d’action</label><select id="auditAction"><option value="">Toutes les actions</option></select></div><button class="btn" type="button" id="auditClear">Effacer les filtres</button><span class="muted small" id="auditShown"></span></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Quand</th><th>Acteur</th><th>Action</th><th>Date</th></tr></thead><tbody id="logsTable"></tbody></table></div></section></div>
+    </div>
+
+    
+    <div id="adminCorrectionOverlay" class="confirm-overlay hidden" aria-hidden="true">
+      <div class="confirm-dialog admin-correction-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCorrectionTitle">
+        <div class="section-head">
+          <div>
+            <h2 id="adminCorrectionTitle">Corriger une inscription</h2>
+            <div class="muted small">Ajouter ou retirer une personne sur cette date.</div>
+          </div>
+          <button class="btn" type="button" id="adminCorrectionClose">Fermer</button>
+        </div>
+        <form id="adminAttendanceForm" class="form-row"><div class="attendance-admin-fields"><div class="field"><label for="attendanceDate">Date</label><input type="date" id="attendanceDate" required></div><div class="field"><label for="attendanceMember">Membre</label><select id="attendanceMember" required></select></div><div class="field"><label for="attendanceRole">Colonne</label><select id="attendanceRole"><option value="accueil">Accueil</option><option value="tpe">TPE</option><option value="mep">MEP</option><option value="arbitrage">Arbitrage</option><option value="present">Présent</option></select></div><div class="field"><label for="attendanceAction">Action</label><select id="attendanceAction"><option value="present">Ajouter</option><option value="absent">Retirer</option></select></div></div><button class="btn primary" type="submit">Appliquer</button></form>
+      </div>
+    </div>
+
+    
+    <div id="adminSupport" class="hidden" aria-hidden="true">
+      <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Présent » sert uniquement à signaler du renfort.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
+      <section class="card spaced" id="adminExceptions"><div class="section-head"><h2>Exceptions calendrier</h2><span class="muted small">Fermer un jour habituel ou ouvrir exceptionnellement un autre jour.</span></div><form id="exceptionForm" class="form-row"><div class="exception-fields"><div class="field"><label for="exceptionDate">Date</label><input type="date" id="exceptionDate" required></div><div class="field"><label for="exceptionState">État</label><select id="exceptionState"><option value="closed">Fermé</option><option value="open">Ouvert</option></select></div><div class="field"><label for="exceptionNote">Remarque</label><input id="exceptionNote" maxlength="200" placeholder="Vacances, ouverture exceptionnelle…"></div></div><button class="btn primary" type="submit">Enregistrer</button></form><div class="sep"></div><form id="bulkExceptionForm" class="form-row"><div class="bulk-exception-fields"><div class="field"><label for="bulkFrom">Du</label><input type="date" id="bulkFrom" required></div><div class="field"><label for="bulkTo">Au</label><input type="date" id="bulkTo" required></div><div class="field"><label for="bulkState">État</label><select id="bulkState"><option value="closed">Fermé</option><option value="normal">Horaires habituels</option><option value="open">Ouvert tous les jours</option></select></div><div class="field"><label for="bulkNote">Remarque</label><input id="bulkNote" maxlength="200" placeholder="Vacances, ouverture spéciale…"></div></div><button class="btn primary" type="submit">Appliquer à la période</button></form><div class="exception-list spaced" id="exceptionList"></div></section>
+    </div>
+
   </section>
+
 </main>
 <script>(() => {
 'use strict';
@@ -935,7 +1054,7 @@ const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
-let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', memberBusy = false, latestPersonalUrl = '';
+let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', currentAdminPage = 'calendar', memberBusy = false, latestPersonalUrl = '';
 function parisToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
 function addDays(s,n){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d+n));return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth()+1)}-${pad(dt.getUTCDate())}`}
 function monthKey(s){return s.slice(0,7)}
@@ -952,6 +1071,34 @@ function monthLabel(k){const[y,m]=k.split('-').map(Number);return new Intl.DateT
 function initials(n){return String(n).split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()}
 function nowIso(){return new Date().toISOString()}
 function showOnly(id){for(const x of ['chooserView','joinView','memberRoot','adminRoot'])q('#'+x).classList.toggle('hidden',x!==id)}
+function adminPageFromPath(path=location.pathname){
+  if(path==='/admin/membres')return'members';
+  if(path==='/admin/historique')return'history';
+  return'calendar'
+}
+function adminPathForPage(page){
+  return page==='members'?'/admin/membres':page==='history'?'/admin/historique':'/admin'
+}
+function showAdminPage(page,{push=false,scroll=true}={}){
+  if(!['calendar','members','history'].includes(page))page='calendar';
+  currentAdminPage=page;
+  for(const view of document.querySelectorAll('[data-admin-view]')){
+    view.classList.toggle('hidden',view.dataset.adminView!==page)
+  }
+  for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]')){
+    const active=tab.dataset.adminPage===page;
+    tab.classList.toggle('active',active);
+    if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current')
+  }
+  const subtitle=q('#adminSubtitle');
+  if(subtitle)subtitle.textContent=page==='members'?'Liste des membres':page==='history'?'Historique des modifications':'Calendrier des permanences';
+  if(push&&!LOCAL){
+    const target=adminPathForPage(page);
+    if(location.pathname!==target)history.pushState({adminPage:page},'',target)
+  }
+  if(scroll)scrollTo({top:0,behavior:'instant'})
+}
+
 function toast(text){const e=q('#toast');e.textContent=text;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),2200)}
 function setNotice(el,text=''){el.classList.toggle('hidden',!text);el.textContent=text}
 let confirmResolve=null,confirmLastFocus=null;
@@ -1007,11 +1154,22 @@ function adminDatesForMonth(k){
   }
   return out
 }
-function adminCorrectionForDate(date){
+function openAdminCorrection(date){
   q('#attendanceDate').value=date;
-  q('#attendanceCorrection')?.scrollIntoView({behavior:'smooth',block:'start'});
-  setTimeout(()=>q('#attendanceMember')?.focus(),350)
+  const overlay=q('#adminCorrectionOverlay');
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  setTimeout(()=>q('#attendanceMember')?.focus(),0)
 }
+function closeAdminCorrection(){
+  const overlay=q('#adminCorrectionOverlay');
+  if(!overlay||overlay.classList.contains('hidden'))return;
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  if(q('#confirmOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
+}
+function adminCorrectionForDate(date){openAdminCorrection(date)}
 function renderAdminCalendar(){
   if(!adminData)return;
   if(!adminMonth)adminMonth=monthKey(parisToday());
@@ -1118,7 +1276,7 @@ function renderAdminCalendar(){
 }
 
 function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=addDays(parisToday(),i);if(!adminIsOpen(d))continue;open++;if(assignmentCoverage(adminData,d).covered)covered++}return{open,covered,missing:open-covered,pct:open?Math.round(covered/open*100):100}}
-function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#adminLastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#memberCount').textContent=`${adminData.membersAdmin.filter(m=>m.active).length} actifs`;q('#integrityBadge').textContent=adminData.integrity?.ok?'Données saines':'À vérifier';q('#integrityBadge').className='pill';q('#integrityDetail').textContent=adminData.integrity?.ok?'Aucune incohérence détectée.':'Une incohérence a été détectée.';renderCoverage();renderAdminCalendar();renderUncovered();renderMembers();renderAttendanceSelect();renderExceptions();renderAudit()}
+function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#adminLastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#memberCount').textContent=`${adminData.membersAdmin.filter(m=>m.active).length} actifs`;renderAdminCalendar();renderMembers();renderAttendanceSelect();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
 function renderCoverage(){for(const[n,id,detail]of [[30,'coverage30','coverage30Detail'],[90,'coverage90','coverage90Detail']]){const c=coverage(n);q('#'+id).textContent=`${c.pct}% couvert`;q('#'+detail).textContent=`${c.covered}/${c.open} journées · ${c.missing} à pourvoir`}let next=null;for(let i=0;i<=365;i++){const d=addDays(parisToday(),i),c=assignmentCoverage(adminData,d);if(adminIsOpen(d)&&!c.covered){next={d,c};break}}q('#nextUncovered').textContent=next?dayLabel(next.d):'Aucune';q('#nextUncoveredDetail').textContent=next?`${next.c.filled}/${CORE_ROLE_KEYS.length} postes pourvus · manque${next.c.missing.length>1?'nt':''} : ${next.c.missing.map(r=>ROLE_LABELS[r]).join(', ')}`:'Toutes les dates sont couvertes.'}
 function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=ids.map(id=>byId[id]).filter(Boolean);line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=present.map(id=>byId[id]).filter(Boolean);line.textContent=`Présent (renfort) : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
 function renderMembers(){const body=q('#membersTable');body.innerHTML='';for(const m of adminData.membersAdmin){const tr=document.createElement('tr'),nameTd=document.createElement('td'),stateTd=document.createElement('td'),actTd=document.createElement('td');const input=document.createElement('input');input.className='member-name-input';input.value=m.name;input.maxLength=80;input.addEventListener('change',()=>renameMember(m.id,input.value,input));nameTd.append(input);const state=document.createElement('div');state.textContent=m.active?'Actif':'Inactif';stateTd.append(state);const devices=document.createElement('div');devices.className='device-info';const n=Number(m.deviceCount||0);devices.textContent=n?`${n} appareil${n>1?'s':''} connecté${n>1?'s':''}${m.latestDeviceAt?' · dernier : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt)):''}`:'Aucun appareil connecté';stateTd.append(devices);const box=document.createElement('div');box.className='member-action-wrap';if(m.active){const rot=document.createElement('button');rot.className='btn primary';rot.textContent='Nouveau lien';rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));box.append(rot);const menu=document.createElement('details');menu.className='member-menu';const summary=document.createElement('summary');summary.className='btn';summary.textContent='•••';summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);const panel=document.createElement('div');panel.className='member-menu-panel';if(n){const kick=document.createElement('button');kick.type='button';kick.className='btn';kick.textContent='Déconnecter les appareils';kick.addEventListener('click',()=>{menu.open=false;revokeMemberDevices(m.id,m.name,n,kick)});panel.append(kick)}const disable=document.createElement('button');disable.type='button';disable.className='btn danger-option';disable.textContent='Désactiver le membre';disable.addEventListener('click',()=>{menu.open=false;setMemberActive(m.id,false,m.name,disable)});panel.append(disable);menu.append(summary,panel);box.append(menu)}else{const reactivate=document.createElement('button');reactivate.className='btn primary';reactivate.textContent='Réactiver';reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));box.append(reactivate)}actTd.append(box);tr.append(nameTd,stateTd,actTd);body.append(tr)}}
@@ -1133,7 +1291,7 @@ async function renameMember(id,name,input=null){if(input){input.disabled=true;in
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function rotateMember(id,name='',btn=null){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function revokeMemberDevices(id,name,count,btn=null){const ok=await confirmModal(`Déconnecter ${count} appareil${count>1?'s':''} associé${count>1?'s':''} à ${name} ?\n\nLe lien personnel restera valide et pourra être utilisé pour reconnecter un appareil.`,{title:'Déconnecter les appareils',confirmText:'Déconnecter',danger:true});if(!ok)return;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/sessions/revoke`,{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} appareil${j.revoked>1?'s':''} déconnecté${j.revoked>1?'s':''}`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
-async function adminAttendance(memberId,date,role,present,btn=null){setButtonBusy(btn,true,'Enregistrement…');try{if(LOCAL){if(!effectiveOpen(localAdminSnapshot(),date))throw new Error("Le club n'est pas ouvert ce jour-là.");if(role==='present'){const ids=localState.attendance[date]||[];if(present)localState.attendance[date]=[...new Set([...ids,memberId])];else{localState.attendance[date]=ids.filter(x=>x!==memberId);if(!localState.attendance[date].length)delete localState.attendance[date]}}else{const day=localState.roleAssignments[date]||{},ids=day[role]||[];if(present)day[role]=[...new Set([...ids,memberId])];else{day[role]=ids.filter(x=>x!==memberId);if(!day[role].length)delete day[role]}if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date]}audit('Administrateur',present?'admin_role_inscription':'admin_role_retrait',date,{memberId,role});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi('/api/admin/assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({memberId,date,role,present})});adminData=j.snapshot}renderAdmin();toast('Inscription mise à jour')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
+async function adminAttendance(memberId,date,role,present,btn=null){setButtonBusy(btn,true,'Enregistrement…');try{if(LOCAL){if(!effectiveOpen(localAdminSnapshot(),date))throw new Error("Le club n'est pas ouvert ce jour-là.");if(role==='present'){const ids=localState.attendance[date]||[];if(present)localState.attendance[date]=[...new Set([...ids,memberId])];else{localState.attendance[date]=ids.filter(x=>x!==memberId);if(!localState.attendance[date].length)delete localState.attendance[date]}}else{const day=localState.roleAssignments[date]||{},ids=day[role]||[];if(present)day[role]=[...new Set([...ids,memberId])];else{day[role]=ids.filter(x=>x!==memberId);if(!day[role].length)delete day[role]}if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date]}audit('Administrateur',present?'admin_role_inscription':'admin_role_retrait',date,{memberId,role});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi('/api/admin/assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({memberId,date,role,present})});adminData=j.snapshot}renderAdmin();closeAdminCorrection();toast('Inscription mise à jour')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 function futureAttendanceAffected(willOpen,date){if(willOpen||date<parisToday())return 0;const a=localAssignmentsSnapshot()[date]||{};return ROLE_KEYS.reduce((n,r)=>n+(a[r]||[]).length,0)}
 function clearLocalDateAssignments(date){delete localState.attendance[date];delete localState.roleAssignments[date]}
 async function setException(date,isOpen,note,btn=null){setButtonBusy(btn,true,'Enregistrement…');try{if(LOCAL){const affected=futureAttendanceAffected(isOpen,date);if(affected&&!await confirmModal(`Cette fermeture retirera ${affected} inscription(s) future(s).`,{title:'Fermer cette date',confirmText:'Fermer la date',danger:true}))return;if(affected)clearLocalDateAssignments(date);localState.scheduleExceptions[date]={isOpen,note:String(note||'').slice(0,200)};audit('Administrateur',isOpen?'ouverture_exceptionnelle':'fermeture_exceptionnelle',date);saveLocal();adminData=localAdminSnapshot()}else{let confirmationToken='';for(;;){try{const j=await netApi('/api/admin/exception',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,isOpen,note,confirmationToken})});adminData=j.snapshot;break}catch(e){const p=e.payload||{};if(e.status!==409||!p.requiresConfirmation||!p.confirmationToken)throw e;if(!await confirmModal(`Cette opération retirera ${p.attendanceCount||0} inscription(s) future(s).`,{title:'Confirmer la modification',confirmText:'Continuer',danger:true}))return;confirmationToken=p.confirmationToken}}}renderAdmin();toast('Exception enregistrée')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
@@ -1162,7 +1320,7 @@ async function boot(){
   if(path==='/join-short'&&token){history.replaceState(null,'',path);await serverJoin('short',token);return}
   if(path==='/join'&&token){history.replaceState(null,'',path);await serverJoin('member',token);return}
   if(path==='/admin-login'&&token){history.replaceState(null,'',path);await serverJoin('admin',token);return}
-  if(path==='/admin'){await enterAdmin();return}
+  if(path==='/admin'||path==='/admin/membres'||path==='/admin/historique'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
   if(path==='/calendar'){await refreshMember();return}
   if(path==='/join'||path==='/join-short'||path==='/'){showMemberLinkRequired();return}
   if(path==='/admin-login'){showAdminCodeLogin();return}
@@ -1175,8 +1333,11 @@ q('#adminRefreshNow').addEventListener('click',e=>refreshAdmin(e.currentTarget))
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#adminAttendanceForm').addEventListener('submit',e=>{e.preventDefault();adminAttendance(q('#attendanceMember').value,q('#attendanceDate').value,q('#attendanceRole').value,q('#attendanceAction').value==='present',e.submitter)});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
 q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
-q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&confirmResolve)closeConfirmModal(false)});
-for(const b of document.querySelectorAll('.admin-jump-nav [data-scroll-target]'))b.addEventListener('click',()=>document.getElementById(b.dataset.scrollTarget)?.scrollIntoView({behavior:'smooth',block:'start'}));
+q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
+for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{e.preventDefault();showAdminPage(tab.dataset.adminPage,{push:true})});
+window.addEventListener('popstate',()=>{if(!q('#adminRoot').classList.contains('hidden'))showAdminPage(adminPageFromPath(location.pathname),{push:false})});
+q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
+q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
 const backTop=q('#backTop');window.addEventListener('scroll',()=>backTop.classList.toggle('hidden',scrollY<650),{passive:true});backTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
 if(!LOCAL&&!GITHUB_PAGES){q('#memberRoot').addEventListener('pointerdown',markMemberActivity,{passive:true});q('#memberRoot').addEventListener('keydown',markMemberActivity);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){markMemberActivity();if(!memberBusy&&!q('#memberRoot').classList.contains('hidden'))refreshMember();if(!q('#adminRoot').classList.contains('hidden'))refreshAdmin()}});scheduleMemberPoll()}
 boot();
