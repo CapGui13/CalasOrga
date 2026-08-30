@@ -1402,11 +1402,99 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.16.3 — TABLEAU ADMIN PLUS LISIBLE
+   ========================================================= */
+
+/* Un peu plus d'air sans agrandir exagérément le planning */
+.admin-schedule .date-cell{
+  min-height:118px;
+  vertical-align:middle;
+}
+.admin-role-display{
+  min-height:118px;
+  padding:14px 12px;
+}
+.admin-role-display .role-stack{
+  min-height:92px;
+  gap:9px;
+}
+
+/* Noms plus lisibles et mieux détachés du fond */
+.admin-role-display .role-chip{
+  font-size:16px;
+  font-weight:850;
+  padding:9px 14px;
+  border:1px solid #cfe3d6;
+  background:#edf8f1;
+  color:#176b3a;
+  box-shadow:0 1px 0 rgba(20,80,45,.03);
+}
+
+/* Colonne Disponible : identité visuelle différente, mais sobre */
+.admin-schedule thead th:last-child{
+  background:#f1f5f7;
+  color:#405560;
+}
+.admin-schedule td:last-child .admin-role-display .role-chip{
+  background:#eef4f7;
+  border-color:#d5e1e7;
+  color:#355967;
+}
+.admin-schedule td:last-child .admin-role-display.empty{
+  color:#74838b;
+}
+
+/* Les cellules occupées gagnent légèrement en contraste */
+.admin-role-display:not(.empty){
+  color:#20352a;
+}
+
+/* Les cases vides restent discrètes */
+.admin-role-display.empty{
+  font-size:13px;
+  color:#89938d;
+}
+
+/* Date plus compacte au centre de la ligne */
+.admin-schedule .date-cell{
+  text-align:center;
+}
+.admin-schedule .date-main{
+  font-size:16px;
+}
+.admin-schedule .date-note{
+  font-size:11px;
+}
+
+/* Le bouton de correction reste secondaire */
+.admin-calendar-edit{
+  opacity:.92;
+}
+.admin-calendar-edit:hover{
+  opacity:1;
+}
+
+/* Mobile : garder la hiérarchie sans rendre les cartes trop hautes */
+@media(max-width:820px){
+  .admin-role-display{
+    min-height:100px;
+  }
+  .admin-role-display .role-stack{
+    min-height:76px;
+  }
+  .admin-role-display .role-chip{
+    font-size:15px;
+    padding:8px 12px;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.16.2 · noms centrés plus lisibles · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.16.3 · tableau admin affiné · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
