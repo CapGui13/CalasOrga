@@ -1787,15 +1787,17 @@ body.modal-open{overflow:hidden}
 #adminCellAvailableChoices.available-checklist{
   display:flex;
   flex-direction:column;
-  gap:3px;
+  gap:1px;
   max-height:none;
   overflow:visible;
-  padding:6px;
+  padding:4px;
 }
 #adminCellAvailableChoices .available-check{
   min-width:0;
-  min-height:30px;
-  padding:4px 6px;
+  min-height:24px;
+  padding:2px 6px;
+  line-height:1.2;
+  border-radius:6px;
 }
 
 /* Si la fenêtre devient plus haute que l'écran, c'est l'overlay entier
@@ -1833,7 +1835,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.1 · modal disponible simplifié · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.2 · modal disponible resserré · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
