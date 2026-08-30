@@ -886,11 +886,196 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.12.1 — FINITION DU PLANNING ADMIN
+   ========================================================= */
+.admin-calendar-card{
+  padding:24px 20px 20px;
+}
+.admin-calendar-head{
+  margin-bottom:10px;
+}
+.admin-calendar-head h2{
+  font-size:24px;
+  letter-spacing:-.025em;
+}
+
+/* Navigation très simple : flèche / libellé / flèche */
+.admin-monthnav{
+  width:min(430px,100%);
+  grid-template-columns:46px minmax(0,1fr) 46px;
+  gap:8px;
+  padding:6px;
+  margin:8px auto 18px;
+  background:#f8faf9;
+  border-color:#dbe5df;
+  box-shadow:none;
+}
+.admin-monthnav .monthlabel{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  font-weight:850;
+  letter-spacing:-.02em;
+}
+.admin-monthnav .icon-btn{
+  width:42px;
+  min-width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border-radius:10px;
+  font-size:20px;
+  background:#fff;
+}
+.admin-monthnav .icon-btn:disabled{
+  opacity:.28;
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+
+/* Tableau plus net et légèrement plus compact */
+.admin-schedule-wrap{
+  border:1px solid #dfe7e2;
+  border-radius:15px;
+  overflow:hidden;
+  box-shadow:none;
+}
+.admin-schedule{
+  table-layout:fixed;
+}
+.admin-schedule thead th{
+  height:44px;
+  padding:10px 8px;
+  background:#f5f8f6;
+  color:#33423a;
+  font-size:12px;
+  font-weight:850;
+  text-transform:none;
+  border-bottom:1px solid #dbe4de;
+}
+.admin-schedule thead th:first-child{
+  width:178px;
+}
+.admin-schedule td{
+  vertical-align:top;
+}
+.admin-schedule .date-cell{
+  padding:14px 12px;
+  background:#fcfdfc;
+}
+.admin-schedule .date-main{
+  font-size:15px;
+  font-weight:850;
+  color:#15241c;
+}
+.admin-schedule .date-note{
+  margin-top:4px;
+  color:#7a867f;
+  font-size:11px;
+}
+.admin-schedule .date-status{
+  margin-top:7px;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:850;
+}
+.admin-schedule .date-status.alert{
+  background:#fff0ee;
+  color:#b52e25;
+}
+.admin-schedule .date-status:not(.alert):not(.closed){
+  background:#eaf7ef;
+  color:#126f3a;
+}
+.admin-calendar-edit{
+  margin-top:9px;
+  min-height:32px;
+  border-color:#d7e2db;
+  background:#fff;
+  font-size:11px;
+  font-weight:800;
+}
+.admin-calendar-edit:hover:not(:disabled){
+  border-color:#b8cbbf;
+  background:#f7faf8;
+}
+
+/* Cellules de rôles : meilleur centrage vertical et lecture */
+.admin-role-display{
+  min-height:94px;
+  padding:14px 10px;
+  color:#34433b;
+}
+.admin-role-display.empty{
+  color:#7a867f;
+  font-size:12px;
+  font-style:italic;
+}
+.admin-role-display .role-stack{
+  gap:5px;
+}
+.admin-role-display .role-chip{
+  background:#eef7f1;
+  border-color:#d6eadc;
+  color:#216a40;
+}
+
+/* Séparation des semaines plus discrète */
+.admin-schedule .week-separator td{
+  padding:0;
+  border:0;
+}
+.admin-schedule .week-separator-line{
+  height:5px;
+  background:#eef3f0;
+}
+
+/* Survol d'une date sur desktop */
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell,
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#fbfdfb;
+  }
+}
+
+/* Mobile : en-tête plus compact et cartes plus nettes */
+@media(max-width:820px){
+  .admin-calendar-card{
+    padding:18px 14px;
+  }
+  .admin-calendar-head h2{
+    font-size:22px;
+  }
+  .admin-monthnav{
+    grid-template-columns:44px 1fr 44px;
+    margin-bottom:13px;
+  }
+  .admin-monthnav .monthlabel{
+    font-size:17px;
+  }
+  .admin-schedule-mobile{
+    gap:10px;
+  }
+  .admin-schedule-mobile .mobile-date-card{
+    border-radius:14px;
+    border-color:#dfe7e2;
+    box-shadow:none;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.12 · planning 6 prochaines dates · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.12.1 · planning affiné · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -989,7 +1174,7 @@ body.modal-open{overflow:hidden}
       </div>
       <nav class="monthnav admin-monthnav" aria-label="Navigation des mois du calendrier administrateur">
         <button class="btn icon-btn" id="adminPrevMonth" type="button" aria-label="Mois précédent">‹</button>
-        <button class="btn" id="adminTodayMonth" type="button">Prochaine date</button>
+        
         <div class="monthlabel" id="adminMonthLabel" aria-live="polite"></div>
         <button class="btn icon-btn" id="adminNextMonth" type="button" aria-label="Mois suivant">›</button>
       </nav>
@@ -1352,7 +1537,7 @@ async function boot(){
 }
 
 // --- Listeners ---
-q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{if(adminCalendarMode==='upcoming')return;const firstMonth=monthKey(nextAdminOpenDate()),firstMonthly=shiftMonth(firstMonth,1);if(adminMonth<=firstMonthly){adminCalendarMode='upcoming';adminMonth=''}else adminMonth=shiftMonth(adminMonth,-1);renderAdminCalendar()});q('#adminNextMonth').addEventListener('click',()=>{const firstMonth=monthKey(nextAdminOpenDate()),max=shiftMonth(firstMonth,12);if(adminCalendarMode==='upcoming'){adminCalendarMode='month';adminMonth=shiftMonth(firstMonth,1)}else{const n=shiftMonth(adminMonth,1);if(n<=max)adminMonth=n}renderAdminCalendar()});q('#adminTodayMonth').addEventListener('click',()=>{adminCalendarMode='upcoming';adminMonth='';renderAdminCalendar()});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
+q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{if(adminCalendarMode==='upcoming')return;const firstMonth=monthKey(nextAdminOpenDate()),firstMonthly=shiftMonth(firstMonth,1);if(adminMonth<=firstMonthly){adminCalendarMode='upcoming';adminMonth=''}else adminMonth=shiftMonth(adminMonth,-1);renderAdminCalendar()});q('#adminNextMonth').addEventListener('click',()=>{const firstMonth=monthKey(nextAdminOpenDate()),max=shiftMonth(firstMonth,12);if(adminCalendarMode==='upcoming'){adminCalendarMode='month';adminMonth=shiftMonth(firstMonth,1)}else{const n=shiftMonth(adminMonth,1);if(n<=max)adminMonth=n}renderAdminCalendar()});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminRefreshNow').addEventListener('click',e=>refreshAdmin(e.currentTarget));q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#adminAttendanceForm').addEventListener('submit',e=>{e.preventDefault();adminAttendance(q('#attendanceMember').value,q('#attendanceDate').value,q('#attendanceRole').value,q('#attendanceAction').value==='present',e.submitter)});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
