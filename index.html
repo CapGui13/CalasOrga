@@ -1836,7 +1836,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.20 · copie inter-dates + DnD sans confirmation · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.21 · synchronisation admin automatique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -1912,7 +1912,6 @@ body.modal-open{overflow:hidden}
       </div>
       <div class="top-actions">
         <span class="admin-save-state hidden" id="adminSaveState" role="status" aria-live="polite"></span>
-        <button class="btn server-only" type="button" id="adminRefreshNow">Actualiser</button>
         <button class="btn" type="button" id="adminExit">Quitter l’administration</button>
       </div>
     </header>
@@ -2190,11 +2189,8 @@ function scheduleAdminReconcile(delay=8000){
   if(LOCAL)return;
   clearTimeout(adminReconcileTimer);
   adminReconcileTimer=setTimeout(async()=>{
-    if(adminSavePending||adminDragPayload||!q('#adminCellOverlay')?.classList.contains('hidden')||!q('#adminCorrectionOverlay')?.classList.contains('hidden')){
-      scheduleAdminReconcile(3000);return
-    }
-    if(q('#adminRoot')?.classList.contains('hidden'))return;
-    try{adminData=await netApi('/api/admin');renderAdmin()}catch{}
+    if(!adminRefreshSafe()){scheduleAdminReconcile(3000);return}
+    await refreshAdmin(null,{silent:true});
   },delay)
 }
 
@@ -2558,7 +2554,7 @@ function renderAdminCalendar(){
   const nextOpen=nextAdminOpenDate(),firstMonth=monthKey(nextOpen),max=shiftMonth(firstMonth,12);
   if(adminCalendarMode==='upcoming'){
     adminMonth='';
-    q('#adminMonthLabel').textContent='Prochaines dates';
+    q('#adminMonthLabel').textContent='Deux prochaines semaines';
     q('#adminPrevMonth').disabled=true;
     q('#adminNextMonth').disabled=false
   }else{
@@ -2697,8 +2693,71 @@ function renderMembers(){const body=q('#membersTable');body.innerHTML='';for(con
 function renderDayEditorMembers(){const date=q('#dayEditorDate')?.value;if(date&&!q('#adminCorrectionOverlay').classList.contains('hidden'))populateDayEditor(date)}
 function renderExceptions(){const box=q('#exceptionList');box.innerHTML='';const entries=Object.entries(adminData.scheduleExceptions||{}).sort(([a],[b])=>a.localeCompare(b));for(const[d,ex]of entries){const row=document.createElement('div');row.className='exception-item';const t=document.createElement('div');const s=document.createElement('strong');s.textContent=dayLabel(d,true);const p=document.createElement('div');p.className='muted small';p.textContent=`${ex.isOpen?'Ouvert':'Fermé'}${ex.note?' · '+ex.note:''}`;t.append(s,p);const del=document.createElement('button');del.className='btn danger';del.textContent='Supprimer';del.addEventListener('click',()=>removeException(d));row.append(t,del);box.append(row)}if(!entries.length){const e=document.createElement('div');e.className='muted small';e.textContent='Aucune exception.';box.append(e)}}
 function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`}
-async function enterAdmin(){if(LOCAL){adminData=localAdminSnapshot();showOnly('adminRoot');renderAdmin()}else{await refreshAdmin()}}
-async function refreshAdmin(btn=null){setButtonBusy(btn,true,'Actualisation…');try{adminData=await netApi('/api/admin');showOnly('adminRoot');renderAdmin()}catch(e){if(e.status===401){showAdminCodeLogin('Entrez votre code administrateur pour continuer.');return}showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Administration indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le panneau.';setNotice(q('#joinError'),e.message)}finally{setButtonBusy(btn,false)}}
+let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),adminPollTimer=0;
+function markAdminActivity(){
+  lastAdminActivityAt=Date.now();
+  if(!LOCAL&&!GITHUB_PAGES)scheduleAdminPoll()
+}
+function adminPollDelay(){
+  const age=Date.now()-lastAdminActivityAt;
+  return age<120000?2000:age<600000?5000:10000
+}
+function adminRefreshSafe(){
+  if(LOCAL||GITHUB_PAGES)return false;
+  if(document.visibilityState!=='visible')return false;
+  if(q('#adminRoot')?.classList.contains('hidden'))return false;
+  if(adminRefreshBusy||adminSavePending||adminDragPayload)return false;
+  if(!q('#adminCellOverlay')?.classList.contains('hidden'))return false;
+  if(!q('#adminCorrectionOverlay')?.classList.contains('hidden'))return false;
+  const active=document.activeElement;
+  if(active&&q('#adminRoot')?.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName))return false;
+  return true
+}
+function scheduleAdminPoll(){
+  if(LOCAL||GITHUB_PAGES)return;
+  clearTimeout(adminPollTimer);
+  adminPollTimer=setTimeout(async()=>{
+    if(adminRefreshSafe())await refreshAdmin(null,{silent:true});
+    scheduleAdminPoll()
+  },adminPollDelay())
+}
+async function enterAdmin(){
+  if(LOCAL){
+    adminData=localAdminSnapshot();
+    showOnly('adminRoot');
+    renderAdmin()
+  }else{
+    await refreshAdmin();
+    markAdminActivity()
+  }
+}
+async function refreshAdmin(btn=null,{silent=false}={}){
+  if(adminRefreshBusy)return;
+  adminRefreshBusy=true;
+  setButtonBusy(btn,true,'Actualisation…');
+  try{
+    const fresh=await netApi('/api/admin');
+    adminData=fresh;
+    showOnly('adminRoot');
+    renderAdmin()
+  }catch(e){
+    if(e.status===401){
+      clearTimeout(adminPollTimer);
+      showAdminCodeLogin('Entrez votre code administrateur pour continuer.');
+      return
+    }
+    if(!silent){
+      showOnly('joinView');
+      q('#adminCodeForm').classList.add('hidden');
+      q('#joinTitle').textContent='Administration indisponible';
+      q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le panneau.';
+      setNotice(q('#joinError'),e.message)
+    }
+  }finally{
+    adminRefreshBusy=false;
+    setButtonBusy(btn,false)
+  }
+}
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
 async function createMember(name,btn=null){setButtonBusy(btn,true,'Création…');try{if(LOCAL){name=String(name).trim();if(!name)return;const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 async function renameMember(id,name,input=null){if(input){input.disabled=true;input.setAttribute('aria-busy','true')}try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.name=String(name).trim().slice(0,80)||m.name;audit('Administrateur','membre_renomme','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot}renderAdmin();toast('Nom enregistré')}catch(e){setNotice(q('#adminError'),e.message)}finally{if(input){input.disabled=false;input.removeAttribute('aria-busy')}}}
@@ -2788,7 +2847,7 @@ async function boot(){
 
 // --- Listeners ---
 q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{if(adminCalendarMode==='upcoming')return;const firstMonth=monthKey(nextAdminOpenDate()),firstMonthly=shiftMonth(firstMonth,1);if(adminMonth<=firstMonthly){adminCalendarMode='upcoming';adminMonth=''}else adminMonth=shiftMonth(adminMonth,-1);renderAdminCalendar()});q('#adminNextMonth').addEventListener('click',()=>{const firstMonth=monthKey(nextAdminOpenDate()),max=shiftMonth(firstMonth,12);if(adminCalendarMode==='upcoming'){adminCalendarMode='month';adminMonth=shiftMonth(firstMonth,1)}else{const n=shiftMonth(adminMonth,1);if(n<=max)adminMonth=n}renderAdminCalendar()});q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
-q('#adminRefreshNow').addEventListener('click',e=>refreshAdmin(e.currentTarget));q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
+q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
 q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
@@ -2801,7 +2860,24 @@ window.addEventListener('popstate',()=>{if(!q('#adminRoot').classList.contains('
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
 q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
 const backTop=q('#backTop');window.addEventListener('scroll',()=>backTop.classList.toggle('hidden',scrollY<650),{passive:true});backTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
-if(!LOCAL&&!GITHUB_PAGES){q('#memberRoot').addEventListener('pointerdown',markMemberActivity,{passive:true});q('#memberRoot').addEventListener('keydown',markMemberActivity);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){markMemberActivity();if(!memberBusy&&!q('#memberRoot').classList.contains('hidden'))refreshMember();if(!q('#adminRoot').classList.contains('hidden'))refreshAdmin()}});scheduleMemberPoll()}
+if(!LOCAL&&!GITHUB_PAGES){
+  q('#memberRoot').addEventListener('pointerdown',markMemberActivity,{passive:true});
+  q('#memberRoot').addEventListener('keydown',markMemberActivity);
+  q('#adminRoot').addEventListener('pointerdown',markAdminActivity,{passive:true});
+  q('#adminRoot').addEventListener('keydown',markAdminActivity);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      markMemberActivity();
+      if(!memberBusy&&!q('#memberRoot').classList.contains('hidden'))refreshMember();
+      if(!q('#adminRoot').classList.contains('hidden')){
+        markAdminActivity();
+        if(adminRefreshSafe())refreshAdmin(null,{silent:true})
+      }
+    }
+  });
+  scheduleMemberPoll();
+  scheduleAdminPoll()
+}
 boot();
 })();</script>
 </body></html>
