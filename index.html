@@ -1353,11 +1353,60 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.16.2 — NOMS PLUS GROS ET CENTRÉS DANS LE PLANNING ADMIN
+   ========================================================= */
+.admin-role-display{
+  display:flex;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center;
+  min-height:108px;
+  padding:12px 10px;
+}
+.admin-role-display .role-stack{
+  width:100%;
+  min-height:84px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  align-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.admin-role-display .role-chip{
+  font-size:15px;
+  font-weight:800;
+  padding:8px 12px;
+  line-height:1.15;
+}
+.admin-role-display.empty{
+  display:flex;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center;
+  font-size:14px;
+  font-style:italic;
+}
+.admin-role-display.closed{
+  justify-content:center!important;
+}
+@media(max-width:820px){
+  .admin-role-display{
+    min-height:94px;
+  }
+  .admin-role-display .role-chip{
+    font-size:14px;
+    padding:7px 11px;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.15 · Disponible multiple et glisser-déposer · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.16.2 · noms centrés plus lisibles · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
