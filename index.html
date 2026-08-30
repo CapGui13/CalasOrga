@@ -1802,6 +1802,46 @@ body.modal-open{overflow:hidden}
 
 /* Si la fenêtre devient plus haute que l'écran, c'est l'overlay entier
    qui peut défiler, jamais la liste des membres elle-même. */
+#adminCellRoleChoices.single-choice-list{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  max-height:none;
+  overflow:visible;
+  padding:4px;
+}
+#adminCellRoleChoices .single-choice-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  min-height:24px;
+  padding:4px 8px;
+  border:1px solid transparent;
+  border-radius:6px;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-weight:650;
+  text-align:left;
+  cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+#adminCellRoleChoices .single-choice-item.selected{
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+#adminCellRoleChoices .single-choice-item.empty-choice{
+  color:var(--muted);
+}
+#adminCellActions.hidden{display:none!important}
 #adminCellOverlay{
   overflow-y:auto;
 }
@@ -1831,11 +1871,96 @@ body.modal-open{overflow:hidden}
   box-shadow:inset 0 0 0 2px #73b68a!important;
 }
 
+
+/* =========================================================
+   V15.22.4 — HARMONISATION DES PANNEAUX DE CHANGEMENT
+   ========================================================= */
+#adminCellOverlay .admin-cell-dialog{
+  width:min(410px,calc(100vw - 28px));
+  padding:18px;
+}
+#adminCellOverlay .admin-cell-dialog .section-head{
+  margin-bottom:12px;
+}
+#adminCellOverlay .admin-cell-dialog .section-head h2{
+  margin-bottom:5px;
+}
+#adminCellForm .field{
+  gap:0;
+}
+
+/* Même cadre et même densité pour rôle et Disponible. */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+  padding:4px;
+  gap:1px;
+}
+
+/* Même hauteur, typographie et rythme visuel. */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  min-height:30px;
+  padding:4px 8px;
+  border:1px solid transparent;
+  border-radius:7px;
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  transition:background .14s ease,border-color .14s ease,color .14s ease;
+}
+
+/* Même survol. */
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible,
+#adminCellAvailableChoices .available-check:hover{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+}
+
+/* Même mise en évidence du choix courant. */
+#adminCellRoleChoices .single-choice-item.selected,
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+/* Checkbox Disponible plus discrète et alignée. */
+#adminCellAvailableChoices .available-check{
+  gap:9px;
+}
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+}
+#adminCellAvailableChoices .available-check span{
+  min-width:0;
+}
+
+/* Bouton Disponible aligné avec le reste du panneau. */
+#adminCellActions{
+  margin-top:12px;
+}
+#adminCellActions .btn{
+  min-width:104px;
+}
+
+@media(max-width:620px){
+  #adminCellOverlay .admin-cell-dialog{
+    width:min(390px,calc(100vw - 20px));
+    padding:16px;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.2 · modal disponible resserré · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.4 · panneaux harmonisés · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -1999,15 +2124,14 @@ body.modal-open{overflow:hidden}
         <form id="adminCellForm">
           <input type="hidden" id="adminCellDate">
           <input type="hidden" id="adminCellRole">
-          <div class="field" id="adminCellSingleField">
-            <label for="adminCellMember">Membre</label>
-            <select id="adminCellMember"></select>
+          <div class="field hidden" id="adminCellRoleField">
+            <div id="adminCellRoleChoices" class="available-checklist single-choice-list"></div>
           </div>
           <div class="field hidden" id="adminCellAvailableField">
             <div id="adminCellAvailableChoices" class="available-checklist"></div>
           </div>
           <div class="notice warn hidden spaced" id="adminCellWarning"></div>
-          <div class="actions spaced">
+          <div class="actions spaced" id="adminCellActions">
             <button class="btn primary" type="submit">Enregistrer</button>
           </div>
         </form>
@@ -2286,6 +2410,21 @@ function fillAvailableChecklist(container,currentIds,members,prefix){
 function checkedAvailableIds(container){
   return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(x=>String(x.value))
 }
+function fillSingleChoiceList(container,currentIds,members,onChoose){
+  const current=String((currentIds||[])[0]||'');
+  container.innerHTML='';
+  const makeButton=(id,label,extra='')=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=`single-choice-item${extra?` ${extra}`:''}${current===String(id)?' selected':''}`;
+    btn.dataset.memberId=String(id);
+    btn.textContent=label;
+    btn.addEventListener('click',()=>onChoose(String(id)));
+    container.append(btn)
+  };
+  makeButton('','À pourvoir','empty-choice');
+  for(const m of sortMembersAlpha(members))makeButton(String(m.id),m.name)
+}
 
 function populateDayEditor(date){
   const active=(adminData.membersAdmin||[]).filter(m=>m.active);
@@ -2329,28 +2468,20 @@ function populateAdminCellEditor(date,role){
   q('#adminCellDate').value=date;
   q('#adminCellRole').value=role;
   q('#adminCellContext').textContent=`${dayLabel(date)} · ${ROLE_LABELS[role]}`;
-  const single=q('#adminCellSingleField'),multiple=q('#adminCellAvailableField');
+  const roleField=q('#adminCellRoleField'),availableField=q('#adminCellAvailableField');
+  const actions=q('#adminCellActions');
   const warning=q('#adminCellWarning');
   warning.textContent='';warning.classList.add('hidden');
   if(role==='present'){
-    single.classList.add('hidden');
-    multiple.classList.remove('hidden');
+    roleField.classList.add('hidden');
+    availableField.classList.remove('hidden');
+    actions.classList.remove('hidden');
     fillAvailableChecklist(q('#adminCellAvailableChoices'),ids,active,'cell-available')
   }else{
-    multiple.classList.add('hidden');
-    single.classList.remove('hidden');
-    const select=q('#adminCellMember');
-    select.innerHTML='';
-    const empty=document.createElement('option');
-    empty.value='';empty.textContent='— À pourvoir —';select.append(empty);
-    for(const m of sortMembersAlpha(active)){
-      const o=document.createElement('option');o.value=m.id;o.textContent=m.name;select.append(o)
-    }
-    select.value=ids[0]||'';
-    if(ids.length>1){
-      warning.textContent=`${ids.length} membres sont actuellement affectés à cette position. Enregistrer conservera uniquement le choix sélectionné.`;
-      warning.classList.remove('hidden')
-    }
+    availableField.classList.add('hidden');
+    roleField.classList.remove('hidden');
+    actions.classList.add('hidden');
+    fillSingleChoiceList(q('#adminCellRoleChoices'),ids,active,(memberId)=>saveAdminCellSelection(date,role,memberId,true))
   }
 }
 function openAdminCellEditor(date,role){
@@ -2359,7 +2490,7 @@ function openAdminCellEditor(date,role){
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('modal-open');
-  setTimeout(()=>role==='present'?q('#adminCellAvailableChoices input')?.focus():q('#adminCellMember')?.focus(),0)
+  setTimeout(()=>role==='present'?q('#adminCellAvailableChoices input')?.focus():q('#adminCellRoleChoices .single-choice-item.selected, #adminCellRoleChoices .single-choice-item')?.focus(),0)
 }
 function closeAdminCellEditor(){
   const overlay=q('#adminCellOverlay');
@@ -2387,25 +2518,30 @@ function setLocalCellAssignment(date,role,value){
   saveLocal();
   adminData=localAdminSnapshot()
 }
-async function saveAdminCell(btn=null){
-  const date=q('#adminCellDate').value,role=q('#adminCellRole').value;
-  const value=role==='present'?checkedAvailableIds(q('#adminCellAvailableChoices')):(q('#adminCellMember').value||'');
+async function saveAdminCellSelection(date,role,value,closeOnSuccess=true){
+  const nextValue=role==='present'?[...new Set((Array.isArray(value)?value:[]).map(String).filter(Boolean))]:(value?String(value):'');
   if(LOCAL){
-    try{setLocalCellAssignment(date,role,value);renderAdmin();closeAdminCellEditor();toast(`${ROLE_LABELS[role]} mis à jour`)}
+    try{setLocalCellAssignment(date,role,nextValue);renderAdmin();if(closeOnSuccess)closeAdminCellEditor();toast(`${ROLE_LABELS[role]} mis à jour`)}
     catch(e){setNotice(q('#adminError'),e.message)}
     return
   }
-  const nextIds=role==='present'?value:(value?[value]:[]);
+  const nextIds=role==='present'?nextValue:(nextValue?[nextValue]:[]);
   const tx=optimisticAdminChanges([{date,role,ids:nextIds}]);
-  closeAdminCellEditor();beginAdminSave();
+  if(closeOnSuccess)closeAdminCellEditor();
+  beginAdminSave();
   try{
-    const body=role==='present'?{date,role,memberIds:value}:{date,role,memberId:value};
+    const body=role==='present'?{date,role,memberIds:nextValue}:{date,role,memberId:nextValue};
     const j=await netApi('/api/admin/cell-assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const canonicalIds=role==='present'?(j.memberIds||[]):(j.memberId?[j.memberId]:[]);
     reconcileAdminChanges(tx,[{date,role,ids:canonicalIds}]);endAdminSave(true);toast(`${ROLE_LABELS[role]} enregistré`);scheduleAdminReconcile()
   }catch(e){
     rollbackAdminChanges(tx);endAdminSave(false);setNotice(q('#adminError'),e.message);toast('Modification annulée : '+e.message)
   }
+}
+async function saveAdminCell(btn=null){
+  const date=q('#adminCellDate').value,role=q('#adminCellRole').value;
+  const value=checkedAvailableIds(q('#adminCellAvailableChoices'));
+  return saveAdminCellSelection(date,role,value,true)
 }
 
 
