@@ -2797,11 +2797,30 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.26.9 — CROSSFADE PROPRE
+   Les anciennes animations "fade-in après remplacement" sont neutralisées.
+   La transition est maintenant pilotée en JS : 150ms out + 350ms in.
+   ========================================================= */
+.admin-page.admin-page-fade-in,
+.calendar-fade-in{
+  animation:none !important;
+}
+
+/* Évite les artefacts de composition pendant le crossfade. */
+#adminCalendar,
+.member-calendar-surface,
+.admin-page{
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.8 · pastilles renforcées + fondu 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.9 · crossfade propre 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2857,14 +2876,16 @@ body{
       <div class="section-head"><div><h2 id="myUpcomingTitle">Mes prochaines inscriptions</h2><div class="muted small">Raccourcis vers les dates où vous avez déjà choisi au moins une case.</div></div><span class="pill" id="myUpcomingCount"></span></div>
       <div class="upcoming-list" id="myUpcoming" aria-live="polite"></div>
     </section>
-    <nav class="monthnav" aria-label="Navigation des mois">
-      <button class="btn icon-btn" id="prevMonth" type="button" aria-label="Mois précédent">‹</button>
-      <button class="btn" id="todayMonth" type="button">Aujourd’hui</button>
-      <div class="monthlabel" id="monthLabel" aria-live="polite"></div>
-      <button class="btn icon-btn" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
-    </nav>
-    <div class="schedule-wrap"><table class="schedule" aria-label="Tableau des permanences"><thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
-    <div class="schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
+    <div class="member-calendar-surface">
+      <nav class="monthnav" aria-label="Navigation des mois">
+        <button class="btn icon-btn" id="prevMonth" type="button" aria-label="Mois précédent">‹</button>
+        <button class="btn" id="todayMonth" type="button">Aujourd’hui</button>
+        <div class="monthlabel" id="monthLabel" aria-live="polite"></div>
+        <button class="btn icon-btn" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
+      </nav>
+      <div class="schedule-wrap"><table class="schedule" aria-label="Tableau des permanences"><thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
+      <div class="schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
+    </div>
   </section>
 
 
@@ -3050,6 +3071,88 @@ function animateAdminCalendarIfNeeded(){
   restartAnimClass(q('#adminScheduleBody')?.closest('.schedule-wrap'),'calendar-fade-in');
   restartAnimClass(q('#adminScheduleMobile'),'calendar-fade-in')
 }
+let uiTransitionBusy=false;
+function motionReduced(){
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+}
+async function cleanCrossfade(surface,swapFn,{outMs=150,inMs=350}={}){
+  if(typeof swapFn!=='function')return;
+  if(!surface||motionReduced()){
+    swapFn();
+    return
+  }
+  if(uiTransitionBusy){
+    swapFn();
+    return
+  }
+  uiTransitionBusy=true;
+  surface.getAnimations?.().forEach(a=>a.cancel());
+  const oldPointer=surface.style.pointerEvents;
+  surface.style.pointerEvents='none';
+  try{
+    const fadeOut=surface.animate(
+      [{opacity:1},{opacity:.08}],
+      {duration:outMs,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+    );
+    try{await fadeOut.finished}catch{}
+    swapFn();
+
+    /* L'animation entrante reçoit fill:both avant que l'ancienne soit annulée :
+       aucun frame intermédiaire à opacity:1. */
+    const fadeIn=surface.animate(
+      [{opacity:.08},{opacity:1}],
+      {duration:inMs,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
+    );
+    fadeOut.cancel();
+    try{await fadeIn.finished}catch{}
+    fadeIn.cancel()
+  }finally{
+    surface.style.pointerEvents=oldPointer;
+    uiTransitionBusy=false
+  }
+}
+async function cleanAdminPageCrossfade(page,{push=false,scroll=true}={}){
+  if(!['calendar','members','history'].includes(page))page='calendar';
+  if(page===currentAdminPage){
+    showAdminPage(page,{push,scroll});
+    return
+  }
+  const from=document.querySelector(`[data-admin-view="${currentAdminPage}"]`);
+  if(!from||motionReduced()){
+    showAdminPage(page,{push,scroll});
+    return
+  }
+  if(uiTransitionBusy){
+    showAdminPage(page,{push,scroll});
+    return
+  }
+  uiTransitionBusy=true;
+  const oldPointer=from.style.pointerEvents;
+  from.style.pointerEvents='none';
+  try{
+    const fadeOut=from.animate(
+      [{opacity:1},{opacity:.08}],
+      {duration:150,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+    );
+    try{await fadeOut.finished}catch{}
+    fadeOut.cancel();
+
+    showAdminPage(page,{push,scroll});
+    const to=document.querySelector(`[data-admin-view="${page}"]`);
+    if(to){
+      const fadeIn=to.animate(
+        [{opacity:.08},{opacity:1}],
+        {duration:350,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
+      );
+      try{await fadeIn.finished}catch{}
+      fadeIn.cancel()
+    }
+  }finally{
+    from.style.pointerEvents=oldPointer;
+    uiTransitionBusy=false
+  }
+}
+
 function updateDayEditorListHeight(memberCount){
   const dialog=q('#adminCorrectionOverlay .admin-correction-dialog');
   if(!dialog)return;
@@ -3085,19 +3188,10 @@ function adminPathForPage(page){
 }
 function showAdminPage(page,{push=false,scroll=true}={}){
   if(!['calendar','members','history'].includes(page))page='calendar';
-  const previous=currentAdminPage;
   currentAdminPage=page;
-  let targetView=null;
   for(const view of document.querySelectorAll('[data-admin-view]')){
     const active=view.dataset.adminView===page;
-    view.classList.toggle('hidden',!active);
-    if(active)targetView=view
-  }
-  if(targetView&&previous!==page){
-    targetView.classList.remove('admin-page-fade-in');
-    void targetView.offsetWidth;
-    targetView.classList.add('admin-page-fade-in');
-    setTimeout(()=>targetView.classList.remove('admin-page-fade-in'),220)
+    view.classList.toggle('hidden',!active)
   }
   for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]')){
     const active=tab.dataset.adminPage===page;
@@ -3893,31 +3987,61 @@ async function boot(){
 }
 
 // --- Listeners ---
-q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})});q('#adminPrevMonth').addEventListener('click',()=>{
-  if(adminCalendarMode==='auto')return;
-  const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
-  if(n<=homeMonth){
-    adminCalendarMode='auto';
-    adminMonth=''
-  }else{
-    adminMonth=n
-  }
-  adminCalendarShouldFade=true;
-  renderAdminCalendar();
-  scrollTo({top:0,behavior:'instant'})
+q('#prevMonth').addEventListener('click',async()=>{
+  markMemberActivity();
+  const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);
+  if(n<min)return;
+  await cleanCrossfade(q('.member-calendar-surface'),()=>{
+    memberMonth=n;
+    renderMember();
+    scrollTo({top:0,behavior:'instant'})
+  })
 });
-q('#adminNextMonth').addEventListener('click',()=>{
-  const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
-  if(adminCalendarMode==='auto'){
-    adminCalendarMode='month';
-    adminMonth=shiftMonth(homeMonth,1)
-  }else{
-    const n=shiftMonth(adminMonth,1);
-    if(n<=max)adminMonth=n
-  }
-  adminCalendarShouldFade=true;
-  renderAdminCalendar();
-  scrollTo({top:0,behavior:'instant'})
+q('#nextMonth').addEventListener('click',async()=>{
+  markMemberActivity();
+  const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);
+  if(n>max)return;
+  await cleanCrossfade(q('.member-calendar-surface'),()=>{
+    memberMonth=n;
+    renderMember();
+    scrollTo({top:0,behavior:'instant'})
+  })
+});
+q('#todayMonth').addEventListener('click',async()=>{
+  markMemberActivity();
+  await cleanCrossfade(q('.member-calendar-surface'),()=>{
+    memberMonth=monthKey(parisToday());
+    renderMember();
+    scrollTo({top:0,behavior:'instant'})
+  })
+});
+q('#adminPrevMonth').addEventListener('click',async()=>{
+  if(adminCalendarMode==='auto')return;
+  await cleanCrossfade(q('#adminCalendar'),()=>{
+    const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
+    if(n<=homeMonth){
+      adminCalendarMode='auto';
+      adminMonth=''
+    }else{
+      adminMonth=n
+    }
+    renderAdminCalendar();
+    scrollTo({top:0,behavior:'instant'})
+  })
+});
+q('#adminNextMonth').addEventListener('click',async()=>{
+  await cleanCrossfade(q('#adminCalendar'),()=>{
+    const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
+    if(adminCalendarMode==='auto'){
+      adminCalendarMode='month';
+      adminMonth=shiftMonth(homeMonth,1)
+    }else{
+      const n=shiftMonth(adminMonth,1);
+      if(n<=max)adminMonth=n
+    }
+    renderAdminCalendar();
+    scrollTo({top:0,behavior:'instant'})
+  })
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
@@ -3927,8 +4051,13 @@ q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
 q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
 q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
 q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
-for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{e.preventDefault();showAdminPage(tab.dataset.adminPage,{push:true})});
-window.addEventListener('popstate',()=>{if(!q('#adminRoot').classList.contains('hidden'))showAdminPage(adminPageFromPath(location.pathname),{push:false})});
+for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
+  e.preventDefault();
+  cleanAdminPageCrossfade(tab.dataset.adminPage,{push:true})
+});
+window.addEventListener('popstate',()=>{
+  if(!q('#adminRoot').classList.contains('hidden'))cleanAdminPageCrossfade(adminPageFromPath(location.pathname),{push:false})
+});
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
 q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
 const backTop=q('#backTop');window.addEventListener('scroll',()=>backTop.classList.toggle('hidden',scrollY<650),{passive:true});backTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
