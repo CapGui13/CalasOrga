@@ -3154,11 +3154,46 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.29.1 — MENU "..." MEMBRES NON CLIPPÉ
+   ========================================================= */
+
+/* Les cellules ordinaires gardent leur clipping pour les textes longs,
+   mais la colonne Actions doit pouvoir laisser dépasser son menu. */
+.members-table td:last-child{
+  overflow:visible !important;
+  position:relative;
+}
+
+/* Le menu passe au-dessus des lignes voisines. */
+.members-table .member-menu{
+  position:relative;
+  z-index:20;
+}
+.members-table .member-menu[open]{
+  z-index:120;
+}
+.members-table tbody tr:has(.member-menu[open]){
+  position:relative;
+  z-index:100;
+}
+#adminMembers .member-menu-panel{
+  z-index:140 !important;
+}
+
+/* La carte et le conteneur du tableau ne coupent pas le menu. */
+#adminMembers,
+.members-card,
+.members-table-wrap{
+  overflow:visible !important;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.29 · refonte page Membres · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.29.1 · menu actions Membres corrigé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
