@@ -4941,7 +4941,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.7 · colonnes rôles courtes et membres sans statut · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.8 · journée complète verte en direct · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -6442,8 +6442,18 @@ function dayEditorWireDropzone(zone,role){
     if(id)dayEditorAssign(id,role)
   }
 }
+function syncDayEditorCompletionVisual(){
+  const workspace=q('.day-editor-columns');
+  if(!workspace||!dayEditorDraft)return;
+  const complete=CORE_ROLE_KEYS.every(
+    role=>String(dayEditorDraft.roles?.[role]||'').trim()!==''
+  );
+  workspace.classList.toggle('day-complete',complete)
+}
+
 function renderDayEditorDraft(){
   if(!dayEditorDraft)return;
+  syncDayEditorCompletionVisual();
   const members=dayEditorActiveMembers();
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
