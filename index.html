@@ -2816,11 +2816,27 @@ body{
   transform:translateZ(0);
 }
 
+
+/* =========================================================
+   V15.27 — MICRO-FONDUS CIBLÉS
+   Aucun fondu global : seules les données qui changent sont animées.
+   ========================================================= */
+#adminCalendar,
+.member-calendar-surface,
+.admin-page{
+  backface-visibility:visible !important;
+  transform:none !important;
+}
+.admin-page.admin-page-fade-in,
+.calendar-fade-in{
+  animation:none !important;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.9 · crossfade propre 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.27 · micro-fondus ciblés 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -3049,106 +3065,113 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
-let memberCalendarShouldFade=false,adminCalendarShouldFade=false;
-function restartAnimClass(el,className){
-  if(!el)return;
-  el.classList.remove(className);
-  void el.offsetWidth;
-  el.classList.add(className);
-  setTimeout(()=>el.classList.remove(className),220)
-}
-function animateMemberCalendarIfNeeded(){
-  if(!memberCalendarShouldFade)return;
-  memberCalendarShouldFade=false;
-  restartAnimClass(q('#monthLabel'),'calendar-fade-in');
-  restartAnimClass(q('#scheduleBody')?.closest('.schedule-wrap'),'calendar-fade-in');
-  restartAnimClass(q('#scheduleMobile'),'calendar-fade-in')
-}
-function animateAdminCalendarIfNeeded(){
-  if(!adminCalendarShouldFade)return;
-  adminCalendarShouldFade=false;
-  restartAnimClass(q('#adminMonthLabel'),'calendar-fade-in');
-  restartAnimClass(q('#adminScheduleBody')?.closest('.schedule-wrap'),'calendar-fade-in');
-  restartAnimClass(q('#adminScheduleMobile'),'calendar-fade-in')
-}
+function animateMemberCalendarIfNeeded(){}
+function animateAdminCalendarIfNeeded(){}
 let uiTransitionBusy=false;
 function motionReduced(){
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
 }
-async function cleanCrossfade(surface,swapFn,{outMs=150,inMs=350}={}){
+function animFinished(animation){
+  return animation?.finished?.catch(()=>{})||Promise.resolve()
+}
+function setMicroOpacity(elements,value){
+  for(const el of elements)if(el)el.style.opacity=String(value)
+}
+function clearMicroOpacity(elements){
+  for(const el of elements)if(el)el.style.removeProperty('opacity')
+}
+function calendarChangingElements(label,body,mobile){
+  return [
+    label,
+    ...Array.from(body?.children||[]),
+    ...Array.from(mobile?.children||[])
+  ].filter(Boolean)
+}
+async function microCalendarTransition({label,body,mobile,swapFn,outMs=140,inMs=360}){
   if(typeof swapFn!=='function')return;
-  if(!surface||motionReduced()){
-    swapFn();
-    return
-  }
-  if(uiTransitionBusy){
+  if(uiTransitionBusy)return;
+  if(motionReduced()){
     swapFn();
     return
   }
   uiTransitionBusy=true;
-  surface.getAnimations?.().forEach(a=>a.cancel());
-  const oldPointer=surface.style.pointerEvents;
-  surface.style.pointerEvents='none';
   try{
-    const fadeOut=surface.animate(
-      [{opacity:1},{opacity:.08}],
+    const outgoing=calendarChangingElements(label,body,mobile);
+    const outAnimations=outgoing.map(el=>el.animate(
+      [{opacity:1},{opacity:.06}],
       {duration:outMs,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
-    );
-    try{await fadeOut.finished}catch{}
+    ));
+    await Promise.all(outAnimations.map(animFinished));
+
+    /* Le contenu fixe (cadre, flèches, titres, en-tête du tableau) ne bouge pas.
+       Seuls le libellé et les lignes/cartes sont remplacés ici. */
     swapFn();
 
-    /* L'animation entrante reçoit fill:both avant que l'ancienne soit annulée :
-       aucun frame intermédiaire à opacity:1. */
-    const fadeIn=surface.animate(
-      [{opacity:.08},{opacity:1}],
+    const incoming=calendarChangingElements(label,body,mobile);
+    setMicroOpacity(incoming,.06);
+    outAnimations.forEach(a=>{try{a.cancel()}catch{}});
+    await new Promise(requestAnimationFrame);
+
+    const inAnimations=incoming.map(el=>el.animate(
+      [{opacity:.06},{opacity:1}],
       {duration:inMs,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
-    );
-    fadeOut.cancel();
-    try{await fadeIn.finished}catch{}
-    fadeIn.cancel()
+    ));
+    await Promise.all(inAnimations.map(animFinished));
+    inAnimations.forEach(a=>{try{a.cancel()}catch{}});
+    clearMicroOpacity(incoming)
   }finally{
-    surface.style.pointerEvents=oldPointer;
     uiTransitionBusy=false
   }
 }
-async function cleanAdminPageCrossfade(page,{push=false,scroll=true}={}){
+function adminPageSurface(page){
+  const view=document.querySelector(`[data-admin-view="${page}"]`);
+  return view?.querySelector('section.card')||view?.firstElementChild||view
+}
+async function microAdminPageTransition(page,{push=false,scroll=true}={}){
   if(!['calendar','members','history'].includes(page))page='calendar';
   if(page===currentAdminPage){
     showAdminPage(page,{push,scroll});
     return
   }
-  const from=document.querySelector(`[data-admin-view="${currentAdminPage}"]`);
-  if(!from||motionReduced()){
+  if(uiTransitionBusy)return;
+  if(motionReduced()){
     showAdminPage(page,{push,scroll});
     return
   }
-  if(uiTransitionBusy){
+
+  const fromSurface=adminPageSurface(currentAdminPage);
+  if(!fromSurface){
     showAdminPage(page,{push,scroll});
     return
   }
+
   uiTransitionBusy=true;
-  const oldPointer=from.style.pointerEvents;
-  from.style.pointerEvents='none';
   try{
-    const fadeOut=from.animate(
-      [{opacity:1},{opacity:.08}],
-      {duration:150,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+    const out=fromSurface.animate(
+      [{opacity:1},{opacity:.06}],
+      {duration:140,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
     );
-    try{await fadeOut.finished}catch{}
-    fadeOut.cancel();
+    await animFinished(out);
 
     showAdminPage(page,{push,scroll});
-    const to=document.querySelector(`[data-admin-view="${page}"]`);
-    if(to){
-      const fadeIn=to.animate(
-        [{opacity:.08},{opacity:1}],
-        {duration:350,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
-      );
-      try{await fadeIn.finished}catch{}
-      fadeIn.cancel()
+    const toSurface=adminPageSurface(page);
+    if(!toSurface){
+      try{out.cancel()}catch{}
+      return
     }
+
+    toSurface.style.opacity='.06';
+    try{out.cancel()}catch{}
+    await new Promise(requestAnimationFrame);
+
+    const inn=toSurface.animate(
+      [{opacity:.06},{opacity:1}],
+      {duration:360,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
+    );
+    await animFinished(inn);
+    try{inn.cancel()}catch{}
+    toSurface.style.removeProperty('opacity')
   }finally{
-    from.style.pointerEvents=oldPointer;
     uiTransitionBusy=false
   }
 }
@@ -3990,57 +4013,84 @@ async function boot(){
 q('#prevMonth').addEventListener('click',async()=>{
   markMemberActivity();
   const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);
-  if(n<min)return;
-  await cleanCrossfade(q('.member-calendar-surface'),()=>{
-    memberMonth=n;
-    renderMember();
-    scrollTo({top:0,behavior:'instant'})
+  if(n<min||uiTransitionBusy)return;
+  await microCalendarTransition({
+    label:q('#monthLabel'),
+    body:q('#scheduleBody'),
+    mobile:q('#scheduleMobile'),
+    swapFn:()=>{
+      memberMonth=n;
+      renderMember();
+      scrollTo({top:0,behavior:'instant'})
+    }
   })
 });
 q('#nextMonth').addEventListener('click',async()=>{
   markMemberActivity();
   const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);
-  if(n>max)return;
-  await cleanCrossfade(q('.member-calendar-surface'),()=>{
-    memberMonth=n;
-    renderMember();
-    scrollTo({top:0,behavior:'instant'})
+  if(n>max||uiTransitionBusy)return;
+  await microCalendarTransition({
+    label:q('#monthLabel'),
+    body:q('#scheduleBody'),
+    mobile:q('#scheduleMobile'),
+    swapFn:()=>{
+      memberMonth=n;
+      renderMember();
+      scrollTo({top:0,behavior:'instant'})
+    }
   })
 });
 q('#todayMonth').addEventListener('click',async()=>{
   markMemberActivity();
-  await cleanCrossfade(q('.member-calendar-surface'),()=>{
-    memberMonth=monthKey(parisToday());
-    renderMember();
-    scrollTo({top:0,behavior:'instant'})
+  if(uiTransitionBusy)return;
+  await microCalendarTransition({
+    label:q('#monthLabel'),
+    body:q('#scheduleBody'),
+    mobile:q('#scheduleMobile'),
+    swapFn:()=>{
+      memberMonth=monthKey(parisToday());
+      renderMember();
+      scrollTo({top:0,behavior:'instant'})
+    }
   })
 });
 q('#adminPrevMonth').addEventListener('click',async()=>{
-  if(adminCalendarMode==='auto')return;
-  await cleanCrossfade(q('#adminCalendar'),()=>{
-    const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
-    if(n<=homeMonth){
-      adminCalendarMode='auto';
-      adminMonth=''
-    }else{
-      adminMonth=n
+  if(adminCalendarMode==='auto'||uiTransitionBusy)return;
+  await microCalendarTransition({
+    label:q('#adminMonthLabel'),
+    body:q('#adminScheduleBody'),
+    mobile:q('#adminScheduleMobile'),
+    swapFn:()=>{
+      const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
+      if(n<=homeMonth){
+        adminCalendarMode='auto';
+        adminMonth=''
+      }else{
+        adminMonth=n
+      }
+      renderAdminCalendar();
+      scrollTo({top:0,behavior:'instant'})
     }
-    renderAdminCalendar();
-    scrollTo({top:0,behavior:'instant'})
   })
 });
 q('#adminNextMonth').addEventListener('click',async()=>{
-  await cleanCrossfade(q('#adminCalendar'),()=>{
-    const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
-    if(adminCalendarMode==='auto'){
-      adminCalendarMode='month';
-      adminMonth=shiftMonth(homeMonth,1)
-    }else{
-      const n=shiftMonth(adminMonth,1);
-      if(n<=max)adminMonth=n
+  if(uiTransitionBusy)return;
+  await microCalendarTransition({
+    label:q('#adminMonthLabel'),
+    body:q('#adminScheduleBody'),
+    mobile:q('#adminScheduleMobile'),
+    swapFn:()=>{
+      const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
+      if(adminCalendarMode==='auto'){
+        adminCalendarMode='month';
+        adminMonth=shiftMonth(homeMonth,1)
+      }else{
+        const n=shiftMonth(adminMonth,1);
+        if(n<=max)adminMonth=n
+      }
+      renderAdminCalendar();
+      scrollTo({top:0,behavior:'instant'})
     }
-    renderAdminCalendar();
-    scrollTo({top:0,behavior:'instant'})
   })
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
@@ -4053,10 +4103,10 @@ q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`plan
 q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
   e.preventDefault();
-  cleanAdminPageCrossfade(tab.dataset.adminPage,{push:true})
+  microAdminPageTransition(tab.dataset.adminPage,{push:true})
 });
 window.addEventListener('popstate',()=>{
-  if(!q('#adminRoot').classList.contains('hidden'))cleanAdminPageCrossfade(adminPageFromPath(location.pathname),{push:false})
+  if(!q('#adminRoot').classList.contains('hidden'))microAdminPageTransition(adminPageFromPath(location.pathname),{push:false})
 });
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
 q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
