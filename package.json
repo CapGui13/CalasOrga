@@ -1,6 +1,6 @@
 {
   "name": "calendrier-club-presences",
-  "version": "0.15.7",
+  "version": "0.15.44",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check api/index.mjs && node --check tests/v157.mjs",
-    "test": "node tests/v157.mjs"
+    "check": "node --check server.mjs && node --check api/index.mjs && node --check tests/v1544.mjs",
+    "test": "node tests/v1544.mjs"
   }
 }

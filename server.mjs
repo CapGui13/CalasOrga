@@ -258,58 +258,40 @@ function sanitizeEmail(email) {
   return clean;
 }
 
-const CURRENT_ROSTER_VERSION = '2026-08-31-v1';
+const CURRENT_ROSTER_VERSION = 'managed-v2';
+const LEGACY_ROSTER_VERSIONS = new Set(['2026-08-31-v1','managed-v2']);
 const CURRENT_LINK_STORAGE_VERSION = '2026-08-31-recoverable-v1';
-const CURRENT_ROSTER = [
-  { id: 'roster_20260831_01', displayName: "Pascal", email: "wolffpas94@gmail.com" },
-  { id: 'roster_20260831_02', displayName: "Guillaume", email: "guillaume_capron@yahoo.fr" },
-  { id: 'roster_20260831_03', displayName: "Sylvie", email: "syl.loiseau@wanadoo.fr" },
-  { id: 'roster_20260831_04', displayName: "Véronique", email: "veronique.thamin@gmail.com" },
-  { id: 'roster_20260831_05', displayName: "Chantal", email: "ch.boye10@orange.fr" },
-  { id: 'roster_20260831_06', displayName: "Caroline C", email: "caroline_cottin@laposte.net" },
-  { id: 'roster_20260831_07', displayName: "Caroline E", email: "caroline.edgar@gmail.com" },
-  { id: 'roster_20260831_08', displayName: "Armelle", email: "a.sandret@yahoo.fr" },
-  { id: 'roster_20260831_09', displayName: "Christian", email: "maurychristian077@gmail.com" },
-  { id: 'roster_20260831_10', displayName: "Gérard", email: "lacombe.gerard@free.fr" }
-];
+// Le roster réel vit uniquement dans le stockage privé. Aucun nom/email réel n'est embarqué dans le code public.
+const CURRENT_ROSTER = [];
+const DEMO_ROSTER = Array.from({ length: 10 }, (_, i) => ({
+  id: `demo_roster_${String(i + 1).padStart(2, '0')}`,
+  displayName: `Membre démo ${i + 1}`,
+  email: `membre${i + 1}@example.invalid`
+}));
 
 function applyCurrentRoster(state, nowIso = new Date().toISOString()) {
-  const oldMembers = Array.isArray(state?.members) ? state.members.length : 0;
-  const oldActiveMembers = Array.isArray(state?.members) ? state.members.filter((m) => m?.active).length : 0;
-  const oldTokens = Array.isArray(state?.memberTokens) ? state.memberTokens.length : 0;
-  const oldMemberSessions = Array.isArray(state?.sessions) ? state.sessions.filter((s) => s?.kind === 'member').length : 0;
-  const oldAttendanceDates = state?.attendance && typeof state.attendance === 'object' ? Object.keys(state.attendance).length : 0;
-  const oldRoleDates = state?.roleAssignments && typeof state.roleAssignments === 'object' ? Object.keys(state.roleAssignments).length : 0;
-
+  const previousVersion = String(state?.rosterVersion || '');
+  state.members = Array.isArray(state?.members) ? state.members : [];
+  state.memberTokens = Array.isArray(state?.memberTokens) ? state.memberTokens : [];
+  state.sessions = Array.isArray(state?.sessions) ? state.sessions : [];
+  state.attendance = state?.attendance && typeof state.attendance === 'object' ? state.attendance : {};
+  state.roleAssignments = state?.roleAssignments && typeof state.roleAssignments === 'object' ? state.roleAssignments : {};
+  state.auditLog = Array.isArray(state?.auditLog) ? state.auditLog : [];
   state.rosterVersion = CURRENT_ROSTER_VERSION;
-  state.linkStorageVersion = CURRENT_LINK_STORAGE_VERSION;
-  state.members = CURRENT_ROSTER.map((m) => ({
-    id: m.id,
-    displayName: m.displayName,
-    email: m.email,
-    active: true,
-    adminPrivilege: false,
-    createdAt: nowIso
-  }));
-  state.memberTokens = [];
-  state.sessions = Array.isArray(state.sessions) ? state.sessions.filter((s) => s?.kind === 'admin') : [];
-  state.attendance = {};
-  state.roleAssignments = {};
-  state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
+  state.linkStorageVersion ||= CURRENT_LINK_STORAGE_VERSION;
   state.auditLog.push({
     at: nowIso,
     actor: 'Système',
-    action: 'liste_membres_reinitialisee',
+    action: 'roster_migration_non_destructive',
     date: null,
     metadata: {
+      previousVersion,
       rosterVersion: CURRENT_ROSTER_VERSION,
-      oldMembers,
-      oldActiveMembers,
-      newMembers: CURRENT_ROSTER.length,
-      revokedLinks: oldTokens,
-      revokedMemberSessions: oldMemberSessions,
-      clearedAttendanceDates: oldAttendanceDates,
-      clearedRoleAssignmentDates: oldRoleDates
+      membersPreserved: state.members.length,
+      linksPreserved: state.memberTokens.length,
+      sessionsPreserved: state.sessions.length,
+      attendanceDatesPreserved: Object.keys(state.attendance).length,
+      roleDatesPreserved: Object.keys(state.roleAssignments).length
     }
   });
   if (state.auditLog.length > 5000) state.auditLog = state.auditLog.slice(-5000);
@@ -420,11 +402,11 @@ function publicSnapshot(state, currentMemberId = null) {
 
 // ===== src/seed.mjs =====
 const DEMO_MEMBER_TOKENS = Object.fromEntries(
-  CURRENT_ROSTER.map((m, i) => [m.displayName, `demo-member-${i + 1}-Qx7vKp4mN2`])
+  DEMO_ROSTER.map((m, i) => [m.displayName, `demo-member-${i + 1}-Qx7vKp4mN2`])
 );
 
 function makeDemoSeed(now = new Date('2026-08-27T15:00:00Z')) {
-  const members = CURRENT_ROSTER.map((m, i) => ({
+  const members = DEMO_ROSTER.map((m, i) => ({
     id: `demo_${String.fromCharCode(97 + i)}`,
     displayName: m.displayName,
     email: m.email,
@@ -1593,10 +1575,12 @@ class FileStore {
       const actual = sha256Text(canonicalJson(src));
       if (!/^[a-f0-9]{64}$/.test(expected) || expected !== actual) return { ok: false, status: 400, error: 'La sauvegarde est incomplète ou a été modifiée (empreinte invalide).' };
     }
-    if (src.rosterVersion !== CURRENT_ROSTER_VERSION) {
-      return { ok: false, status: 409, error: 'Cette sauvegarde utilise une ancienne liste de membres et ne peut pas remplacer la liste actuelle.' };
-    }
     const warnings = [];
+    const backupRosterVersion = String(src.rosterVersion || '');
+    if (!LEGACY_ROSTER_VERSIONS.has(backupRosterVersion)) {
+      return { ok: false, status: 409, error: 'Cette sauvegarde utilise une version de liste de membres inconnue.' };
+    }
+    if (backupRosterVersion !== CURRENT_ROSTER_VERSION) warnings.push('roster_version_legacy');
     const exportedAt = safeIsoInstant(payload.exportedAt);
     if (!exportedAt) warnings.push('date_export_invalide');
     else {
@@ -2972,7 +2956,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.42.5-member-link-actions-vercel';
+const APP_VERSION = '0.15.44.0-multidevice-hardening-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3006,7 +2990,7 @@ const adminCodeHash = adminCode ? tokenHash(`admin-code-v1:${adminCode}`) : '';
 if (memberShortSecret && memberShortSecret.length < 32) {
   configurationError('MEMBER_SHORT_SECRET doit contenir au moins 32 caractères.');
 }
-// V15.7 : les liens courts membres utilisent un secret indépendant des identifiants admin.
+// Depuis V15.7 : les liens courts membres utilisent un secret indépendant des identifiants admin.
 // Le pepper historique reste accepté uniquement pour que les liens V15.6 déjà distribués
 // continuent de fonctionner pendant la transition.
 const legacyMemberShortPepper = crypto.createHash('sha256')

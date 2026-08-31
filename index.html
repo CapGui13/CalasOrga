@@ -4938,8 +4938,21 @@ body{
 }
 
 
+.day-editor-touch-help{
+  margin:-4px auto 12px;
+  width:min(720px,100%);
+  padding:9px 12px;
+  border:1px solid #c9ded1;
+  border-radius:11px;
+  background:#eef8f2;
+  color:#28563d;
+  font-size:13px;
+  font-weight:750;
+  text-align:center;
+}
+
 /* =========================================================
-   V15.43 — TABLETTE / MOBILE / TACTILE
+   V15.44 — HARDENING MULTI-DEVICE
    ========================================================= */
 
 @media (hover:none), (pointer:coarse){
@@ -4979,7 +4992,7 @@ body{
   .shell{
     width:100%;
     max-width:none;
-    padding:14px 14px 40px!important;
+    padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))!important;
   }
   #memberRoot > .topbar,
   #adminRoot > .topbar{
@@ -5049,7 +5062,7 @@ body{
   }
 
   #adminCorrectionOverlay{
-    padding:10px!important;
+    padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))!important;
     align-items:start!important;
     overflow:auto!important;
   }
@@ -5074,13 +5087,13 @@ body{
   }
   #adminCorrectionOverlay .day-member-source-item{min-height:48px!important;padding:9px 10px!important}
   #adminCorrectionOverlay .day-assignment-remove{
-    width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;
+    width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;
   }
 }
 
 @media(max-width:720px){
   html,body{overflow-x:hidden}
-  .shell{padding:10px 9px max(30px,env(safe-area-inset-bottom))!important}
+  .shell{padding:max(10px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important}
 
   #memberRoot > .topbar,
   #adminRoot > .topbar{
@@ -5134,11 +5147,13 @@ body{
   #adminMembers .members-table-wrap{
     overflow:visible!important;border:0!important;border-radius:0!important;
   }
-  #adminMembers .members-table,
+  #adminMembers .members-table{
+    display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important;
+  }
   #adminMembers .members-table tbody,
   #adminMembers .members-table tr,
   #adminMembers .members-table td{
-    display:block!important;width:100%!important;
+    display:block!important;width:100%!important;min-width:0!important;
   }
   #adminMembers .members-table thead{display:none!important}
   #adminMembers .members-table tr{
@@ -5173,7 +5188,7 @@ body{
     width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:10px!important;
   }
   .member-link-actions{gap:5px!important}
-  .member-state-pill{min-height:40px!important;padding:7px 10px!important}
+  .member-state-pill{min-height:44px!important;padding:8px 10px!important;justify-self:start!important}
 
   #adminHistory .table-wrap{overflow:visible!important}
   #adminHistory .table,#adminHistory .table tbody,#adminHistory .table tr,#adminHistory .table td{
@@ -5195,7 +5210,7 @@ body{
   #adminHistory .table td:nth-child(4)::before{content:"Date"}
 
   .confirm-overlay{
-    padding:8px!important;align-items:start!important;overflow:auto!important;
+    padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;align-items:start!important;overflow:auto!important;
   }
   .confirm-dialog{
     width:100%!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;
@@ -5238,7 +5253,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.43 · tablette mobile tactile optimisé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>V15.44 · interface multi-device durcie · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Le mode local ne synchronise pas les appareils. La production partagée utilise Vercel et son backend <code>api/index.mjs</code>.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -5499,6 +5514,7 @@ body{
         <form id="adminDayForm">
           <input type="hidden" id="dayEditorDate">
           <div class="day-editor-date" id="dayEditorDateLabel"></div>
+          <div class="day-editor-touch-help hidden" id="dayEditorTouchHelp" role="status" aria-live="polite"></div>
           <div class="day-editor-workspace day-editor-columns" role="group" aria-label="Affectations de la journée">
             <div class="day-column day-column-members" aria-label="Liste des membres">
               <div class="day-column-head"><div class="day-editor-panel-title">Membres</div></div>
@@ -5577,8 +5593,11 @@ const PROD_ORIGIN = 'https://calasorga.vercel.app';
 const PROD_ADMIN_URL = 'https://capgui13.github.io/CalasOrga/Admin/';
 const DEVICE_MARKER_KEY = 'calasorga-member-device-v1';
 const STORAGE_KEY = 'club-presences-complete-v14';
-const LOCAL_ROSTER_VERSION='2026-08-31-v1';
-const INITIAL_MEMBERS=[{"name":"Pascal","email":"wolffpas94@gmail.com"},{"name":"Guillaume","email":"guillaume_capron@yahoo.fr"},{"name":"Sylvie","email":"syl.loiseau@wanadoo.fr"},{"name":"Véronique","email":"veronique.thamin@gmail.com"},{"name":"Chantal","email":"ch.boye10@orange.fr"},{"name":"Caroline C","email":"caroline_cottin@laposte.net"},{"name":"Caroline E","email":"caroline.edgar@gmail.com"},{"name":"Armelle","email":"a.sandret@yahoo.fr"},{"name":"Christian","email":"maurychristian077@gmail.com"},{"name":"Gérard","email":"lacombe.gerard@free.fr"}];
+const LOCAL_ROSTER_VERSION='demo-v2';
+const INITIAL_MEMBERS=Array.from({length:10},(_,i)=>({
+  name:`Membre démo ${i+1}`,
+  email:`membre${i+1}@example.invalid`
+}));
 const CORE_ROLE_KEYS=['accueil','tpe','mep','arbitrage'];
 const ROLE_KEYS=[...CORE_ROLE_KEYS,'present'];
 const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
@@ -5608,6 +5627,12 @@ const q = (s) => document.querySelector(s);
 function isTouchUi(){
   return window.matchMedia?.('(hover: none) and (pointer: coarse)').matches===true
     || window.matchMedia?.('(any-pointer: coarse) and (max-width: 1024px)').matches===true
+}
+function usesSingleActivation(event){
+  if(event?.detail===0)return true; // clavier / activation assistive
+  const pointerType=String(event?.pointerType||'').toLowerCase();
+  if(pointerType)return pointerType==='touch'||pointerType==='pen';
+  return isTouchUi()
 }
 
 const pad = (n) => String(n).padStart(2,'0');
@@ -6786,6 +6811,14 @@ function renderDayEditorDraft(){
   if(!dayEditorDraft)return;
   syncDayEditorCompletionVisual();
   q('.day-editor-columns')?.classList.toggle('touch-member-selected',isTouchUi()&&!!dayEditorTouchSelectedId);
+  const touchHelp=q('#dayEditorTouchHelp');
+  if(touchHelp){
+    const touch=isTouchUi();
+    touchHelp.classList.toggle('hidden',!touch);
+    touchHelp.textContent=dayEditorTouchSelectedId
+      ?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · touchez maintenant le poste à lui attribuer.`
+      :'Touchez un membre, puis le poste à lui attribuer.'
+  }
   const members=dayEditorActiveMembers();
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
@@ -6838,6 +6871,7 @@ function renderDayEditorDraft(){
     remove.className='day-assignment-remove';
     remove.textContent='×';
     remove.title=`Retirer ${dayEditorMemberName(id)} de ${ROLE_LABELS[role]}`;
+    remove.setAttribute('aria-label',remove.title);
     remove.addEventListener('click',()=>dayEditorRemove(role,id));
     chip.append(name,remove);
     zone.append(chip)
@@ -6866,6 +6900,7 @@ function renderDayEditorDraft(){
       remove.className='day-assignment-remove';
       remove.textContent='×';
       remove.title=`Retirer ${dayEditorMemberName(id)} de Disponible`;
+      remove.setAttribute('aria-label',remove.title);
       remove.addEventListener('click',()=>dayEditorRemove('present',id));
       chip.append(name,remove);
       wrap.append(chip)
@@ -7210,16 +7245,14 @@ function renderAdminCalendar(){
       if(open){
         td.classList.add('admin-role-editable');
         td.tabIndex=0;
-        td.title=isTouchUi()
-          ?`Touchez pour modifier ${ROLE_LABELS[role]}`
-          :`Double-cliquez pour modifier ${ROLE_LABELS[role]} · vous pouvez aussi y déposer un nom`;
+        td.title=`Modifier ${ROLE_LABELS[role]} : un tap tactile, Entrée/Espace, ou double-clic à la souris`;
         td.addEventListener('click',e=>{
-          if(!isTouchUi()||adminDragPayload)return;
+          if(!usesSingleActivation(e)||adminDragPayload)return;
           if(e.target.closest('button,a,input,select,textarea'))return;
           openAdminCellEditor(date,role)
         });
         td.addEventListener('dblclick',e=>{
-          if(isTouchUi())return;
+          if(usesSingleActivation(e))return;
           e.preventDefault();
           openAdminCellEditor(date,role)
         });
@@ -7418,17 +7451,15 @@ function renderMembers(){
     state.type='button';
     state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
-    state.title=isTouchUi()
-      ?`Touchez pour ${m.active?'désactiver':'activer'} ${m.name}`
-      :`Double-cliquez pour ${m.active?'désactiver':'activer'} ${m.name}`;
+    state.title=`${m.active?'Désactiver':'Activer'} ${m.name} : un tap tactile, Entrée/Espace, ou double-clic à la souris`;
     state.setAttribute('aria-label',state.title);
     state.addEventListener('click',e=>{
-      if(!isTouchUi())return;
+      if(!usesSingleActivation(e))return;
       e.preventDefault();
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
     state.addEventListener('dblclick',e=>{
-      if(isTouchUi())return;
+      if(usesSingleActivation(e))return;
       e.preventDefault();
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
@@ -8080,7 +8111,7 @@ async function flushMemberStatusBatch(){
   }
 }
 async function toggleMemberActiveDirect(id,active,name='',btn=null){
-  queueMemberStatusChange(id,active,name)
+  return setMemberActive(id,active,name,btn)
 }
 
 
@@ -8331,6 +8362,21 @@ q('#memberCreatePanel').addEventListener('click',e=>{if(e.target===e.currentTarg
 q('#memberModifyPanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberManagement()});
 q('#memberManageEditForm').addEventListener('submit',e=>{e.preventDefault();saveManagedMember(e.submitter)});
 q('#memberManageRotateLink').addEventListener('click',()=>{const id=q('#memberManageEditId').value,m=(adminData?.membersAdmin||[]).find(x=>x.id===id);if(m)rotateMember(m.id,m.name,q('#memberManageRotateLink'))});
+
+
+function trapModalFocus(event){
+  if(event.key!=='Tab')return;
+  const overlays=[...document.querySelectorAll('.confirm-overlay:not(.hidden)')];
+  const overlay=overlays.at(-1);
+  if(!overlay)return;
+  const focusable=[...overlay.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(el=>!el.closest('.hidden')&&el.getClientRects().length);
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+}
+document.addEventListener('keydown',trapModalFocus);
 
 q('#memberEditClose').addEventListener('click',closeMemberEditor);
 q('#memberEditOverlay').addEventListener('click',e=>{if(e.target===q('#memberEditOverlay'))closeMemberEditor()});
