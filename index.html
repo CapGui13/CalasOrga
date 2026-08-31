@@ -3542,11 +3542,148 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.35 — CONNEXION ADMIN ALIGNÉE SUR LE PANNEAU
+   ========================================================= */
+
+#joinView.admin-login-view{
+  width:min(920px,calc(100vw - 32px));
+  max-width:none;
+  margin:4px auto 0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  text-align:center;
+}
+
+#joinView.admin-login-view h1{
+  margin:4px 0 8px;
+  font-size:30px;
+  line-height:1.08;
+  letter-spacing:-.035em;
+  font-weight:850;
+}
+
+#joinView.admin-login-view>#joinStatus{
+  margin:0 0 30px;
+  font-size:14px;
+}
+
+#joinView.admin-login-view>#joinError{
+  width:min(560px,100%);
+  margin:0 auto 14px;
+}
+
+#joinView.admin-login-view #adminCodeForm{
+  width:min(560px,100%);
+  max-width:none;
+  margin:0 auto;
+  padding:22px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+  text-align:left;
+}
+
+#joinView.admin-login-view #adminCodeForm::before{
+  content:"Connexion administrateur";
+  display:block;
+  margin:0 0 18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--line);
+  color:var(--text);
+  font-size:16px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+
+#joinView.admin-login-view #adminCodeForm .field{
+  gap:7px;
+}
+
+#joinView.admin-login-view #adminCodeForm label{
+  color:#34443b;
+  font-size:12px;
+  font-weight:850;
+}
+
+#joinView.admin-login-view #adminCodeForm .form-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 48px;
+  gap:8px;
+  align-items:stretch;
+}
+
+#joinView.admin-login-view #adminCode{
+  min-height:46px;
+  padding:9px 12px;
+  border-color:var(--line-strong);
+  background:#fff;
+}
+
+#joinView.admin-login-view #toggleAdminCode{
+  width:48px;
+  min-width:48px;
+  min-height:46px;
+  padding:0;
+  border-color:var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+  font-size:18px;
+}
+
+#joinView.admin-login-view #adminCodeForm>.actions{
+  justify-content:flex-end;
+  margin-top:16px;
+}
+
+#joinView.admin-login-view #adminCodeForm>.actions .btn.primary{
+  min-width:150px;
+  min-height:42px;
+}
+
+#joinView.admin-login-view #adminCodeForm>p{
+  margin:14px 0 0;
+  padding-top:13px;
+  border-top:1px solid #edf1ee;
+  text-align:left;
+  font-size:11px;
+  line-height:1.45;
+}
+
+#joinView.admin-login-view #githubAdminLink{
+  display:none !important;
+}
+
+@media(max-width:620px){
+  #joinView.admin-login-view{
+    width:calc(100vw - 22px);
+    margin-top:0;
+  }
+  #joinView.admin-login-view h1{
+    font-size:27px;
+  }
+  #joinView.admin-login-view>#joinStatus{
+    margin-bottom:22px;
+  }
+  #joinView.admin-login-view #adminCodeForm{
+    padding:17px;
+    border-radius:16px;
+  }
+  #joinView.admin-login-view #adminCodeForm>.actions .btn.primary{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.34 · gestion membres + infos appareils · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.35 · connexion admin harmonisée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4182,12 +4319,12 @@ function renderMember(){if(!memberData)return;setNotice(q('#memberError'));q('#w
 const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}animateMemberCalendarIfNeeded()} 
 function optimisticAssignment(data,date,role,present){const next=JSON.parse(JSON.stringify(data)),id=next.me.id;next.assignments ||= {};next.attendance ||= {};next.roleAssignments ||= {};const emptyDay=()=>({accueil:[],tpe:[],mep:[],arbitrage:[],present:[]});const day={...emptyDay(),...(next.assignments[date]||{})};const set=new Set(day[role]||[]);present?set.add(id):set.delete(id);day[role]=[...set];next.assignments[date]=day;if(role==='present'){if(day.present.length)next.attendance[date]=[...day.present];else delete next.attendance[date]}else{const roles={...(next.roleAssignments[date]||{})};if(day[role].length)roles[role]=[...day[role]];else delete roles[role];if(Object.keys(roles).length)next.roleAssignments[date]=roles;else delete next.roleAssignments[date]}return next}
 async function toggleAssignment(date,role,present){if(memberBusy)return;markMemberActivity();const before=memberData;memberBusy=true;if(!LOCAL){memberData=optimisticAssignment(memberData,date,role,present);renderMember();q('#lastRefresh').textContent='Enregistrement…'}else renderMember();try{if(LOCAL){if(role==='present'){const ids=localState.attendance[date]||[];if(present)localState.attendance[date]=[...new Set([...ids,currentLocalMemberId])];else{localState.attendance[date]=ids.filter(x=>x!==currentLocalMemberId);if(!localState.attendance[date].length)delete localState.attendance[date]}}else{const day=localState.roleAssignments[date]||{},ids=day[role]||[];if(present)day[role]=[...new Set([...ids,currentLocalMemberId])];else{day[role]=ids.filter(x=>x!==currentLocalMemberId);if(!day[role].length)delete day[role]}if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date]}const m=localState.members.find(x=>x.id===currentLocalMemberId);audit(m.name,present?'role_inscription':'role_retrait',date,{role});saveLocal();memberData=localMemberSnapshot(currentLocalMemberId)}else{const j=await netApi('/api/me/assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,role,present})});memberData=j.snapshot}q('#lastRefresh').textContent='Enregistré ✓';toast(present?`${ROLE_LABELS[role]} : inscrit`:`${ROLE_LABELS[role]} : retiré`)}catch(e){if(!LOCAL)memberData=before;if(e.status===401){memberBusy=false;invalidMemberSession();return}setNotice(q('#memberError'),`Modification non enregistrée : ${e.message}`)}finally{memberBusy=false;if(!q('#memberRoot').classList.contains('hidden'))renderMember()}}
-function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
+function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
 function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GITHUB_HOME}#session-invalid`);return true}showMemberLinkRequired('Votre association à cet appareil n’est plus valide. Ouvrez à nouveau votre lien personnel.');return false}
 let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),memberPollTimer=0;
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
 function memberPollDelay(){const age=Date.now()-lastMemberActivityAt;return age<120000?2000:age<600000?5000:10000}
-async function refreshMember(){if(memberRefreshBusy)return;if(LOCAL){memberData=localMemberSnapshot(currentLocalMemberId);renderMember();return}memberRefreshBusy=true;try{memberData=await netApi('/api/me');if(!memberMonth)memberMonth=chooseInitialMonth();showOnly('memberRoot');q('#githubAdminLink').classList.add('hidden');renderMember()}catch(e){if(e.status===401){invalidMemberSession();return}showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Calendrier indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';setNotice(q('#joinError'),e.message)}finally{memberRefreshBusy=false}}
+async function refreshMember(){if(memberRefreshBusy)return;if(LOCAL){memberData=localMemberSnapshot(currentLocalMemberId);renderMember();return}memberRefreshBusy=true;try{memberData=await netApi('/api/me');if(!memberMonth)memberMonth=chooseInitialMonth();showOnly('memberRoot');q('#githubAdminLink').classList.add('hidden');renderMember()}catch(e){if(e.status===401){invalidMemberSession();return}setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Calendrier indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';setNotice(q('#joinError'),e.message)}finally{memberRefreshBusy=false}}
 function scheduleMemberPoll(){clearTimeout(memberPollTimer);memberPollTimer=setTimeout(async()=>{if(document.visibilityState==='visible'&&!memberBusy&&!q('#memberRoot').classList.contains('hidden'))await refreshMember();scheduleMemberPoll()},memberPollDelay())}
 
 // --- Vue admin ---
@@ -5224,9 +5361,12 @@ function localBackup(){return {format:'club-presences-prefinale-local-v1',export
 async function restoreBackup(file,btn=null){setButtonBusy(btn,true,'Validation…');try{const payload=JSON.parse(await file.text());if(LOCAL){const s=payload.state||payload;if(!s||!Array.isArray(s.members)||!s.attendance||!s.scheduleExceptions||!s.settings)throw new Error('Sauvegarde locale invalide.');s.roleAssignments=s.roleAssignments&&typeof s.roleAssignments==='object'?s.roleAssignments:{};if(!await confirmModal('Restaurer cette sauvegarde et remplacer les données locales actuelles ?',{title:'Restaurer la sauvegarde',confirmText:'Restaurer',danger:true}))return;localState=s;saveLocal();adminData=localAdminSnapshot();audit('Administrateur','sauvegarde_importee');saveLocal();renderAdmin();toast('Sauvegarde restaurée')}else{const check=await netApi('/api/admin/backup/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!await confirmModal(`La sauvegarde est valide et contient ${check.summary?.activeMembers??'?'} membre(s) actif(s).\n\nLa restauration remplacera les données actuelles.`,{title:'Restaurer la sauvegarde',confirmText:'Restaurer',danger:true}))return;const j=await netApi('/api/admin/backup/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});adminData=j.snapshot;renderAdmin();toast('Sauvegarde restaurée')}}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 
 // --- Connexion / démarrage serveur ---
-function showAdminCodeLogin(message='Entrez votre code administrateur.'){showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#adminCodeForm').classList.remove('hidden');setTimeout(()=>q('#adminCode').focus(),0)}
-async function serverJoin(kind,token){showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#githubAdminLink').classList.add('hidden');q('#joinTitle').textContent=kind==='admin'?'Ouverture de l’administration…':'Ouverture de votre calendrier…';q('#joinStatus').textContent='Vérification du lien.';setNotice(q('#joinError'));try{const endpoint=kind==='admin'?'/api/session/admin':kind==='short'?'/api/session/member-short':'/api/session/member';let confirmSwitch=false;for(;;){try{const body=kind==='short'?{shortToken:token,confirmSwitch}:{token};await netApi(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});break}catch(e){const p=e.payload||{};if(kind==='short'&&e.status===409&&p.requiresIdentitySwitch&&p.currentMember?.name&&p.targetMember?.name){const ok=await confirmModal(`Cet appareil est déjà associé à ${p.currentMember.name}.\n\nLe lien ouvert appartient à ${p.targetMember.name}.\n\nVoulez-vous réassocier cet appareil à ${p.targetMember.name} ?`,{title:'Changer de membre',confirmText:`Passer à ${p.targetMember.name}`});if(!ok){location.replace(GITHUB_HOME);return}confirmSwitch=true;q('#joinStatus').textContent=`Réassociation à ${p.targetMember.name}…`;continue}throw e}}history.replaceState(null,'',kind==='admin'?'/admin':'/calendar');if(kind==='admin'){await enterAdmin();return}if(kind==='short'){location.replace(`${GITHUB_HOME}#enrolled`);return}await refreshMember()}catch(e){q('#joinStatus').textContent='Impossible d’ouvrir le lien.';setNotice(q('#joinError'),e.message)}}
-async function serverAdminCode(code){showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent='Vérification du code…';setNotice(q('#joinError'));try{await netApi('/api/session/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});q('#adminCode').value='';history.replaceState(null,'','/admin');await enterAdmin()}catch(e){q('#joinStatus').textContent='Entrez votre code administrateur.';setNotice(q('#joinError'),e.message);q('#adminCode').select()}}
+function setAdminLoginView(active){
+  q('#joinView')?.classList.toggle('admin-login-view',!!active)
+}
+function showAdminCodeLogin(message='Entrez votre code administrateur.'){setAdminLoginView(true);showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#adminCodeForm').classList.remove('hidden');setTimeout(()=>q('#adminCode').focus(),0)}
+async function serverJoin(kind,token){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#githubAdminLink').classList.add('hidden');q('#joinTitle').textContent=kind==='admin'?'Ouverture de l’administration…':'Ouverture de votre calendrier…';q('#joinStatus').textContent='Vérification du lien.';setNotice(q('#joinError'));try{const endpoint=kind==='admin'?'/api/session/admin':kind==='short'?'/api/session/member-short':'/api/session/member';let confirmSwitch=false;for(;;){try{const body=kind==='short'?{shortToken:token,confirmSwitch}:{token};await netApi(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});break}catch(e){const p=e.payload||{};if(kind==='short'&&e.status===409&&p.requiresIdentitySwitch&&p.currentMember?.name&&p.targetMember?.name){const ok=await confirmModal(`Cet appareil est déjà associé à ${p.currentMember.name}.\n\nLe lien ouvert appartient à ${p.targetMember.name}.\n\nVoulez-vous réassocier cet appareil à ${p.targetMember.name} ?`,{title:'Changer de membre',confirmText:`Passer à ${p.targetMember.name}`});if(!ok){location.replace(GITHUB_HOME);return}confirmSwitch=true;q('#joinStatus').textContent=`Réassociation à ${p.targetMember.name}…`;continue}throw e}}history.replaceState(null,'',kind==='admin'?'/admin':'/calendar');if(kind==='admin'){await enterAdmin();return}if(kind==='short'){location.replace(`${GITHUB_HOME}#enrolled`);return}await refreshMember()}catch(e){q('#joinStatus').textContent='Impossible d’ouvrir le lien.';setNotice(q('#joinError'),e.message)}}
+async function serverAdminCode(code){setAdminLoginView(true);showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent='Vérification du code…';setNotice(q('#joinError'));try{await netApi('/api/session/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});q('#adminCode').value='';history.replaceState(null,'','/admin');await enterAdmin()}catch(e){q('#joinStatus').textContent='Entrez votre code administrateur.';setNotice(q('#joinError'),e.message);q('#adminCode').select()}}
 async function boot(){
   if(GITHUB_PAGES){
     const h=decodeURIComponent(location.hash.slice(1)).normalize('NFC');
