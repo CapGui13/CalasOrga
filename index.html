@@ -4587,7 +4587,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.4 · bascule rapide dernier clic gagnant · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.5 · bascule sans course de polling · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -5164,7 +5164,11 @@ function shortDayLabel(s){const[y,m,d]=s.split('-').map(Number);return new Intl.
 function monthLabel(k){const[y,m]=k.split('-').map(Number);return new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,1)))}
 function initials(n){return String(n).split(/\s+/).filter(Boolean).map(x=>x[0]).join('').slice(0,2).toUpperCase()}
 function nowIso(){return new Date().toISOString()}
-function showOnly(id){for(const x of ['chooserView','joinView','memberRoot','adminRoot'])q('#'+x).classList.toggle('hidden',x!==id)}
+let activeRootView='';
+function showOnly(id){
+  activeRootView=id;
+  for(const x of ['chooserView','joinView','memberRoot','adminRoot'])q('#'+x).classList.toggle('hidden',x!==id)
+}
 function adminPageFromPath(path=location.pathname){
   if(path==='/admin/membres')return'members';
   if(path==='/admin/historique')return'history';
@@ -5794,8 +5798,39 @@ function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GI
 let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),memberPollTimer=0;
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
 function memberPollDelay(){const age=Date.now()-lastMemberActivityAt;return age<120000?2000:age<600000?5000:10000}
-async function refreshMember(){if(memberRefreshBusy||memberPlanningHasWork())return;if(LOCAL){memberData=localMemberSnapshot(currentLocalMemberId);renderMember();return}memberRefreshBusy=true;try{memberData=await netApi('/api/me');if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth();}showOnly('memberRoot');q('#githubAdminLink').classList.add('hidden');renderMember()}catch(e){if(e.status===401){invalidMemberSession();return}setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Calendrier indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';setNotice(q('#joinError'),e.message)}finally{memberRefreshBusy=false}}
-function scheduleMemberPoll(){clearTimeout(memberPollTimer);memberPollTimer=setTimeout(async()=>{if(document.visibilityState==='visible'&&!memberPlanningHasWork()&&!q('#memberRoot').classList.contains('hidden'))await refreshMember();scheduleMemberPoll()},memberPollDelay())}
+async function refreshMember(){
+  if(memberRefreshBusy||memberPlanningHasWork())return;
+  if(LOCAL){
+    memberData=localMemberSnapshot(currentLocalMemberId);
+    if(activeRootView==='memberRoot')renderMember();
+    return
+  }
+  memberRefreshBusy=true;
+  try{
+    const fresh=await netApi('/api/me');
+    memberData=memberPendingOverlay(fresh);
+    if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth()}
+    if(activeRootView==='memberRoot'){
+      q('#githubAdminLink').classList.add('hidden');
+      renderMember()
+    }
+  }catch(e){
+    if(e.status===401){
+      if(activeRootView==='memberRoot')invalidMemberSession();
+      return
+    }
+    if(activeRootView==='memberRoot')showMemberError(`Actualisation impossible : ${e.message}`)
+  }finally{
+    memberRefreshBusy=false
+  }
+}
+function scheduleMemberPoll(){
+  clearTimeout(memberPollTimer);
+  memberPollTimer=setTimeout(async()=>{
+    if(document.visibilityState==='visible'&&!memberPlanningHasWork()&&activeRootView==='memberRoot')await refreshMember();
+    scheduleMemberPoll()
+  },memberPollDelay())
+}
 
 // --- Vue admin ---
 function adminIsOpen(d){return effectiveOpen(adminData,d)}
@@ -6597,7 +6632,7 @@ function adminPollDelay(){
 function adminRefreshSafe(){
   if(LOCAL||GITHUB_PAGES)return false;
   if(document.visibilityState!=='visible')return false;
-  if(q('#adminRoot')?.classList.contains('hidden'))return false;
+  if(activeRootView!=='adminRoot')return false;
   if(adminRefreshBusy||adminSavePending||adminDragPayload)return false;
   if(!q('#adminCellOverlay')?.classList.contains('hidden'))return false;
   if(!q('#adminCorrectionOverlay')?.classList.contains('hidden'))return false;
@@ -6619,11 +6654,11 @@ async function enterAdmin(){
     showOnly('adminRoot');
     renderAdmin()
   }else{
-    await refreshAdmin();
-    markAdminActivity()
+    await refreshAdmin(null,{openIfSuccessful:true});
+    if(activeRootView==='adminRoot')markAdminActivity()
   }
 }
-async function refreshAdmin(btn=null,{silent=false}={}){
+async function refreshAdmin(btn=null,{silent=false,openIfSuccessful=false}={}){
   if(adminRefreshBusy)return;
   adminRefreshBusy=true;
   setButtonBusy(btn,true,'Actualisation…');
@@ -6631,15 +6666,15 @@ async function refreshAdmin(btn=null,{silent=false}={}){
     const fresh=await netApi('/api/admin');
     adminSessionContext=fresh.adminContext||{fromMember:false,memberId:null,name:null};
     adminData=fresh;
-    showOnly('adminRoot');
-    renderAdmin()
+    if(openIfSuccessful&&activeRootView!=='adminRoot')showOnly('adminRoot');
+    if(activeRootView==='adminRoot')renderAdmin()
   }catch(e){
     if(e.status===401){
       clearTimeout(adminPollTimer);
-      showAdminCodeLogin('Entrez votre code administrateur pour continuer.');
+      if(activeRootView==='adminRoot'||openIfSuccessful)showAdminCodeLogin('Entrez votre code administrateur pour continuer.');
       return
     }
-    if(!silent){
+    if(!silent&&(activeRootView==='adminRoot'||openIfSuccessful)){
       showOnly('joinView');
       q('#adminCodeForm').classList.add('hidden');
       q('#joinTitle').textContent='Administration indisponible';
@@ -6652,6 +6687,7 @@ async function refreshAdmin(btn=null,{silent=false}={}){
   }
 }
 function activateCachedAdminView(){
+  viewSwitchTarget='admin';
   currentAdminPage='calendar';
   history.replaceState(null,'','/admin');
   showOnly('adminRoot');
@@ -6660,6 +6696,7 @@ function activateCachedAdminView(){
 }
 
 function activateCachedMemberView(){
+  viewSwitchTarget='member';
   memberCalendarMode='auto';
   if(!memberMonth)memberMonth=chooseInitialMonth();
   history.replaceState(null,'','/calendar');
