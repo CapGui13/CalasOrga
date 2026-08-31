@@ -3503,7 +3503,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.31 · gestion membres + liens visibles · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.33 · planning limité à 3 mois · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -3984,6 +3984,11 @@ function monthKey(s){return s.slice(0,7)}
 function shiftMonth(k,d){let[y,m]=k.split('-').map(Number);m+=d;while(m<1){m+=12;y--}while(m>12){m-=12;y++}return `${y}-${pad(m)}`}
 function daysInMonth(y,m){return new Date(Date.UTC(y,m,0)).getUTCDate()}
 function iso(y,m,d){return `${y}-${pad(m)}-${pad(d)}`}
+function planningHorizonEnd(today=parisToday()){
+  const endMonth=shiftMonth(monthKey(today),2);
+  const[y,m]=endMonth.split('-').map(Number);
+  return iso(y,m,daysInMonth(y,m))
+}
 function weekday(s){const[y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d)).getUTCDay()}
 function defaultOpen(s){return [1,2,4].includes(weekday(s))}
 function effectiveOpen(data,s){const ex=data.scheduleExceptions?.[s];return typeof ex?.isOpen==='boolean'?ex.isOpen:defaultOpen(s)}
@@ -4113,13 +4118,13 @@ function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(localState))}catch{}}
 function audit(actor,action,date='',meta={}){localState.auditLog.push({at:nowIso(),actor,action,date,...meta});if(localState.auditLog.length>1000)localState.auditLog=localState.auditLog.slice(-1000)}
 function localAssignmentsSnapshot(){const out={};const dates=new Set([...Object.keys(localState.attendance||{}),...Object.keys(localState.roleAssignments||{})]);for(const d of dates){const r=localState.roleAssignments?.[d]||{};out[d]={accueil:[...(r.accueil||[])],tpe:[...(r.tpe||[])],mep:[...(r.mep||[])],arbitrage:[...(r.arbitrage||[])],present:[...(localState.attendance?.[d]||[])]}}return out}
-function localMemberSnapshot(id){const me=localState.members.find(m=>m.id===id&&m.active);if(!me)return null;const from=parisToday(),to=addDays(from,366),all=localAssignmentsSnapshot(),assignments={},visible=new Set([id]);for(const[d,roles]of Object.entries(all)){if(d<from||d>to)continue;const clean={};for(const role of ROLE_KEYS){const ids=(roles[role]||[]).filter(mid=>localState.members.some(m=>m.id===mid&&m.active));clean[role]=ids;for(const x of ids)visible.add(x)}if(ROLE_KEYS.some(r=>clean[r].length))assignments[d]=clean}const attendance=Object.fromEntries(Object.entries(assignments).filter(([,r])=>r.present.length).map(([d,r])=>[d,r.present]));const exceptions=Object.fromEntries(Object.entries(localState.scheduleExceptions).filter(([d])=>d>=from&&d<=to));return {me:{id:me.id,name:me.name},members:localState.members.filter(m=>m.active&&visible.has(m.id)).map(m=>({id:m.id,name:m.name})),attendance,roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(exceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS,memberWindow:{from,to}}}}
+function localMemberSnapshot(id){const me=localState.members.find(m=>m.id===id&&m.active);if(!me)return null;const from=parisToday(),to=planningHorizonEnd(from),all=localAssignmentsSnapshot(),assignments={},visible=new Set([id]);for(const[d,roles]of Object.entries(all)){if(d<from||d>to)continue;const clean={};for(const role of ROLE_KEYS){const ids=(roles[role]||[]).filter(mid=>localState.members.some(m=>m.id===mid&&m.active));clean[role]=ids;for(const x of ids)visible.add(x)}if(ROLE_KEYS.some(r=>clean[r].length))assignments[d]=clean}const attendance=Object.fromEntries(Object.entries(assignments).filter(([,r])=>r.present.length).map(([d,r])=>[d,r.present]));const exceptions=Object.fromEntries(Object.entries(localState.scheduleExceptions).filter(([d])=>d>=from&&d<=to));return {me:{id:me.id,name:me.name},members:localState.members.filter(m=>m.active&&visible.has(m.id)).map(m=>({id:m.id,name:m.name})),attendance,roleAssignments:Object.fromEntries(Object.entries(localState.roleAssignments||{}).filter(([d])=>d>=from&&d<=to)),assignments,scheduleExceptions:clone(exceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS,memberWindow:{from,to}}}}
 function localAdminSnapshot(){const members=localState.members.map(m=>({id:m.id,name:m.name,email:m.email||'',active:m.active})),assignments=localAssignmentsSnapshot();return {members,attendance:clone(localState.attendance),roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(localState.scheduleExceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS},membersAdmin:members.map(m=>({...m,createdAt:m.createdAt,hasActiveLink:m.active})),auditLog:clone(localState.auditLog.slice(-200).reverse()),integrity:{ok:true,counts:{activeMembers:members.filter(m=>m.active).length,attendanceDates:Object.keys(localState.attendance).length,roleAssignmentDates:Object.keys(localState.roleAssignments).length}}}}
 function csrf(name){const m=document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
 async function netApi(url,opts={}){const h=new Headers(opts.headers||{});if(opts.method&&opts.method!=='GET')h.set('X-CSRF-Token',url.startsWith('/api/admin')?csrf('club_admin_csrf'):csrf('club_member_csrf'));const r=await fetch(url,{...opts,headers:h,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(j.error||'Erreur'),{status:r.status,payload:j});return j}
 function downloadBlob(name,type,text){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)}
 function csvCell(v){let t=String(v??'');if(/^[\t \r\n]*[=+\-@]/.test(t))t="'"+t;return /[;"\n\r]/.test(t)?'"'+t.replaceAll('"','""')+'"':t}
-function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=addDays(from,365),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','MEP','Arbitrage','Disponible','Nombre disponibles','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>sortNamesAlpha((a[r]||[]).map(id=>byId[id]).filter(Boolean)).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
+function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=planningHorizonEnd(from),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','MEP','Arbitrage','Disponible','Nombre disponibles','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>sortNamesAlpha((a[r]||[]).map(id=>byId[id]).filter(Boolean)).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
 function actionLabel(a){return ({inscription:'inscription',retrait:'retrait',membre_cree:'membre créé',membre_renomme:'membre renommé',membre_desactive:'membre désactivé',membre_reactive:'membre réactivé',lien_regenere:'nouveau lien',fermeture_exceptionnelle:'fermeture',ouverture_exceptionnelle:'ouverture',fermeture_periode:'fermeture de période',ouverture_periode:'ouverture de période',exception_supprimee:'exception supprimée',exceptions_periode_supprimees:'horaires habituels rétablis',minimum_modifie:'minimum modifié',admin_inscription:'présence ajoutée par admin',admin_retrait:'présence retirée par admin',sauvegarde_importee:'sauvegarde restaurée',presence_retiree_fermeture:'présence retirée lors d’une fermeture',presence_retiree_desactivation:'présence retirée lors d’une désactivation',role_inscription:'inscription à un rôle',role_retrait:'retrait d’un rôle',admin_role_inscription:'rôle ajouté par admin',admin_role_retrait:'rôle retiré par admin',role_retire_fermeture:'rôle retiré lors d’une fermeture',role_retire_desactivation:'rôle retiré lors d’une désactivation',sessions_membre_revoquees:'appareils membre déconnectés'})[a]||String(a||'').replaceAll('_',' ')}
 
 // --- Choix local / liens locaux ---
@@ -4512,7 +4517,7 @@ function renderAdminCalendar(){
   const homeMode=adminHomeMode(today);
   const effectiveMode=adminCalendarMode==='auto'?homeMode:adminCalendarMode;
   const nextOpen=nextAdminOpenDate(today);
-  const max=shiftMonth(homeMonth,12);
+  const max=shiftMonth(homeMonth,2);
 
   if(effectiveMode==='upcoming'){
     if(adminCalendarMode==='auto')adminMonth='';
@@ -5267,7 +5272,7 @@ q('#adminNextMonth').addEventListener('click',async()=>{
     body:q('#adminScheduleBody'),
     mobile:q('#adminScheduleMobile'),
     swapFn:()=>{
-      const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
+      const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,2);
       if(adminCalendarMode==='auto'){
         adminCalendarMode='month';
         adminMonth=shiftMonth(homeMonth,1)

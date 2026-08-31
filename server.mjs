@@ -107,7 +107,7 @@ function browserMutationMetadataOk(req) {
 // ===== src/domain.mjs =====
 const OPEN_WEEKDAYS = new Set([1, 2, 4]); // lundi, mardi, jeudi (UTC weekday)
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MEMBER_HORIZON_DAYS = 366;
+const PLANNING_HORIZON_MONTHS = 3;
 
 function isIsoDate(value) {
   if (!ISO_RE.test(String(value || ''))) return false;
@@ -132,6 +132,29 @@ function addIsoDays(iso, days) {
   return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
 }
 
+function planningWindowEnd(todayIso) {
+  if (!isIsoDate(todayIso)) return null;
+  const [y, m] = todayIso.split('-').map(Number);
+  const zeroBased = (m - 1) + (PLANNING_HORIZON_MONTHS - 1);
+  const endYear = y + Math.floor(zeroBased / 12);
+  const endMonth = (zeroBased % 12) + 1;
+  const lastDay = new Date(Date.UTC(endYear, endMonth, 0)).getUTCDate();
+  return `${endYear}-${String(endMonth).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+}
+
+function validatePlanningHorizonDate(iso, now = new Date()) {
+  if (!isIsoDate(iso)) return { ok: false, status: 400, error: 'Date invalide.' };
+  const maxDate = planningWindowEnd(parisToday(now));
+  if (iso > maxDate) {
+    return {
+      ok: false,
+      status: 409,
+      error: 'Le planning est limité au mois en cours et aux deux mois suivants.'
+    };
+  }
+  return { ok: true };
+}
+
 function weekdayForIso(iso) {
   if (!isIsoDate(iso)) return null;
   const [y, m, d] = iso.split('-').map(Number);
@@ -152,8 +175,8 @@ function validateMemberDateChange(state, iso, now = new Date()) {
   if (!isIsoDate(iso)) return { ok: false, status: 400, error: 'Date invalide.' };
   const today = parisToday(now);
   if (iso < today) return { ok: false, status: 409, error: 'Les dates passées sont verrouillées.' };
-  const maxDate = addIsoDays(today, MEMBER_HORIZON_DAYS);
-  if (iso > maxDate) return { ok: false, status: 409, error: `Les inscriptions sont limitées aux ${MEMBER_HORIZON_DAYS} prochains jours.` };
+  const horizon = validatePlanningHorizonDate(iso, now);
+  if (!horizon.ok) return horizon;
   if (!effectiveIsOpen(state, iso)) return { ok: false, status: 409, error: "Le club n'est pas ouvert ce jour-là." };
   return { ok: true };
 }
@@ -1440,7 +1463,7 @@ class FileStore {
   memberSnapshot(memberId) {
     const snap = publicSnapshot(this.state, memberId);
     const from = parisToday(this.now());
-    const to = addIsoDays(from, MEMBER_HORIZON_DAYS);
+    const to = planningWindowEnd(from);
     snap.attendance = Object.fromEntries(Object.entries(snap.attendance).filter(([date]) => date >= from && date <= to));
     snap.roleAssignments = Object.fromEntries(Object.entries(snap.roleAssignments || {}).filter(([date]) => date >= from && date <= to));
     snap.assignments = Object.fromEntries(Object.entries(snap.assignments || {}).filter(([date]) => date >= from && date <= to));
@@ -1512,7 +1535,8 @@ class FileStore {
     role = String(role || '').toLowerCase();
     if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Rôle invalide.' };
     if (role === 'present') return this.setAttendanceAsAdmin(memberId, date, present);
-    if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+    const horizon = validatePlanningHorizonDate(date, this.now());
+    if (!horizon.ok) return horizon;
     return this.mutate((s) => {
       const member = s.members.find((m) => m.id === memberId && m.active);
       if (!member) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
@@ -1542,6 +1566,10 @@ class FileStore {
     targetRole = String(targetRole || '').toLowerCase();
     if (!memberId) return { ok: false, status: 400, error: 'Membre invalide.' };
     if (!isIsoDate(sourceDate) || !isIsoDate(targetDate)) return { ok: false, status: 400, error: 'Date invalide.' };
+    const sourceHorizon = validatePlanningHorizonDate(sourceDate, this.now());
+    if (!sourceHorizon.ok) return sourceHorizon;
+    const targetHorizon = validatePlanningHorizonDate(targetDate, this.now());
+    if (!targetHorizon.ok) return targetHorizon;
     if (!ALL_ROLE_KEYS.includes(sourceRole) || !ALL_ROLE_KEYS.includes(targetRole)) return { ok: false, status: 400, error: 'Position invalide.' };
     if (sourceDate === targetDate && sourceRole === targetRole) return { ok: true, changed: false };
 
@@ -1661,7 +1689,8 @@ class FileStore {
   }
 
   async setCellAssignmentAsAdmin(date, role, memberId, memberIds = null) {
-    if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+    const horizon = validatePlanningHorizonDate(date, this.now());
+    if (!horizon.ok) return horizon;
     role = String(role || '').toLowerCase();
     if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Position invalide.' };
     memberId = String(memberId || '').trim();
@@ -1739,7 +1768,8 @@ class FileStore {
   }
 
   async setDayAssignmentsAsAdmin(date, assignments) {
-    if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+    const horizon = validatePlanningHorizonDate(date, this.now());
+    if (!horizon.ok) return horizon;
     const raw = assignments && typeof assignments === 'object' ? assignments : {};
     const desired = Object.fromEntries(ROLE_KEYS.map((role) => [role, String(raw[role] || '').trim()]));
     desired.present = [...new Set(
@@ -1830,7 +1860,8 @@ class FileStore {
   }
 
   async setAttendanceAsAdmin(memberId, date, present) {
-    if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+    const horizon = validatePlanningHorizonDate(date, this.now());
+    if (!horizon.ok) return horizon;
     return this.mutate((s) => {
       const member = s.members.find((m) => m.id === memberId && m.active);
       if (!member) return { ok: false, status: 404, error: 'Membre actif introuvable.' };
@@ -2194,7 +2225,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.32.0-status-batch-vercel';
+const APP_VERSION = '0.15.33.0-three-month-horizon-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
