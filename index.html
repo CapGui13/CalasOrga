@@ -3785,11 +3785,57 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.36.3 — NOM/ADMIN + LECTURE APPAREIL
+   ========================================================= */
+
+.member-name-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  white-space:nowrap;
+}
+.member-name-line .member-display-name{
+  display:inline-block;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.member-name-line .admin-member-badge{
+  flex:0 0 auto;
+  margin-left:0 !important;
+}
+
+/* Ligne 1 = appareil, ligne 2 = dernière connexion. */
+.member-device-primary{
+  min-width:0;
+}
+.member-device-primary > span:last-child{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.member-device-secondary.member-device-last{
+  display:block;
+  margin-top:4px;
+  color:#6f7c75;
+  font-size:10px;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:visible;
+  text-overflow:clip;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.2 · header admin aligné et empilé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.3 · affichage membres/appareils ajusté · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4950,18 +4996,21 @@ function renderMembers(){
     tr.dataset.memberId=m.id;
 
     const nameTd=document.createElement('td');
-    const name=document.createElement('div');
+    const nameLine=document.createElement('div');
+    nameLine.className='member-name-line';
+    const name=document.createElement('span');
     name.className='member-display-name';
     name.textContent=m.name;
     name.title=m.name;
-    nameTd.append(name);
+    nameLine.append(name);
     if(m.adminPrivilege){
       const adminBadge=document.createElement('span');
       adminBadge.className='admin-member-badge';
       adminBadge.textContent='Admin';
       adminBadge.title='Privilèges administrateur';
-      nameTd.append(adminBadge)
+      nameLine.append(adminBadge)
     }
+    nameTd.append(nameLine);
 
     const emailTd=document.createElement('td');
     const email=document.createElement('a');
@@ -4993,25 +5042,37 @@ function renderMembers(){
     const dot=document.createElement('span');
     dot.className='member-device-dot'+(n?' connected':'');
     const deviceText=document.createElement('span');
-    deviceText.textContent=n?`${n} appareil${n>1?'s':''}`:'Aucun appareil';
+
+    const deviceEntries=(m.devices||[]).filter(Boolean);
+    const latestDevice=deviceEntries.length?deviceEntries[deviceEntries.length-1]:null;
+    const latestLabel=latestDevice?.label||'';
+
+    if(!n){
+      deviceText.textContent='Aucun appareil';
+    }else if(n===1&&latestLabel){
+      deviceText.textContent=latestLabel;
+      deviceText.title=latestLabel;
+    }else if(n>1&&latestLabel){
+      deviceText.textContent=`${n} appareils · ${latestLabel}`;
+      deviceText.title=`${n} appareils\nDernier appareil : ${latestLabel}`;
+    }else{
+      deviceText.textContent=`${n} appareil${n>1?'s':''}`;
+    }
+
     deviceLine.append(dot,deviceText);
     devicesTd.append(deviceLine);
-    if(n){
-      const details=document.createElement('div');
-      details.className='member-device-secondary';
-      const labels=(m.devices||[]).map(d=>d?.label).filter(Boolean);
-      const unique=[...new Set(labels)];
-      const dateText=m.latestDeviceAt
-        ? new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt))
-        : '';
-      if(unique.length){
-        details.textContent=unique.join(' · ')+(dateText?` · ${dateText}`:'');
-        details.title=unique.join('\n')+(dateText?`\nDernière connexion : ${dateText}`:'')
-      }else{
-        details.textContent=dateText?`Appareil déjà reconnu · ${dateText}`:'Appareil déjà reconnu';
-        details.title='Les informations détaillées seront disponibles lors de la prochaine reconnexion de cet appareil.'
-      }
-      devicesTd.append(details)
+
+    if(n&&m.latestDeviceAt){
+      const last=document.createElement('div');
+      last.className='member-device-secondary member-device-last';
+      const dateText=new Intl.DateTimeFormat('fr-FR',{
+        dateStyle:'short',
+        timeStyle:'short',
+        timeZone:'Europe/Paris'
+      }).format(new Date(m.latestDeviceAt));
+      last.textContent=`Dernière connexion : ${dateText}`;
+      last.title=`Dernière connexion : ${dateText}`;
+      devicesTd.append(last)
     }
 
     const linkTd=document.createElement('td');
