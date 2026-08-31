@@ -3287,11 +3287,153 @@ body{
   .members-table th:nth-child(3){width:22% !important}
 }
 
+
+/* =========================================================
+   V15.31 — GESTION DES MEMBRES + APPAREILS + LIEN
+   ========================================================= */
+.members-card{
+  max-width:1120px !important;
+}
+.member-management-panel{
+  margin-bottom:14px;
+  border:1px solid #dce4df;
+  border-radius:13px;
+  background:#f8faf9;
+  overflow:hidden;
+}
+.member-management-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:13px 14px;
+}
+.member-management-title{
+  font-size:14px;
+  font-weight:850;
+}
+.member-management-actions{
+  display:flex;
+  gap:8px;
+  flex:0 0 auto;
+}
+.member-management-actions .btn{
+  min-width:88px;
+}
+.member-management-actions .btn.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.member-management-body{
+  padding:13px 14px 14px;
+  border-top:1px solid #dce4df;
+  background:#fff;
+}
+.member-management-body .member-add-form{
+  display:grid;
+  grid-template-columns:minmax(180px,.75fr) minmax(260px,1.2fr) 140px;
+  gap:9px;
+  align-items:end;
+}
+.member-management-body .member-add-form .btn{
+  width:140px;
+}
+.member-picker{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-bottom:12px;
+}
+.member-picker .btn{
+  min-height:32px;
+  padding:5px 9px;
+  font-size:12px;
+}
+.member-picker .btn.selected{
+  background:#e6f3ea;
+  border-color:#bcd7c6;
+  color:#17633d;
+}
+.member-manage-edit-form{
+  display:grid;
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.25fr) auto;
+  gap:9px;
+  align-items:end;
+}
+.member-manage-edit-actions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+  justify-content:flex-end;
+}
+.member-manage-edit-actions .btn{
+  min-height:40px;
+  white-space:nowrap;
+}
+
+.members-table th:nth-child(1){width:16% !important}
+.members-table th:nth-child(2){width:22% !important}
+.members-table th:nth-child(3){width:11% !important}
+.members-table th:nth-child(4){width:18% !important}
+.members-table th:nth-child(5){width:33% !important}
+.members-table td{
+  height:54px !important;
+  padding:8px 10px !important;
+}
+.member-device-primary{
+  font-size:11.5px;
+}
+.member-device-secondary{
+  font-size:9.5px;
+}
+.member-current-link{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#1d5f43;
+  font-size:11.5px;
+  text-decoration:none;
+}
+.member-current-link:hover{text-decoration:underline}
+.member-link-legacy,
+.member-link-empty{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#78847d;
+  font-size:11px;
+  font-style:italic;
+}
+@media(max-width:900px){
+  .member-management-body .member-add-form,
+  .member-manage-edit-form{
+    grid-template-columns:1fr 1.25fr;
+  }
+  .member-management-body .member-add-form .btn,
+  .member-manage-edit-actions{
+    grid-column:1/-1;
+  }
+  .member-manage-edit-actions{justify-content:flex-start}
+}
+@media(max-width:720px){
+  .member-management-head{align-items:flex-start;flex-direction:column}
+  .member-management-body .member-add-form,
+  .member-manage-edit-form{grid-template-columns:1fr}
+  .member-management-body .member-add-form .btn{width:100%}
+  .members-table-wrap{overflow-x:auto !important}
+  .members-table{min-width:820px}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.30 · page Membres épurée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.31 · gestion membres + liens visibles · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
@@ -3444,19 +3586,50 @@ body{
             <span class="pill" id="memberCount"></span>
           </div>
 
-          <div class="member-add-panel">
-            <div class="member-add-title">Ajouter un membre</div>
-            <form id="addMember" class="member-add-form">
-              <div class="field">
-                <label for="newName">Nom</label>
-                <input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom">
+          <div class="member-management-panel">
+            <div class="member-management-head">
+              <div>
+                <div class="member-management-title">Gestion des membres</div>
+                <div class="muted small">Créer un membre ou modifier ses coordonnées et son lien personnel.</div>
               </div>
-              <div class="field member-add-email">
-                <label for="newEmail">Email</label>
-                <input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr">
+              <div class="member-management-actions">
+                <button class="btn" type="button" id="memberManageCreate">Créer</button>
+                <button class="btn" type="button" id="memberManageModify">Modifier</button>
               </div>
-              <button class="btn primary" type="submit">Créer</button>
-            </form>
+            </div>
+
+            <div class="member-management-body hidden" id="memberCreatePanel">
+              <form id="addMember" class="member-add-form">
+                <div class="field">
+                  <label for="newName">Nom</label>
+                  <input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom">
+                </div>
+                <div class="field member-add-email">
+                  <label for="newEmail">Email</label>
+                  <input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr">
+                </div>
+                <button class="btn primary" type="submit">Créer le membre</button>
+              </form>
+            </div>
+
+            <div class="member-management-body hidden" id="memberModifyPanel">
+              <div class="member-picker" id="memberModifyList" aria-label="Choisir un membre"></div>
+              <form id="memberManageEditForm" class="member-manage-edit-form hidden">
+                <input type="hidden" id="memberManageEditId">
+                <div class="field">
+                  <label for="memberManageEditName">Nom</label>
+                  <input id="memberManageEditName" maxlength="80" autocomplete="off" required>
+                </div>
+                <div class="field">
+                  <label for="memberManageEditEmail">Email</label>
+                  <input id="memberManageEditEmail" type="email" maxlength="254" autocomplete="email" required>
+                </div>
+                <div class="member-manage-edit-actions">
+                  <button class="btn primary" type="submit">Enregistrer</button>
+                  <button class="btn" type="button" id="memberManageRotateLink">Renouveler le lien</button>
+                </div>
+              </form>
+            </div>
           </div>
 
           <div class="secret-box hidden" id="newLinkBox">
@@ -3472,6 +3645,8 @@ body{
                   <th>Membre</th>
                   <th>Email</th>
                   <th>Statut</th>
+                  <th>Appareils</th>
+                  <th>Lien</th>
                 </tr>
               </thead>
               <tbody id="membersTable"></tbody>
@@ -4416,9 +4591,46 @@ function renderMembers(){
     });
     stateTd.append(state);
 
-    tr.append(nameTd,emailTd,stateTd);
+    const devicesTd=document.createElement('td');
+    devicesTd.className='member-device-cell';
+    const n=Number(m.deviceCount||0);
+    const deviceLine=document.createElement('div');
+    deviceLine.className='member-device-primary';
+    const dot=document.createElement('span');
+    dot.className='member-device-dot'+(n?' connected':'');
+    const deviceText=document.createElement('span');
+    deviceText.textContent=n?`${n} appareil${n>1?'s':''}`:'Aucun appareil';
+    deviceLine.append(dot,deviceText);
+    devicesTd.append(deviceLine);
+    if(n&&m.latestDeviceAt){
+      const last=document.createElement('div');
+      last.className='member-device-secondary';
+      last.textContent='Dernière connexion : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt));
+      devicesTd.append(last)
+    }
+
+    const linkTd=document.createElement('td');
+    if(LOCAL&&m.active){
+      const url=localPersonalUrl(m.id);
+      const a=document.createElement('a');
+      a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
+      linkTd.append(a)
+    }else if(m.currentShortToken){
+      const url=shortPersonalUrl(m.currentShortToken);
+      const a=document.createElement('a');
+      a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
+      linkTd.append(a)
+    }else{
+      const span=document.createElement('span');
+      span.className=m.hasActiveLink?'member-link-legacy':'member-link-empty';
+      span.textContent=m.hasActiveLink?'Lien actif — ancien format':'Aucun lien';
+      linkTd.append(span)
+    }
+
+    tr.append(nameTd,emailTd,stateTd,devicesTd,linkTd);
     body.append(tr)
   }
+  renderMemberManagementList()
 }
 
 function renderDayEditorMembers(){
@@ -4493,6 +4705,70 @@ async function refreshAdmin(btn=null,{silent=false}={}){
   }
 }
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
+let memberManagementMode='',memberManagementSelectedId='';
+function setMemberManagementMode(mode){
+  memberManagementMode=mode;
+  q('#memberCreatePanel').classList.toggle('hidden',mode!=='create');
+  q('#memberModifyPanel').classList.toggle('hidden',mode!=='modify');
+  q('#memberManageCreate').classList.toggle('active',mode==='create');
+  q('#memberManageModify').classList.toggle('active',mode==='modify');
+  if(mode==='modify')renderMemberManagementList();
+  if(mode==='create')setTimeout(()=>q('#newName')?.focus(),0)
+}
+function renderMemberManagementList(){
+  const box=q('#memberModifyList');
+  if(!box)return;
+  box.innerHTML='';
+  const members=sortMembersAlpha(adminData?.membersAdmin||[]);
+  if(memberManagementSelectedId&&!members.some(m=>m.id===memberManagementSelectedId))memberManagementSelectedId='';
+  for(const m of members){
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='btn'+(m.id===memberManagementSelectedId?' selected':'');
+    b.textContent=m.name;
+    b.addEventListener('click',()=>selectManagedMember(m.id));
+    box.append(b)
+  }
+  if(memberManagementSelectedId)fillManagedMemberForm(memberManagementSelectedId)
+}
+function selectManagedMember(id){
+  memberManagementSelectedId=id;
+  renderMemberManagementList();
+  fillManagedMemberForm(id)
+}
+function fillManagedMemberForm(id){
+  const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  const form=q('#memberManageEditForm');
+  if(!m){form.classList.add('hidden');return}
+  q('#memberManageEditId').value=m.id;
+  q('#memberManageEditName').value=m.name||'';
+  q('#memberManageEditEmail').value=m.email||'';
+  form.classList.remove('hidden');
+  q('#memberManageRotateLink').disabled=!m.active
+}
+async function saveManagedMember(btn=null){
+  const id=q('#memberManageEditId').value;
+  const name=q('#memberManageEditName').value.trim();
+  const email=q('#memberManageEditEmail').value.trim().toLowerCase();
+  const current=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  if(!current||!name||!email)return;
+  const nameChanged=name!==String(current.name||'');
+  const emailChanged=email!==String(current.email||'').toLowerCase();
+  if(!nameChanged&&!emailChanged)return;
+  setButtonBusy(btn,true,'Enregistrement…');beginAdminSave();
+  try{
+    if(LOCAL){
+      const m=localState.members.find(x=>x.id===id);if(!m)return;
+      if(nameChanged)m.name=name.slice(0,80);
+      if(emailChanged)m.email=email;
+      audit('Administrateur','membre_modifie','',{memberId:id});saveLocal();adminData=localAdminSnapshot()
+    }else{
+      if(nameChanged){const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot}
+      if(emailChanged){const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});adminData=j.snapshot}
+    }
+    renderAdmin();fillManagedMemberForm(id);endAdminSave(true)
+  }catch(e){endAdminSave(false);setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}
+}
 function openMemberEditor(id){
   const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
   if(!m)return;
@@ -4817,6 +5093,11 @@ q('#adminNextMonth').addEventListener('click',async()=>{
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;await createMember(name,email,e.submitter);q('#newName').value='';q('#newEmail').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
+q('#memberManageCreate').addEventListener('click',()=>setMemberManagementMode(memberManagementMode==='create'?'':'create'));
+q('#memberManageModify').addEventListener('click',()=>setMemberManagementMode(memberManagementMode==='modify'?'':'modify'));
+q('#memberManageEditForm').addEventListener('submit',e=>{e.preventDefault();saveManagedMember(e.submitter)});
+q('#memberManageRotateLink').addEventListener('click',()=>{const id=q('#memberManageEditId').value,m=(adminData?.membersAdmin||[]).find(x=>x.id===id);if(m)rotateMember(m.id,m.name,q('#memberManageRotateLink'))});
+
 q('#memberEditClose').addEventListener('click',closeMemberEditor);
 q('#memberEditOverlay').addEventListener('click',e=>{if(e.target===q('#memberEditOverlay'))closeMemberEditor()});
 q('#memberEditForm').addEventListener('submit',e=>{e.preventDefault();saveMemberEditor(e.submitter)});

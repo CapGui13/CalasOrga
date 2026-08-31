@@ -267,6 +267,38 @@ function shortPersonalTokenHashCandidates(raw) {
   return primary === legacy ? [primary] : [primary, legacy];
 }
 
+function memberLinkCipherKey() {
+  return crypto.createHash('sha256')
+    .update(Buffer.concat([Buffer.from('member-link-display-v1:', 'utf8'), Buffer.from(memberShortPepper)]))
+    .digest();
+}
+
+function encryptMemberShortToken(raw) {
+  const clean = String(raw || '').normalize('NFC');
+  if (!clean) return null;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', memberLinkCipherKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(clean, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1.${iv.toString('base64url')}.${tag.toString('base64url')}.${ciphertext.toString('base64url')}`;
+}
+
+function decryptMemberShortToken(encoded) {
+  try {
+    const [version, ivRaw, tagRaw, dataRaw] = String(encoded || '').split('.');
+    if (version !== 'v1' || !ivRaw || !tagRaw || !dataRaw) return null;
+    const iv = Buffer.from(ivRaw, 'base64url');
+    const tag = Buffer.from(tagRaw, 'base64url');
+    const ciphertext = Buffer.from(dataRaw, 'base64url');
+    if (iv.length !== 12 || tag.length !== 16 || !ciphertext.length) return null;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', memberLinkCipherKey(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8').normalize('NFC');
+  } catch {
+    return null;
+  }
+}
+
 function publicSnapshot(state, currentMemberId = null) {
   const members = state.members
     .filter((m) => m.active)
@@ -1086,6 +1118,12 @@ class FileStore {
         if (!/^[a-f0-9]{64}$/i.test(shortHash)) issues.push(`short_token_hash_invalid:${t?.id || '?'}`);
         else if (shortTokenHashes.has(shortHash)) issues.push(`short_token_hash_duplicate:${t?.id || '?'}`);
         else shortTokenHashes.add(shortHash);
+        if (t?.shortTokenEnc != null) {
+          const recoveredShort = decryptMemberShortToken(t.shortTokenEnc);
+          if (!recoveredShort || !shortPersonalTokenHashCandidates(recoveredShort).includes(shortHash.toLowerCase())) {
+            issues.push(`short_token_display_invalid:${t?.id || '?'}`);
+          }
+        }
       }
       if (!safeIsoInstant(t?.createdAt)) issues.push(`token_created_at_invalid:${t?.id || '?'}`);
       if (t?.revokedAt && !safeIsoInstant(t.revokedAt)) issues.push(`token_revoked_at_invalid:${t?.id || '?'}`);
@@ -1229,15 +1267,26 @@ class FileStore {
     for (const t of src.memberTokens) {
       const tokenHashValue = String(t?.tokenHash || '');
       const shortTokenHashValue = t?.shortTokenHash == null ? '' : String(t.shortTokenHash || '');
+      const shortTokenEncValue = t?.shortTokenEnc == null ? '' : String(t.shortTokenEnc || '');
       if (typeof t?.active !== 'boolean') return { ok: false, status: 400, error: 'État actif/révoqué invalide pour un lien personnel.' };
       if (t.active) { if (activeTokenMembers.has(t.memberId)) return { ok: false, status: 400, error: 'Plusieurs liens personnels actifs existent pour le même membre.' }; activeTokenMembers.add(t.memberId); }
       if (!ids.has(t?.memberId) || !/^[a-f0-9]{64}$/i.test(tokenHashValue) || hashes.has(tokenHashValue)) return { ok: false, status: 400, error: 'Lien personnel invalide dans la sauvegarde.' };
       if (shortTokenHashValue && (!/^[a-f0-9]{64}$/i.test(shortTokenHashValue) || shortHashes.has(shortTokenHashValue.toLowerCase()))) return { ok: false, status: 400, error: 'Lien personnel court invalide dans la sauvegarde.' };
       hashes.add(tokenHashValue);
       if (shortTokenHashValue) shortHashes.add(shortTokenHashValue.toLowerCase());
+      let preservedShortTokenEnc = '';
+      if (shortTokenEncValue && shortTokenHashValue) {
+        const recoveredShort = decryptMemberShortToken(shortTokenEncValue);
+        if (recoveredShort && shortPersonalTokenHashCandidates(recoveredShort).includes(shortTokenHashValue.toLowerCase())) {
+          preservedShortTokenEnc = shortTokenEncValue;
+        } else {
+          warnings.push('lien_affichable_ignore');
+        }
+      }
       memberTokens.push({
         id: String(t.id || `t_${randomToken(10)}`).slice(0, 120), memberId: t.memberId, tokenHash: tokenHashValue.toLowerCase(),
-        ...(shortTokenHashValue ? { shortTokenHash: shortTokenHashValue.toLowerCase() } : {}), active: !!t.active,
+        ...(shortTokenHashValue ? { shortTokenHash: shortTokenHashValue.toLowerCase() } : {}),
+        ...(preservedShortTokenEnc ? { shortTokenEnc: preservedShortTokenEnc } : {}), active: !!t.active,
         createdAt: safeIsoInstant(t?.createdAt) || this.now().toISOString(), revokedAt: t.revokedAt ? safeIsoInstant(t.revokedAt) : null
       });
       if (t.revokedAt && !memberTokens.at(-1).revokedAt) warnings.push('date_revocation_corrigee');
@@ -1387,15 +1436,21 @@ class FileStore {
     base.scheduleExceptions = clone(this.state.scheduleExceptions);
     return {
       ...base,
-      membersAdmin: this.state.members.map((m) => ({
-        id: m.id,
-        name: m.displayName,
-        email: m.email,
-        active: !!m.active,
-        createdAt: m.createdAt,
-        hasActiveLink: this.state.memberTokens.some((t) => t.memberId === m.id && t.active),
-        ...this.#memberSessionSummary(m.id)
-      })),
+      membersAdmin: this.state.members.map((m) => {
+        const activeToken = this.state.memberTokens.find((t) => t.memberId === m.id && t.active) || null;
+        const currentShortToken = activeToken?.shortTokenEnc ? decryptMemberShortToken(activeToken.shortTokenEnc) : null;
+        return {
+          id: m.id,
+          name: m.displayName,
+          email: m.email,
+          active: !!m.active,
+          createdAt: m.createdAt,
+          hasActiveLink: !!activeToken,
+          currentShortToken: currentShortToken || null,
+          linkRecoverable: !!currentShortToken,
+          ...this.#memberSessionSummary(m.id)
+        };
+      }),
       auditLog: this.state.auditLog.slice(-200).reverse(),
       integrity: this.integrityReport()
     };
@@ -1900,7 +1955,7 @@ class FileStore {
       const member = { id, displayName: clean, email: cleanEmail, active: true, createdAt: this.now().toISOString() };
       s.members.push(member);
       const short = this.#newShortPersonalToken(s, clean);
-      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
+      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), shortTokenHash: short.hash, shortTokenEnc: encryptMemberShortToken(short.raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'membre_cree', null, { memberId: id, name: clean });
       return { ok: true, member: { id, name: clean, email: cleanEmail }, rawToken: raw, shortToken: short.raw };
@@ -1973,7 +2028,7 @@ class FileStore {
       let short = null;
       if (requested) {
         short = this.#newShortPersonalToken(s, m.displayName);
-        s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
+        s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, shortTokenEnc: encryptMemberShortToken(short.raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
         this.#cleanupMemberTokens(s);
       }
       this.#log(s, 'Administrateur', requested ? 'membre_reactive' : 'membre_desactive', null, { memberId, name: m.displayName, futureAttendanceRemoved });
@@ -1989,7 +2044,7 @@ class FileStore {
       for (const t of s.memberTokens.filter((t) => t.memberId === memberId && t.active)) { t.active = false; t.revokedAt = this.now().toISOString(); }
       this.#revokeMemberSessions(s, memberId);
       const short = this.#newShortPersonalToken(s, m.displayName);
-      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
+      s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, shortTokenEnc: encryptMemberShortToken(short.raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'lien_regenere', null, { memberId, name: m.displayName });
       return { ok: true, member: { id: m.id, name: m.displayName, email: m.email }, rawToken: raw, shortToken: short.raw };
@@ -2007,7 +2062,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.28.1-route-render-fix-vercel';
+const APP_VERSION = '0.15.31.0-member-management-links-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
