@@ -2494,104 +2494,20 @@ body.modal-open{overflow:hidden}
 
 
 /* =========================================================
-   V15.26.2 — VARIANTE COMPACTE DU PANNEAU "MODIFIER LA JOURNÉE"
-   Objectif : 10 membres visibles sans scroll sur écran desktop standard
+   V15.26.3 — FENÊTRE "MODIFIER LA JOURNÉE" PLUS GRANDE
+   Base visuelle : V15.26.1
    ========================================================= */
 #adminCorrectionOverlay{
-  padding:12px;
+  padding:6px;
 }
 #adminCorrectionOverlay .admin-correction-dialog{
-  width:min(1260px,calc(100vw - 24px));
-  max-height:calc(100vh - 18px);
-  padding:16px 18px 14px;
+  width:min(1460px,calc(100vw - 12px));
+  max-height:calc(100vh - 10px);
+  padding:20px 22px 18px;
 }
-
-#adminCorrectionOverlay .section-head{
-  margin-bottom:4px;
-}
-#adminCorrectionOverlay .section-head h2{
-  margin-bottom:3px;
-  font-size:20px;
-}
-#adminCorrectionOverlay .section-head .muted.small{
-  font-size:12px;
-  line-height:1.25;
-}
-
-.day-editor-date{
-  margin:2px 0 10px;
-  font-size:17px;
-}
-
-.day-editor-grid{
-  border-radius:12px;
-}
-
-.day-editor-position{
-  padding:8px 7px 9px;
-}
-.day-editor-position label{
-  margin-bottom:5px;
-  font-size:12px;
-}
-
-.day-editor-position .day-role-choices,
-.day-editor-position .day-available-choices{
-  min-height:var(--day-editor-list-height,316px);
-  max-height:var(--day-editor-list-height,316px);
-  padding:5px;
-  border-radius:9px;
-  overflow-y:auto;
-  overflow-x:hidden;
-  scrollbar-gutter:auto;
-}
-
-.day-editor-position .day-role-choices{
-  gap:2px;
-}
-.day-editor-position .day-role-choices .single-choice-item{
-  min-height:26px;
-  height:26px;
-  max-height:26px;
-  padding:3px 7px;
-  border-radius:6px;
-  font-size:12.5px;
-  line-height:1;
-}
-
-.day-editor-position .day-available-choices{
-  gap:2px;
-}
-.day-editor-position .day-available-choices .available-check{
-  min-height:26px;
-  height:26px;
-  max-height:26px;
-  padding:3px 7px;
-  gap:6px;
-  border-radius:6px;
-  font-size:12.5px;
-  line-height:1;
-}
-.day-editor-position .day-available-choices .available-check input{
-  width:14px;
-  height:14px;
-  flex:0 0 14px;
-}
-
-.day-editor-actions{
-  margin-top:10px;
-}
-.day-editor-actions .btn{
-  min-width:170px;
-  min-height:38px;
-  padding:7px 12px;
-}
-
-@media(max-width:1100px){
+@media(max-width:1500px){
   #adminCorrectionOverlay .admin-correction-dialog{
-    width:calc(100vw - 18px);
-    padding-left:12px;
-    padding-right:12px;
+    width:calc(100vw - 12px);
   }
 }
 
@@ -2599,7 +2515,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.2 · variante compacte du panneau journée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.3 · fenêtre journée agrandie · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2852,9 +2768,9 @@ function updateDayEditorListHeight(memberCount){
   const dialog=q('#adminCorrectionOverlay .admin-correction-dialog');
   if(!dialog)return;
   const rows=Math.max(Number(memberCount||0)+1,1);
-  const contentNeeded=10+(rows*26)+(Math.max(rows-1,0)*2);
-  const viewportCap=Math.max(250,window.innerHeight-250);
-  const target=Math.max(292,Math.min(contentNeeded,viewportCap));
+  const contentNeeded=48+(rows*31)+(Math.max(rows-1,0)*4);
+  const viewportCap=Math.max(360,window.innerHeight-205);
+  const target=Math.max(410,Math.min(contentNeeded,viewportCap));
   dialog.style.setProperty('--day-editor-list-height',`${target}px`)
 }
 function parisToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
