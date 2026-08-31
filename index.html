@@ -2019,11 +2019,100 @@ body.modal-open{overflow:hidden}
   min-width:0;
 }
 
+
+/* =========================================================
+   V15.22.8 — PANNEAUX RÔLE / DISPONIBLE JUMEAUX
+   ========================================================= */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:none;
+  overflow:visible;
+  padding:6px;
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* Même géométrie de ligne dans les deux panneaux */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  width:100%;
+  min-height:34px;
+  padding:6px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  box-sizing:border-box;
+  transition:background .14s ease,border-color .14s ease,color .14s ease;
+}
+
+/* Même alignement du texte */
+#adminCellRoleChoices .single-choice-item{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  text-align:left;
+}
+#adminCellAvailableChoices .available-check{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+}
+
+/* Même état survol / focus */
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible,
+#adminCellAvailableChoices .available-check:hover,
+#adminCellAvailableChoices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+
+/* Même état sélectionné */
+#adminCellRoleChoices .single-choice-item.selected,
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+/* "À pourvoir" reste légèrement secondaire */
+#adminCellRoleChoices .single-choice-item.empty-choice{
+  color:var(--muted);
+}
+
+/* Checkbox alignée sans modifier la hauteur de ligne */
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+  margin:0;
+}
+#adminCellAvailableChoices .available-check span{
+  flex:1 1 auto;
+  min-width:0;
+}
+
+/* Même largeur / padding du panneau pour tous les rôles */
+#adminCellOverlay .admin-cell-dialog{
+  width:min(410px,calc(100vw - 28px));
+  padding:18px;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.7 · panneau Disponible harmonisé avec le panneau Rôle · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.8 · panneaux rôle et Disponible jumeaux · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
