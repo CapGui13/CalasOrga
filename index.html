@@ -1956,11 +1956,27 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.22.6 — ENCORE UN TOUT PETIT PEU PLUS AÉRÉ
+   ========================================================= */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  gap:5px;
+  padding:6px;
+}
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  min-height:31px;
+  padding-top:5px;
+  padding-bottom:5px;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.4 · panneaux harmonisés · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.6 · version encore un peu plus aérée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
