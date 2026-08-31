@@ -2839,12 +2839,353 @@ body{
   box-sizing:border-box;
 }
 
+
+/* =========================================================
+   V15.29 — REFONTE PAGE MEMBRES
+   ========================================================= */
+
+.members-card{
+  padding:20px;
+  overflow:visible;
+}
+.members-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+.members-head h2{
+  margin:0 0 4px;
+}
+#memberCount{
+  width:auto !important;
+  min-width:98px !important;
+  padding:6px 11px;
+  justify-content:center;
+  background:#eef3f0;
+  color:#33483d;
+}
+
+.member-add-panel{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:16px;
+  align-items:end;
+  padding:14px 16px;
+  margin-bottom:16px;
+  border:1px solid #dfe6e2;
+  border-radius:13px;
+  background:#f8faf9;
+}
+.member-add-title{
+  align-self:center;
+  font-size:14px;
+  font-weight:850;
+}
+.member-add-form{
+  display:grid;
+  grid-template-columns:minmax(190px,.75fr) minmax(290px,1.25fr) 104px;
+  gap:10px;
+  align-items:end;
+}
+.member-add-form .field{
+  gap:5px;
+}
+.member-add-form label{
+  font-size:12px;
+}
+.member-add-form input{
+  min-height:40px;
+  font-size:14px;
+}
+.member-add-form .btn{
+  width:104px;
+  min-height:40px;
+  padding:8px 12px;
+}
+
+.members-table-wrap{
+  border:1px solid #dce4df;
+  border-radius:13px;
+  overflow:visible;
+  background:#fff;
+}
+.members-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+}
+.members-table th{
+  padding:10px 12px;
+  background:#f5f8f6;
+  color:#53645b;
+  border-bottom:1px solid #dce4df;
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  text-align:left;
+}
+.members-table th:first-child{border-radius:12px 0 0 0}
+.members-table th:last-child{border-radius:0 12px 0 0}
+.members-table td{
+  height:66px;
+  padding:10px 12px;
+  border-bottom:1px solid #e4e9e6;
+  vertical-align:middle;
+  overflow:hidden;
+}
+.members-table tr:last-child td{
+  border-bottom:0;
+}
+.members-table tbody tr{
+  transition:background .14s ease;
+}
+.members-table tbody tr:hover{
+  background:#fafcfb;
+}
+
+.members-table th:nth-child(1){width:18%}
+.members-table th:nth-child(2){width:28%}
+.members-table th:nth-child(3){width:13%}
+.members-table th:nth-child(4){width:20%}
+.members-table th:nth-child(5){width:21%}
+
+.member-display-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#17251e;
+  font-size:14px;
+  font-weight:850;
+}
+.member-display-email{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#405149;
+  font-size:13px;
+  text-decoration:none;
+}
+.member-display-email:hover{
+  color:var(--accent);
+  text-decoration:underline;
+}
+
+.member-state-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.member-state-pill.active{
+  background:#e6f3ea;
+  color:#17633d;
+}
+.member-state-pill.inactive{
+  background:#eef1ef;
+  color:#65716b;
+}
+
+.member-device-cell{
+  min-width:0;
+}
+.member-device-primary{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#34483e;
+  font-size:12px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.member-device-dot{
+  width:7px;
+  height:7px;
+  flex:0 0 7px;
+  border-radius:50%;
+  background:#b8c4bd;
+}
+.member-device-dot.connected{
+  background:#2b9960;
+}
+.member-device-secondary{
+  margin-top:3px;
+  color:#758179;
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.member-action-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:nowrap;
+}
+.member-action-wrap .btn{
+  min-height:34px;
+  padding:6px 9px;
+  border-radius:9px;
+  font-size:11px;
+  white-space:nowrap;
+}
+.member-action-wrap .member-link-btn{
+  min-width:92px;
+}
+.member-action-wrap .member-edit-btn{
+  min-width:66px;
+}
+.member-menu>summary{
+  width:38px;
+  min-width:38px;
+  padding:6px;
+}
+
+#adminMembers .member-menu-panel{
+  right:0;
+  left:auto;
+  min-width:220px;
+}
+#adminMembers .member-menu-panel .btn{
+  font-size:12px;
+}
+
+.member-edit-dialog{
+  width:min(450px,calc(100vw - 24px));
+}
+.member-edit-form{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.member-edit-actions{
+  justify-content:flex-end;
+  margin-top:4px;
+}
+.member-edit-actions .btn{
+  min-width:116px;
+}
+
+@media(max-width:900px){
+  .member-add-panel{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .member-add-form{
+    grid-template-columns:1fr 1.35fr 100px;
+  }
+  .members-table th:nth-child(1){width:19%}
+  .members-table th:nth-child(2){width:27%}
+  .members-table th:nth-child(3){width:12%}
+  .members-table th:nth-child(4){width:19%}
+  .members-table th:nth-child(5){width:23%}
+}
+
+@media(max-width:720px){
+  .members-card{padding:14px}
+  .members-head{align-items:center}
+  .member-add-form{
+    grid-template-columns:1fr;
+  }
+  .member-add-form .btn{width:100%}
+
+  .members-table-wrap{
+    border:0;
+    background:transparent;
+  }
+  .members-table,
+  .members-table tbody{
+    display:block;
+  }
+  .members-table thead{
+    display:none;
+  }
+  .members-table tr{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px 12px;
+    padding:13px;
+    margin-bottom:10px;
+    border:1px solid #dce4df;
+    border-radius:12px;
+    background:#fff;
+  }
+  .members-table td{
+    display:block;
+    height:auto;
+    padding:0;
+    border:0;
+    overflow:visible;
+  }
+  .members-table td:nth-child(1),
+  .members-table td:nth-child(2){
+    grid-column:1;
+  }
+  .members-table td:nth-child(3){
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+  }
+  .members-table td:nth-child(4){
+    grid-column:1 / -1;
+  }
+  .members-table td:nth-child(5){
+    grid-column:1 / -1;
+  }
+  .member-action-wrap{
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+  #adminMembers .member-menu-panel{
+    left:0;
+    right:auto;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.28.1 · correctif routes admin + rendu journée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.29 · refonte page Membres · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
+    <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
+      <div class="section-head">
+        <div>
+          <h2 id="memberEditTitle">Modifier un membre</h2>
+          <div class="muted small" id="memberEditContext"></div>
+        </div>
+        <button class="btn" type="button" id="memberEditClose">Fermer</button>
+      </div>
+      <form id="memberEditForm" class="member-edit-form">
+        <input type="hidden" id="memberEditId">
+        <div class="field">
+          <label for="memberEditName">Nom</label>
+          <input id="memberEditName" maxlength="80" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="memberEditEmail">Email</label>
+          <input id="memberEditEmail" type="email" maxlength="254" autocomplete="email" required>
+        </div>
+        <div class="actions member-edit-actions">
+          <button class="btn primary" type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
       <h2 id="confirmTitle">Confirmation</h2>
@@ -2960,7 +3301,53 @@ body{
 
     
     <div class="admin-page hidden" data-admin-view="members">
-      <div class="admin-members-page"><section class="card" id="adminMembers"><div class="section-head"><h2>Membres</h2><span class="pill" id="memberCount"></span></div><form id="addMember" class="form-row"><div class="field"><label for="newName">Ajouter un membre</label><input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom"></div><div class="field"><label for="newEmail">Email</label><input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr"></div><button class="btn primary" type="submit">Créer</button></form><div class="secret-box hidden" id="newLinkBox"><strong>Nouveau lien personnel</strong><div id="newLink" class="small link-line"></div><div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Nom</th><th>Email</th><th>État</th><th>Actions</th></tr></thead><tbody id="membersTable"></tbody></table></div></section></div>
+      <div class="admin-members-page">
+        <section class="card members-card" id="adminMembers">
+          <div class="members-head">
+            <div>
+              <h2>Membres</h2>
+              <div class="muted small">Coordonnées, accès personnel et appareils associés.</div>
+            </div>
+            <span class="pill" id="memberCount"></span>
+          </div>
+
+          <div class="member-add-panel">
+            <div class="member-add-title">Ajouter un membre</div>
+            <form id="addMember" class="member-add-form">
+              <div class="field">
+                <label for="newName">Nom</label>
+                <input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom">
+              </div>
+              <div class="field member-add-email">
+                <label for="newEmail">Email</label>
+                <input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr">
+              </div>
+              <button class="btn primary" type="submit">Créer</button>
+            </form>
+          </div>
+
+          <div class="secret-box hidden" id="newLinkBox">
+            <strong>Nouveau lien personnel</strong>
+            <div id="newLink" class="small link-line"></div>
+            <div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div>
+          </div>
+
+          <div class="members-table-wrap">
+            <table class="members-table">
+              <thead>
+                <tr>
+                  <th>Membre</th>
+                  <th>Email</th>
+                  <th>Statut</th>
+                  <th>Appareils</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="membersTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
 
     
@@ -3864,46 +4251,72 @@ function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const 
 function renderMembers(){
   const body=q('#membersTable');
   body.innerHTML='';
+
   for(const m of sortMembersAlpha(adminData.membersAdmin)){
-    const tr=document.createElement('tr'),
-      nameTd=document.createElement('td'),
-      emailTd=document.createElement('td'),
-      stateTd=document.createElement('td'),
-      actTd=document.createElement('td');
+    const tr=document.createElement('tr');
+    tr.dataset.memberId=m.id;
 
-    const input=document.createElement('input');
-    input.className='member-name-input';
-    input.value=m.name;
-    input.maxLength=80;
-    input.addEventListener('change',()=>renameMember(m.id,input.value,input));
-    nameTd.append(input);
+    const nameTd=document.createElement('td');
+    const name=document.createElement('div');
+    name.className='member-display-name';
+    name.textContent=m.name;
+    name.title=m.name;
+    nameTd.append(name);
 
-    const email=document.createElement('input');
-    email.className='member-email-input';
-    email.type='email';
-    email.value=m.email||'';
-    email.maxLength=254;
-    email.autocomplete='off';
-    email.addEventListener('change',()=>updateMemberEmail(m.id,email.value,email));
+    const emailTd=document.createElement('td');
+    const email=document.createElement('a');
+    email.className='member-display-email';
+    email.textContent=m.email||'—';
+    email.title=m.email||'';
+    if(m.email)email.href=`mailto:${m.email}`;
     emailTd.append(email);
 
-    const state=document.createElement('div');
+    const stateTd=document.createElement('td');
+    const state=document.createElement('span');
+    state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
     stateTd.append(state);
-    const devices=document.createElement('div');
-    devices.className='device-info';
-    const n=Number(m.deviceCount||0);
-    devices.textContent=n?`${n} appareil${n>1?'s':''} connecté${n>1?'s':''}${m.latestDeviceAt?' · dernier : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt)):''}`:'Aucun appareil connecté';
-    stateTd.append(devices);
 
+    const devicesTd=document.createElement('td');
+    devicesTd.className='member-device-cell';
+    const n=Number(m.deviceCount||0);
+    const deviceLine=document.createElement('div');
+    deviceLine.className='member-device-primary';
+    const dot=document.createElement('span');
+    dot.className='member-device-dot'+(n?' connected':'');
+    const deviceText=document.createElement('span');
+    deviceText.textContent=n?`${n} appareil${n>1?'s':''}`:'Aucun appareil';
+    deviceLine.append(dot,deviceText);
+    devicesTd.append(deviceLine);
+    if(n&&m.latestDeviceAt){
+      const last=document.createElement('div');
+      last.className='member-device-secondary';
+      last.textContent='Dernière connexion : '+new Intl.DateTimeFormat('fr-FR',{
+        dateStyle:'short',
+        timeStyle:'short',
+        timeZone:'Europe/Paris'
+      }).format(new Date(m.latestDeviceAt));
+      devicesTd.append(last)
+    }
+
+    const actTd=document.createElement('td');
     const box=document.createElement('div');
     box.className='member-action-wrap';
+
     if(m.active){
       const rot=document.createElement('button');
-      rot.className='btn primary';
+      rot.type='button';
+      rot.className='btn primary member-link-btn';
       rot.textContent='Nouveau lien';
       rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));
       box.append(rot);
+
+      const edit=document.createElement('button');
+      edit.type='button';
+      edit.className='btn member-edit-btn';
+      edit.textContent='Modifier';
+      edit.addEventListener('click',()=>openMemberEditor(m.id));
+      box.append(edit);
 
       const menu=document.createElement('details');
       menu.className='member-menu';
@@ -3913,31 +4326,48 @@ function renderMembers(){
       summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);
       const panel=document.createElement('div');
       panel.className='member-menu-panel';
+
       if(n){
         const kick=document.createElement('button');
         kick.type='button';
         kick.className='btn';
         kick.textContent='Déconnecter les appareils';
-        kick.addEventListener('click',()=>{menu.open=false;revokeMemberDevices(m.id,m.name,n,kick)});
+        kick.addEventListener('click',()=>{
+          menu.open=false;
+          revokeMemberDevices(m.id,m.name,n,kick)
+        });
         panel.append(kick)
       }
+
       const disable=document.createElement('button');
       disable.type='button';
       disable.className='btn danger-option';
       disable.textContent='Désactiver le membre';
-      disable.addEventListener('click',()=>{menu.open=false;setMemberActive(m.id,false,m.name,disable)});
+      disable.addEventListener('click',()=>{
+        menu.open=false;
+        setMemberActive(m.id,false,m.name,disable)
+      });
       panel.append(disable);
       menu.append(summary,panel);
       box.append(menu)
     }else{
       const reactivate=document.createElement('button');
+      reactivate.type='button';
       reactivate.className='btn primary';
       reactivate.textContent='Réactiver';
       reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));
-      box.append(reactivate)
+      box.append(reactivate);
+
+      const edit=document.createElement('button');
+      edit.type='button';
+      edit.className='btn member-edit-btn';
+      edit.textContent='Modifier';
+      edit.addEventListener('click',()=>openMemberEditor(m.id));
+      box.append(edit)
     }
+
     actTd.append(box);
-    tr.append(nameTd,emailTd,stateTd,actTd);
+    tr.append(nameTd,emailTd,stateTd,devicesTd,actTd);
     body.append(tr)
   }
 }
@@ -4014,6 +4444,85 @@ async function refreshAdmin(btn=null,{silent=false}={}){
   }
 }
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
+function openMemberEditor(id){
+  const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  if(!m)return;
+  q('#memberEditId').value=m.id;
+  q('#memberEditName').value=m.name||'';
+  q('#memberEditEmail').value=m.email||'';
+  q('#memberEditContext').textContent=m.name||'';
+  const overlay=q('#memberEditOverlay');
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  setTimeout(()=>q('#memberEditName')?.focus(),0)
+}
+function closeMemberEditor(){
+  const overlay=q('#memberEditOverlay');
+  if(!overlay||overlay.classList.contains('hidden'))return;
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  if(
+    q('#confirmOverlay')?.classList.contains('hidden')&&
+    q('#adminCellOverlay')?.classList.contains('hidden')&&
+    q('#adminCorrectionOverlay')?.classList.contains('hidden')
+  )document.body.classList.remove('modal-open')
+}
+async function saveMemberEditor(btn=null){
+  const id=q('#memberEditId').value;
+  const name=q('#memberEditName').value.trim();
+  const email=q('#memberEditEmail').value.trim().toLowerCase();
+  const current=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  if(!current||!name||!email)return;
+
+  const nameChanged=name!==String(current.name||'');
+  const emailChanged=email!==String(current.email||'').toLowerCase();
+  if(!nameChanged&&!emailChanged){
+    closeMemberEditor();
+    return
+  }
+
+  setButtonBusy(btn,true,'Enregistrement…');
+  try{
+    if(LOCAL){
+      const m=localState.members.find(x=>x.id===id);
+      if(!m)return;
+      if(nameChanged){
+        m.name=name.slice(0,80);
+        audit('Administrateur','membre_renomme','',{memberId:id})
+      }
+      if(emailChanged){
+        m.email=email;
+        audit('Administrateur','email_membre_modifie','',{memberId:id})
+      }
+      saveLocal();
+      adminData=localAdminSnapshot()
+    }else{
+      if(nameChanged){
+        const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({name})
+        });
+        adminData=j.snapshot
+      }
+      if(emailChanged){
+        const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({email})
+        });
+        adminData=j.snapshot
+      }
+    }
+    closeMemberEditor();
+    renderAdmin()
+  }catch(e){
+    setNotice(q('#adminError'),e.message)
+  }finally{
+    setButtonBusy(btn,false)
+  }
+}
 async function createMember(name,email,btn=null){setButtonBusy(btn,true,'Création…');try{name=String(name).trim();email=String(email).trim().toLowerCase();if(!name||!email)return;if(LOCAL){const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,email,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 async function renameMember(id,name,input=null){if(input){input.disabled=true;input.setAttribute('aria-busy','true')}try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.name=String(name).trim().slice(0,80)||m.name;audit('Administrateur','membre_renomme','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot}renderAdmin();toast('Nom enregistré')}catch(e){setNotice(q('#adminError'),e.message)}finally{if(input){input.disabled=false;input.removeAttribute('aria-busy')}}}
 async function updateMemberEmail(id,email,input=null){
@@ -4209,6 +4718,10 @@ q('#adminNextMonth').addEventListener('click',async()=>{
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;await createMember(name,email,e.submitter);q('#newName').value='';q('#newEmail').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
+q('#memberEditClose').addEventListener('click',closeMemberEditor);
+q('#memberEditOverlay').addEventListener('click',e=>{if(e.target===q('#memberEditOverlay'))closeMemberEditor()});
+q('#memberEditForm').addEventListener('submit',e=>{e.preventDefault();saveMemberEditor(e.submitter)});
+
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
 q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
 q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
