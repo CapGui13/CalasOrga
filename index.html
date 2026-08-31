@@ -3429,12 +3429,135 @@ body{
   .members-table{min-width:820px}
 }
 
+
+/* =========================================================
+   V15.31.2 — GESTION DES MEMBRES EN FENÊTRES MODALES
+   ========================================================= */
+.member-management-panel{
+  overflow:visible !important;
+}
+.member-management-actions .btn.active{
+  background:#fff !important;
+  border-color:var(--line-strong) !important;
+  color:var(--text) !important;
+}
+.member-management-dialog{
+  width:min(560px,calc(100vw - 24px));
+}
+.member-modify-dialog{
+  width:min(760px,calc(100vw - 24px));
+}
+.member-modal-form{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.member-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:4px;
+}
+.member-modal-actions .btn{
+  min-width:150px;
+}
+.member-picker-modal{
+  margin:14px 0 16px;
+  padding:10px;
+  border:1px solid #dce4df;
+  border-radius:11px;
+  background:#f8faf9;
+  max-height:210px;
+  overflow:auto;
+}
+.member-picker-modal .btn{
+  min-width:94px;
+}
+.member-manage-edit-modal{
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.25fr) !important;
+  padding-top:14px;
+  border-top:1px solid #e1e7e3;
+}
+.member-manage-edit-modal .member-manage-edit-actions{
+  grid-column:1 / -1;
+  justify-content:flex-end;
+  margin-top:3px;
+}
+@media(max-width:620px){
+  .member-management-dialog,
+  .member-modify-dialog{
+    width:calc(100vw - 16px);
+  }
+  .member-manage-edit-modal{
+    grid-template-columns:1fr !important;
+  }
+  .member-manage-edit-modal .member-manage-edit-actions{
+    grid-column:auto;
+    flex-direction:column;
+  }
+  .member-manage-edit-modal .member-manage-edit-actions .btn{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
   <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.31 · gestion membres + liens visibles · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
+    <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
+      <div class="section-head">
+        <div>
+          <h2 id="memberCreateTitle">Créer un membre</h2>
+          <div class="muted small">Ajoutez le nom et l’adresse email du nouveau membre.</div>
+        </div>
+        <button class="btn" type="button" id="memberCreateClose">Fermer</button>
+      </div>
+      <form id="addMember" class="member-modal-form">
+        <div class="field">
+          <label for="newName">Nom</label>
+          <input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom">
+        </div>
+        <div class="field">
+          <label for="newEmail">Email</label>
+          <input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr">
+        </div>
+        <div class="member-modal-actions">
+          <button class="btn primary" type="submit">Créer le membre</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="memberModifyPanel" class="confirm-overlay hidden" aria-hidden="true">
+    <div class="confirm-dialog member-management-dialog member-modify-dialog" role="dialog" aria-modal="true" aria-labelledby="memberModifyTitle">
+      <div class="section-head">
+        <div>
+          <h2 id="memberModifyTitle">Modifier un membre</h2>
+          <div class="muted small">Choisissez un membre puis modifiez ses coordonnées ou renouvelez son lien.</div>
+        </div>
+        <button class="btn" type="button" id="memberModifyClose">Fermer</button>
+      </div>
+      <div class="member-picker member-picker-modal" id="memberModifyList" aria-label="Choisir un membre"></div>
+      <form id="memberManageEditForm" class="member-manage-edit-form member-manage-edit-modal hidden">
+        <input type="hidden" id="memberManageEditId">
+        <div class="field">
+          <label for="memberManageEditName">Nom</label>
+          <input id="memberManageEditName" maxlength="80" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="memberManageEditEmail">Email</label>
+          <input id="memberManageEditEmail" type="email" maxlength="254" autocomplete="email" required>
+        </div>
+        <div class="member-manage-edit-actions">
+          <button class="btn primary" type="submit">Enregistrer</button>
+          <button class="btn" type="button" id="memberManageRotateLink">Renouveler le lien</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
       <div class="section-head">
@@ -3596,39 +3719,6 @@ body{
                 <button class="btn" type="button" id="memberManageCreate">Créer</button>
                 <button class="btn" type="button" id="memberManageModify">Modifier</button>
               </div>
-            </div>
-
-            <div class="member-management-body hidden" id="memberCreatePanel">
-              <form id="addMember" class="member-add-form">
-                <div class="field">
-                  <label for="newName">Nom</label>
-                  <input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom">
-                </div>
-                <div class="field member-add-email">
-                  <label for="newEmail">Email</label>
-                  <input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr">
-                </div>
-                <button class="btn primary" type="submit">Créer le membre</button>
-              </form>
-            </div>
-
-            <div class="member-management-body hidden" id="memberModifyPanel">
-              <div class="member-picker" id="memberModifyList" aria-label="Choisir un membre"></div>
-              <form id="memberManageEditForm" class="member-manage-edit-form hidden">
-                <input type="hidden" id="memberManageEditId">
-                <div class="field">
-                  <label for="memberManageEditName">Nom</label>
-                  <input id="memberManageEditName" maxlength="80" autocomplete="off" required>
-                </div>
-                <div class="field">
-                  <label for="memberManageEditEmail">Email</label>
-                  <input id="memberManageEditEmail" type="email" maxlength="254" autocomplete="email" required>
-                </div>
-                <div class="member-manage-edit-actions">
-                  <button class="btn primary" type="submit">Enregistrer</button>
-                  <button class="btn" type="button" id="memberManageRotateLink">Renouveler le lien</button>
-                </div>
-              </form>
             </div>
           </div>
 
@@ -4706,14 +4796,39 @@ async function refreshAdmin(btn=null,{silent=false}={}){
 }
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
 let memberManagementMode='',memberManagementSelectedId='';
+function closeMemberManagement(){
+  memberManagementMode='';
+  for(const id of ['memberCreatePanel','memberModifyPanel']){
+    const overlay=q('#'+id);
+    if(!overlay)continue;
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden','true')
+  }
+  if(
+    q('#confirmOverlay')?.classList.contains('hidden')&&
+    q('#memberEditOverlay')?.classList.contains('hidden')&&
+    q('#adminCellOverlay')?.classList.contains('hidden')&&
+    q('#adminCorrectionOverlay')?.classList.contains('hidden')
+  )document.body.classList.remove('modal-open')
+}
 function setMemberManagementMode(mode){
+  closeMemberManagement();
+  if(!['create','modify'].includes(mode))return;
   memberManagementMode=mode;
-  q('#memberCreatePanel').classList.toggle('hidden',mode!=='create');
-  q('#memberModifyPanel').classList.toggle('hidden',mode!=='modify');
-  q('#memberManageCreate').classList.toggle('active',mode==='create');
-  q('#memberManageModify').classList.toggle('active',mode==='modify');
-  if(mode==='modify')renderMemberManagementList();
-  if(mode==='create')setTimeout(()=>q('#newName')?.focus(),0)
+  const overlay=q(mode==='create'?'#memberCreatePanel':'#memberModifyPanel');
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  if(mode==='modify'){
+    memberManagementSelectedId='';
+    q('#memberManageEditForm')?.classList.add('hidden');
+    renderMemberManagementList();
+    setTimeout(()=>q('#memberModifyList .btn')?.focus(),0)
+  }else{
+    q('#newName').value='';
+    q('#newEmail').value='';
+    setTimeout(()=>q('#newName')?.focus(),0)
+  }
 }
 function renderMemberManagementList(){
   const box=q('#memberModifyList');
@@ -4848,7 +4963,7 @@ async function saveMemberEditor(btn=null){
     setButtonBusy(btn,false)
   }
 }
-async function createMember(name,email,btn=null){setButtonBusy(btn,true,'Création…');try{name=String(name).trim();email=String(email).trim().toLowerCase();if(!name||!email)return;if(LOCAL){const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,email,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
+async function createMember(name,email,btn=null){setButtonBusy(btn,true,'Création…');try{name=String(name).trim();email=String(email).trim().toLowerCase();if(!name||!email)return false;if(LOCAL){const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,email,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé');return true}catch(e){setNotice(q('#adminError'),e.message);return false}finally{setButtonBusy(btn,false)}}
 async function renameMember(id,name,input=null){if(input){input.disabled=true;input.setAttribute('aria-busy','true')}try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.name=String(name).trim().slice(0,80)||m.name;audit('Administrateur','membre_renomme','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot}renderAdmin();toast('Nom enregistré')}catch(e){setNotice(q('#adminError'),e.message)}finally{if(input){input.disabled=false;input.removeAttribute('aria-busy')}}}
 async function updateMemberEmail(id,email,input=null){
   if(input){input.disabled=true;input.setAttribute('aria-busy','true')}
@@ -5092,9 +5207,13 @@ q('#adminNextMonth').addEventListener('click',async()=>{
   })
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
-q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;await createMember(name,email,e.submitter);q('#newName').value='';q('#newEmail').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
-q('#memberManageCreate').addEventListener('click',()=>setMemberManagementMode(memberManagementMode==='create'?'':'create'));
-q('#memberManageModify').addEventListener('click',()=>setMemberManagementMode(memberManagementMode==='modify'?'':'modify'));
+q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;const ok=await createMember(name,email,e.submitter);if(ok){q('#newName').value='';q('#newEmail').value='';closeMemberManagement()}});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
+q('#memberManageCreate').addEventListener('click',()=>setMemberManagementMode('create'));
+q('#memberManageModify').addEventListener('click',()=>setMemberManagementMode('modify'));
+q('#memberCreateClose').addEventListener('click',closeMemberManagement);
+q('#memberModifyClose').addEventListener('click',closeMemberManagement);
+q('#memberCreatePanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberManagement()});
+q('#memberModifyPanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberManagement()});
 q('#memberManageEditForm').addEventListener('submit',e=>{e.preventDefault();saveManagedMember(e.submitter)});
 q('#memberManageRotateLink').addEventListener('click',()=>{const id=q('#memberManageEditId').value,m=(adminData?.membersAdmin||[]).find(x=>x.id===id);if(m)rotateMember(m.id,m.name,q('#memberManageRotateLink'))});
 
@@ -5107,7 +5226,7 @@ q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCe
 q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
 q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
 q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
-q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
+q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#memberCreatePanel')?.classList.contains('hidden')||!q('#memberModifyPanel')?.classList.contains('hidden')){closeMemberManagement();return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
   e.preventDefault();
   microAdminPageTransition(tab.dataset.adminPage,{push:true})
