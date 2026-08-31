@@ -4937,11 +4937,308 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.43 — TABLETTE / MOBILE / TACTILE
+   ========================================================= */
+
+@media (hover:none), (pointer:coarse){
+  button,.btn,.icon-btn,.member-state-pill,.member-link-refresh,.member-link-action,.day-assignment-remove{
+    min-width:44px;
+    min-height:44px;
+  }
+  .admin-role-editable{cursor:pointer!important}
+  .admin-mobile-role{cursor:pointer!important}
+  .day-member-grip{display:none!important}
+  .day-member-source-item.touch-selectable{
+    cursor:pointer!important;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  .day-member-source-item.touch-selected{
+    background:#dff1e6!important;
+    box-shadow:inset 0 0 0 2px #4c9368!important;
+    color:#153d27!important;
+  }
+  .day-editor-columns.touch-member-selected .day-role-dropzone{
+    box-shadow:inset 0 0 0 2px rgba(33,108,74,.18);
+    cursor:pointer;
+  }
+  .day-editor-columns.touch-member-selected .day-role-dropzone:active{
+    box-shadow:inset 0 0 0 3px rgba(33,108,74,.32);
+  }
+}
+
+@media(max-width:980px){
+  #memberRoot .member-schedule-wrap,
+  #adminRoot .admin-schedule-wrap{display:none!important}
+  #memberRoot .member-schedule-mobile,
+  #adminRoot .admin-schedule-mobile{display:block!important}
+
+  .shell{
+    width:100%;
+    max-width:none;
+    padding:14px 14px 40px!important;
+  }
+  #memberRoot > .topbar,
+  #adminRoot > .topbar{
+    width:100%!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    text-align:left!important;
+    gap:14px!important;
+  }
+  #memberRoot > .topbar .top-actions,
+  #adminRoot > .topbar .top-actions{
+    width:auto!important;
+    margin-left:auto!important;
+    align-items:flex-end!important;
+  }
+  #memberRoot #memberExit,
+  #memberRoot #memberToAdmin,
+  #adminRoot #adminExit,
+  #adminRoot #adminToMember{
+    width:auto!important;
+    align-self:auto!important;
+  }
+
+  .member-calendar-card,.admin-calendar-card{
+    width:100%!important;
+    padding:16px!important;
+  }
+  .monthnav,.admin-monthnav{
+    width:min(520px,100%)!important;
+    display:grid!important;
+    grid-template-columns:48px minmax(0,1fr) 48px!important;
+    gap:8px!important;
+  }
+  .monthnav .icon-btn,.admin-monthnav .icon-btn{
+    width:48px!important;height:48px!important;min-height:48px!important;
+  }
+  .monthlabel{min-width:0!important;font-size:18px!important}
+
+  .mobile-date-card{padding:14px!important;border-radius:15px!important}
+  .mobile-date-title{font-size:16px}
+  .mobile-role-button{
+    min-height:56px!important;
+    grid-template-columns:96px minmax(0,1fr)!important;
+    padding:9px 11px!important;
+    border-radius:11px!important;
+    touch-action:manipulation;
+  }
+  .mobile-role-label{font-size:12px!important}
+  .mobile-role-value{min-width:0}
+  .admin-mobile-role:not(:disabled){cursor:pointer!important}
+  .admin-mobile-role:not(:disabled):active,
+  .member-mobile-role:not(:disabled):active{
+    transform:scale(.995);
+    background:rgba(255,255,255,.45)!important;
+  }
+
+  .admin-tabs{
+    width:100%!important;
+    max-width:720px!important;
+    margin-bottom:16px!important;
+  }
+  .admin-tabs a{
+    min-width:0!important;
+    flex:1 1 0!important;
+    min-height:44px!important;
+    padding:10px 8px!important;
+  }
+
+  #adminCorrectionOverlay{
+    padding:10px!important;
+    align-items:start!important;
+    overflow:auto!important;
+  }
+  #adminCorrectionOverlay .admin-correction-dialog{
+    width:100%!important;
+    max-width:900px!important;
+    max-height:none!important;
+    min-height:0!important;
+    padding:16px!important;
+    margin:auto!important;
+  }
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:minmax(170px,.85fr) minmax(180px,1.15fr)!important;
+    align-items:start!important;
+  }
+  #adminCorrectionOverlay .day-column-members{grid-row:span 5}
+  #adminCorrectionOverlay .day-column-role{
+    height:auto!important;min-height:0!important;max-height:none!important;border-radius:0!important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    min-height:88px!important;height:88px!important;max-height:88px!important;flex:0 0 88px!important;
+  }
+  #adminCorrectionOverlay .day-member-source-item{min-height:48px!important;padding:9px 10px!important}
+  #adminCorrectionOverlay .day-assignment-remove{
+    width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;
+  }
+}
+
+@media(max-width:720px){
+  html,body{overflow-x:hidden}
+  .shell{padding:10px 9px max(30px,env(safe-area-inset-bottom))!important}
+
+  #memberRoot > .topbar,
+  #adminRoot > .topbar{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    justify-items:center!important;
+    text-align:center!important;
+    gap:10px!important;
+    margin-bottom:14px!important;
+  }
+  #memberRoot > .topbar .top-actions,
+  #adminRoot > .topbar .top-actions{
+    width:100%!important;
+    margin:0!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+    align-items:stretch!important;
+  }
+  #memberRoot #memberExit,#memberRoot #memberToAdmin,
+  #adminRoot #adminExit,#adminRoot #adminToMember{
+    width:100%!important;min-height:46px!important;
+  }
+  #adminSaveState,#memberSaveState{grid-column:1/-1;justify-self:center}
+  .brand{font-size:23px!important}
+
+  .member-calendar-card,.admin-calendar-card,
+  .admin-members-page > #adminMembers,.admin-history-page > #adminHistory{
+    padding:12px!important;border-radius:15px!important;
+  }
+  #adminCalendarTitle,#adminMembers h2,#adminHistory h2{font-size:21px!important}
+
+  .monthnav,.admin-monthnav{margin:10px 0 13px!important}
+  .monthlabel{font-size:16px!important}
+  .mobile-date-card{padding:12px!important}
+  .mobile-role-button{
+    grid-template-columns:84px minmax(0,1fr)!important;
+    min-height:58px!important;
+    padding:9px!important;
+  }
+
+  .member-management-actions-main{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  .member-management-actions-main .btn{
+    width:100%!important;padding-left:8px!important;padding-right:8px!important;
+  }
+
+  #adminMembers .members-table-wrap{
+    overflow:visible!important;border:0!important;border-radius:0!important;
+  }
+  #adminMembers .members-table,
+  #adminMembers .members-table tbody,
+  #adminMembers .members-table tr,
+  #adminMembers .members-table td{
+    display:block!important;width:100%!important;
+  }
+  #adminMembers .members-table thead{display:none!important}
+  #adminMembers .members-table tr{
+    margin:0 0 10px!important;padding:4px 10px!important;
+    border:1px solid var(--admin-grid-line)!important;border-radius:14px!important;
+    background:#fff!important;box-shadow:0 1px 2px rgba(20,35,27,.04);
+  }
+  #adminMembers .members-table td{
+    display:grid!important;
+    grid-template-columns:82px minmax(0,1fr)!important;
+    gap:9px!important;align-items:center!important;
+    padding:9px 0!important;border-right:0!important;
+    border-bottom:1px solid #e4eae6!important;min-width:0!important;
+  }
+  #adminMembers .members-table td:last-child{border-bottom:0!important}
+  #adminMembers .members-table td::before{
+    color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.035em;
+  }
+  #adminMembers .members-table td:nth-child(1)::before{content:"Membre"}
+  #adminMembers .members-table td:nth-child(2)::before{content:"Email"}
+  #adminMembers .members-table td:nth-child(3)::before{content:"Statut"}
+  #adminMembers .members-table td:nth-child(4)::before{content:"Appareils"}
+  #adminMembers .members-table td:nth-child(5)::before{content:"Lien"}
+
+  .member-display-email,.member-current-link{overflow-wrap:anywhere!important;word-break:break-word!important}
+  .member-link-row{
+    display:grid!important;
+    grid-template-columns:44px minmax(0,1fr) auto!important;
+    gap:6px!important;width:100%!important;
+  }
+  .member-link-refresh,.member-link-action{
+    width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:10px!important;
+  }
+  .member-link-actions{gap:5px!important}
+  .member-state-pill{min-height:40px!important;padding:7px 10px!important}
+
+  #adminHistory .table-wrap{overflow:visible!important}
+  #adminHistory .table,#adminHistory .table tbody,#adminHistory .table tr,#adminHistory .table td{
+    display:block!important;width:100%!important;
+  }
+  #adminHistory .table thead{display:none!important}
+  #adminHistory .table tr{
+    margin-bottom:9px;padding:4px 10px;border:1px solid var(--admin-grid-line);border-radius:13px;background:#fff;
+  }
+  #adminHistory .table td{
+    display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:8px;
+    padding:8px 0!important;border-bottom:1px solid #e5ebe7!important;
+  }
+  #adminHistory .table td:last-child{border-bottom:0!important}
+  #adminHistory .table td::before{color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
+  #adminHistory .table td:nth-child(1)::before{content:"Quand"}
+  #adminHistory .table td:nth-child(2)::before{content:"Acteur"}
+  #adminHistory .table td:nth-child(3)::before{content:"Action"}
+  #adminHistory .table td:nth-child(4)::before{content:"Date"}
+
+  .confirm-overlay{
+    padding:8px!important;align-items:start!important;overflow:auto!important;
+  }
+  .confirm-dialog{
+    width:100%!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;
+    overflow:auto!important;padding:16px!important;border-radius:16px!important;margin:auto!important;
+  }
+  .confirm-actions{position:sticky;bottom:0;padding-top:10px;background:#fff}
+  .confirm-actions .btn{min-height:46px}
+
+  #adminCorrectionOverlay .day-editor-columns{grid-template-columns:1fr!important}
+  #adminCorrectionOverlay .day-column-members{
+    grid-row:auto!important;max-height:255px!important;overflow:hidden!important;border-radius:14px!important;
+  }
+  #adminCorrectionOverlay .day-member-pool-column{
+    max-height:210px!important;overflow:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  #adminCorrectionOverlay .day-column-role,
+  #adminCorrectionOverlay .day-column-role:last-child{
+    border-radius:14px!important;margin-top:8px!important;border-left:1px solid #c5d0ca!important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    height:72px!important;min-height:72px!important;max-height:96px!important;flex-basis:72px!important;
+  }
+  #adminCorrectionOverlay .day-editor-date{font-size:16px!important;margin-bottom:10px!important}
+
+  .single-choice-item,.member-manage-person{min-height:48px!important}
+  #memberError,#adminSaveState,#memberSaveState{max-width:calc(100vw - 18px)!important}
+}
+
+@media(max-width:420px){
+  .admin-tabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}
+  .admin-tabs::-webkit-scrollbar{display:none}
+  .admin-tabs a{flex:0 0 auto!important;min-width:110px!important}
+  .member-management-actions-main{grid-template-columns:1fr!important}
+  #adminMembers .members-table td{grid-template-columns:70px minmax(0,1fr)!important}
+  .member-link-row{grid-template-columns:44px minmax(0,1fr)!important}
+  .member-link-actions{grid-column:1/-1;justify-self:end}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.9 · titre membre bonjour dynamique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.43 · tablette mobile tactile optimisé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -5308,6 +5605,11 @@ function sortNamesAlpha(names){
 }
 
 const q = (s) => document.querySelector(s);
+function isTouchUi(){
+  return window.matchMedia?.('(hover: none) and (pointer: coarse)').matches===true
+    || window.matchMedia?.('(any-pointer: coarse) and (max-width: 1024px)').matches===true
+}
+
 const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
@@ -6349,6 +6651,7 @@ function fillSingleChoiceList(container,currentIds,members,onChoose){
 }
 
 let dayEditorDraft=null;
+let dayEditorTouchSelectedId='';
 
 function dayEditorActiveMembers(){
   return sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active))
@@ -6373,12 +6676,26 @@ function dayEditorMemberStatus(id){
   return labels.join(' · ')
 }
 function makeDayMemberDraggable(el,id){
-  el.draggable=true;
-  el.dataset.memberId=String(id);
+  const memberId=String(id);
+  el.dataset.memberId=memberId;
   el.tabIndex=0;
+
+  if(isTouchUi()){
+    el.draggable=false;
+    el.classList.add('touch-selectable');
+    el.setAttribute('role','button');
+    el.setAttribute('aria-pressed',dayEditorTouchSelectedId===memberId?'true':'false');
+    el.addEventListener('click',()=>{
+      dayEditorTouchSelectedId=dayEditorTouchSelectedId===memberId?'':memberId;
+      renderDayEditorDraft()
+    });
+    return
+  }
+
+  el.draggable=true;
   el.addEventListener('dragstart',e=>{
     e.dataTransfer.effectAllowed='copy';
-    e.dataTransfer.setData('text/plain',String(id));
+    e.dataTransfer.setData('text/plain',memberId);
     document.body.classList.add('day-dragging');
     requestAnimationFrame(()=>el.classList.add('is-dragging'))
   });
@@ -6421,7 +6738,22 @@ function dayEditorRemove(role,memberId=''){
   dayEditorSetWarning('');
   renderDayEditorDraft()
 }
+function dayEditorTouchAssign(role){
+  if(!isTouchUi()||!dayEditorTouchSelectedId)return;
+  const id=dayEditorTouchSelectedId;
+  dayEditorTouchSelectedId='';
+  if(!dayEditorAssign(id,role)){
+    dayEditorTouchSelectedId=id;
+    renderDayEditorDraft()
+  }
+}
+
 function dayEditorWireDropzone(zone,role){
+  zone.onclick=e=>{
+    if(!isTouchUi()||!dayEditorTouchSelectedId)return;
+    if(e.target.closest('.day-assignment-remove'))return;
+    dayEditorTouchAssign(role)
+  };
   zone.ondragenter=e=>{e.preventDefault();zone.classList.add('drag-over')};
   zone.ondragover=e=>{
     e.preventDefault();
@@ -6453,13 +6785,14 @@ function syncDayEditorCompletionVisual(){
 function renderDayEditorDraft(){
   if(!dayEditorDraft)return;
   syncDayEditorCompletionVisual();
+  q('.day-editor-columns')?.classList.toggle('touch-member-selected',isTouchUi()&&!!dayEditorTouchSelectedId);
   const members=dayEditorActiveMembers();
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
 
   for(const m of members){
     const item=document.createElement('div');
-    item.className='day-member-source-item';
+    item.className='day-member-source-item'+(isTouchUi()&&dayEditorTouchSelectedId===String(m.id)?' touch-selected':'');
 
     const grip=document.createElement('span');
     grip.className='day-member-grip';
@@ -6474,7 +6807,9 @@ function renderDayEditorDraft(){
 
     text.append(name);
     item.append(grip,text);
-    item.title=statusText?`${m.name} · ${statusText}`:`Glisser ${m.name}`;
+    item.title=isTouchUi()
+      ?(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · touchez une case de rôle`:`Touchez ${m.name} puis une case de rôle`)
+      :(statusText?`${m.name} · ${statusText}`:`Glisser ${m.name}`);
     makeDayMemberDraggable(item,m.id);
     pool.append(item)
   }
@@ -6539,6 +6874,7 @@ function renderDayEditorDraft(){
   }
 }
 function populateDayEditor(date){
+  dayEditorTouchSelectedId='';
   const assignments=adminData.assignments?.[date]||{};
   const roles=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[
     role,
@@ -6582,6 +6918,7 @@ function openAdminCorrection(date){
   setTimeout(()=>q('#dayMemberPool .day-member-source-item')?.focus(),0)
 }
 function closeAdminCorrection(){
+  dayEditorTouchSelectedId='';
   const overlay=q('#adminCorrectionOverlay');
   if(!overlay||overlay.classList.contains('hidden'))return;
   overlay.classList.add('hidden');
@@ -6873,8 +7210,19 @@ function renderAdminCalendar(){
       if(open){
         td.classList.add('admin-role-editable');
         td.tabIndex=0;
-        td.title=`Double-cliquez pour modifier ${ROLE_LABELS[role]} · vous pouvez aussi y déposer un nom`;
-        td.addEventListener('dblclick',()=>openAdminCellEditor(date,role));
+        td.title=isTouchUi()
+          ?`Touchez pour modifier ${ROLE_LABELS[role]}`
+          :`Double-cliquez pour modifier ${ROLE_LABELS[role]} · vous pouvez aussi y déposer un nom`;
+        td.addEventListener('click',e=>{
+          if(!isTouchUi()||adminDragPayload)return;
+          if(e.target.closest('button,a,input,select,textarea'))return;
+          openAdminCellEditor(date,role)
+        });
+        td.addEventListener('dblclick',e=>{
+          if(isTouchUi())return;
+          e.preventDefault();
+          openAdminCellEditor(date,role)
+        });
         td.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openAdminCellEditor(date,role)}});
         td.addEventListener('dragover',e=>{
           if(!adminDragPayload)return;
@@ -6927,7 +7275,12 @@ function renderAdminCalendar(){
 
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS){
-      const line=document.createElement('div');line.className='mobile-role-button admin-mobile-role';
+      const line=document.createElement('button');
+      line.type='button';
+      line.className='mobile-role-button admin-mobile-role';
+      line.disabled=!open;
+      line.title=open?`Modifier ${ROLE_LABELS[role]}`:'Fermé';
+      if(open)line.addEventListener('click',()=>openAdminCellEditor(date,role));
       const lab=document.createElement('span');lab.className='mobile-role-label';lab.textContent=ROLE_LABELS[role];
       const val=document.createElement('span');val.className='mobile-role-value';
       if(!open){
@@ -7065,9 +7418,17 @@ function renderMembers(){
     state.type='button';
     state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
-    state.title=`Double-cliquez pour ${m.active?'désactiver':'activer'} ${m.name}`;
+    state.title=isTouchUi()
+      ?`Touchez pour ${m.active?'désactiver':'activer'} ${m.name}`
+      :`Double-cliquez pour ${m.active?'désactiver':'activer'} ${m.name}`;
     state.setAttribute('aria-label',state.title);
+    state.addEventListener('click',e=>{
+      if(!isTouchUi())return;
+      e.preventDefault();
+      toggleMemberActiveDirect(m.id,!m.active,m.name,state)
+    });
     state.addEventListener('dblclick',e=>{
+      if(isTouchUi())return;
       e.preventDefault();
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
