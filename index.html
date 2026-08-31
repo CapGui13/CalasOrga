@@ -3835,7 +3835,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.3 · affichage membres/appareils ajusté · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.4 · onglets sans saut + libellés admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4000,8 +4000,8 @@ body{
       </div>
       <div class="top-actions">
         <span class="admin-save-state hidden" id="adminSaveState" role="status" aria-live="polite"></span>
-        <button class="btn primary hidden" type="button" id="adminToMember">Vue membre</button>
-        <button class="btn" type="button" id="adminExit">Quitter l’administration</button>
+        <button class="btn primary hidden" type="button" id="adminToMember">Affichage membre</button>
+        <button class="btn" type="button" id="adminExit">Déconnexion</button>
       </div>
     </header>
     <div class="notice error hidden" id="adminError" aria-live="polite"></div>
@@ -4256,21 +4256,31 @@ function adminPageSurface(page){
   const view=document.querySelector(`[data-admin-view="${page}"]`);
   return view?.querySelector('section.card')||view?.firstElementChild||view
 }
-async function microAdminPageTransition(page,{push=false,scroll=true}={}){
+async function microAdminPageTransition(page,{push=false,scroll=false}={}){
   if(!['calendar','members','history'].includes(page))page='calendar';
+  const preservedScrollY=window.scrollY;
+
+  const restoreAdminScroll=()=>{
+    if(scroll)return;
+    window.scrollTo({top:preservedScrollY,behavior:'instant'})
+  };
+
   if(page===currentAdminPage){
-    showAdminPage(page,{push,scroll});
+    showAdminPage(page,{push,scroll:false});
+    restoreAdminScroll();
     return
   }
   if(uiTransitionBusy)return;
   if(motionReduced()){
-    showAdminPage(page,{push,scroll});
+    showAdminPage(page,{push,scroll:false});
+    restoreAdminScroll();
     return
   }
 
   const fromSurface=adminPageSurface(currentAdminPage);
   if(!fromSurface){
-    showAdminPage(page,{push,scroll});
+    showAdminPage(page,{push,scroll:false});
+    restoreAdminScroll();
     return
   }
 
@@ -4282,7 +4292,9 @@ async function microAdminPageTransition(page,{push=false,scroll=true}={}){
     );
     await animFinished(out);
 
-    showAdminPage(page,{push,scroll});
+    showAdminPage(page,{push,scroll:false});
+    restoreAdminScroll();
+
     const toSurface=adminPageSurface(page);
     if(!toSurface){
       try{out.cancel()}catch{}
@@ -4292,6 +4304,7 @@ async function microAdminPageTransition(page,{push=false,scroll=true}={}){
     toSurface.style.opacity='.06';
     try{out.cancel()}catch{}
     await new Promise(requestAnimationFrame);
+    restoreAdminScroll();
 
     const inn=toSurface.animate(
       [{opacity:.06},{opacity:1}],
@@ -4299,7 +4312,8 @@ async function microAdminPageTransition(page,{push=false,scroll=true}={}){
     );
     await animFinished(inn);
     try{inn.cancel()}catch{}
-    toSurface.style.removeProperty('opacity')
+    toSurface.style.removeProperty('opacity');
+    restoreAdminScroll()
   }finally{
     uiTransitionBusy=false
   }
@@ -5736,10 +5750,10 @@ q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`plan
 q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#memberCreatePanel')?.classList.contains('hidden')||!q('#memberModifyPanel')?.classList.contains('hidden')){closeMemberManagement();return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
   e.preventDefault();
-  microAdminPageTransition(tab.dataset.adminPage,{push:true})
+  microAdminPageTransition(tab.dataset.adminPage,{push:true,scroll:false})
 });
 window.addEventListener('popstate',()=>{
-  if(!q('#adminRoot').classList.contains('hidden'))microAdminPageTransition(adminPageFromPath(location.pathname),{push:false})
+  if(!q('#adminRoot').classList.contains('hidden'))microAdminPageTransition(adminPageFromPath(location.pathname),{push:false,scroll:false})
 });
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
 q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
