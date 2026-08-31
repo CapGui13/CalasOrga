@@ -2756,7 +2756,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.41.1-member-role-lock-vercel';
+const APP_VERSION = '0.15.41.2-fast-admin-switch-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3040,16 +3040,68 @@ export async function requestHandler(req, res) {
     if (pathname === '/api/session/admin-from-member' && req.method === 'POST') {
       const m = sessionMember(req);
       if (!m.member) return json(res, 401, { error: 'Session membre invalide.' });
-      if (!sameOriginCsrfOk(req, m.cookies, 'club_member_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
-      if (limited(`member-admin-switch:${m.member.id}`, 20, 60_000)) return json(res, 429, { error: 'Trop de bascules en peu de temps.' });
+      if (!sameOriginCsrfOk(req, m.cookies, 'club_member_csrf')) {
+        return json(res, 403, { error: 'Protection de session invalide.' });
+      }
+      if (m.member.adminPrivilege !== true) {
+        return json(res, 403, { error: 'Privilèges administrateur requis.' });
+      }
+
+      /* Si ce navigateur possède déjà une session admin issue du même
+         membre, ne rien réécrire dans Blob : on réutilise la session et on
+         renvoie directement les données du panneau. */
+      const existingAdminRaw = m.cookies.club_admin || '';
+      const existingContext = existingAdminRaw
+        ? store.adminSessionContext(existingAdminRaw, adminCredentialTag)
+        : null;
+
+      if (
+        existingContext?.fromMember === true &&
+        existingContext.memberId === m.member.id
+      ) {
+        return json(res, 200, {
+          ...store.adminSnapshot(),
+          adminContext: existingContext,
+          sessionReused: true
+        });
+      }
+
+      /* L'utilisateur est déjà authentifié comme membre admin : cette limite
+         protège seulement contre une boucle accidentelle, pas contre un brute force. */
+      if (limited(`member-admin-switch:${m.member.id}`, 120, 60_000)) {
+        return json(res, 429, { error: 'Trop de bascules en peu de temps.' });
+      }
+
       const session = await store.createAdminSession(60 * 60 * 8, adminCredentialTag, m.member.id);
-      if (!session.ok) return json(res, session.status || 403, { error: session.error || 'Privilèges administrateur requis.' });
+      if (!session.ok) {
+        return json(res, session.status || 403, {
+          error: session.error || 'Privilèges administrateur requis.'
+        });
+      }
+
+      const adminContext = {
+        fromMember: true,
+        memberId: m.member.id,
+        name: m.member.displayName
+      };
       const csrf = csrfCookie('club_admin_csrf', secure, 60 * 60 * 8);
+
+      /* Une seule réponse fournit à la fois les cookies de session et
+         l'intégralité du snapshot admin : aucun GET /api/admin supplémentaire. */
       return json(
         res,
         200,
-        { ok: true, sourceMember: session.sourceMember },
-        { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] }
+        {
+          ...store.adminSnapshot(),
+          adminContext,
+          sessionReused: false
+        },
+        {
+          'Set-Cookie': [
+            cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }),
+            csrf.header
+          ]
+        }
       );
     }
 

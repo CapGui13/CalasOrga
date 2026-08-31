@@ -4587,7 +4587,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41 · parité UI UX membre administration · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.2 · bascule membre admin rapide et fiable · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4961,6 +4961,7 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', memberCalendarMode = 'auto', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let memberToAdminSwitchPromise=null;
 let memberStatusBatchTimer=0,memberStatusBatchInFlight=false,memberStatusSaveOpen=false,memberStatusCycleOk=true;
 let memberSaveTimer=0;
 const memberStatusPending=new Map();
@@ -6649,26 +6650,77 @@ async function refreshAdmin(btn=null,{silent=false}={}){
 }
 async function switchMemberToAdmin(btn=null){
   if(!memberData?.me?.adminPrivilege)return;
-  setButtonBusy(btn,true,'Ouverture…');
-  try{
-    if(LOCAL){
-      adminSessionContext={fromMember:true,memberId:memberData.me.id,name:memberData.me.name};
-      adminData=localAdminSnapshot();
+
+  /* Un double clic ou plusieurs commandes très rapprochées partagent
+     exactement la même bascule au lieu de lancer plusieurs sessions. */
+  if(memberToAdminSwitchPromise)return memberToAdminSwitchPromise;
+
+  const sourceMemberId=String(memberData.me.id);
+  const sourceMemberName=memberData.me.name;
+
+  const task=(async()=>{
+    setButtonBusy(btn,true,'Ouverture…');
+
+    /* Si l'admin a déjà été ouvert dans cette session navigateur,
+       afficher immédiatement le dernier état connu. La requête ci-dessous
+       valide la session et remplace ensuite ce cache par l'état frais. */
+    const canShowCachedAdmin=
+      !!adminData &&
+      adminSessionContext?.fromMember===true &&
+      String(adminSessionContext?.memberId||'')===sourceMemberId;
+
+    if(canShowCachedAdmin){
       currentAdminPage='calendar';
       history.replaceState(null,'','/admin');
       showOnly('adminRoot');
       renderAdmin();
-      return
+      markAdminActivity()
     }
-    await netApi('/api/session/admin-from-member',{method:'POST'});
-    currentAdminPage='calendar';
-    history.replaceState(null,'','/admin');
-    await enterAdmin()
-  }catch(e){
-    showMemberError(e.message)
-  }finally{
-    setButtonBusy(btn,false)
-  }
+
+    try{
+      if(LOCAL){
+        adminSessionContext={fromMember:true,memberId:sourceMemberId,name:sourceMemberName};
+        adminData=localAdminSnapshot();
+        currentAdminPage='calendar';
+        history.replaceState(null,'','/admin');
+        showOnly('adminRoot');
+        renderAdmin();
+        return
+      }
+
+      /* Un seul aller-retour : cette route crée/réutilise la session admin
+         ET renvoie directement le snapshot administrateur complet. */
+      const fresh=await netApi('/api/session/admin-from-member',{method:'POST'});
+
+      adminSessionContext=fresh.adminContext||{
+        fromMember:true,
+        memberId:sourceMemberId,
+        name:sourceMemberName
+      };
+      adminData=fresh;
+      currentAdminPage='calendar';
+      history.replaceState(null,'','/admin');
+      showOnly('adminRoot');
+      renderAdmin();
+      markAdminActivity()
+    }catch(e){
+      /* Si l'affichage optimiste du cache a déjà eu lieu mais que la
+         validation échoue, revenir proprement à la vue membre. */
+      if(canShowCachedAdmin){
+        history.replaceState(null,'','/calendar');
+        showOnly('memberRoot');
+        renderMember()
+      }
+      showMemberError(e.message)
+    }finally{
+      setButtonBusy(btn,false)
+    }
+  })();
+
+  memberToAdminSwitchPromise=task.finally(()=>{
+    memberToAdminSwitchPromise=null
+  });
+  return memberToAdminSwitchPromise
 }
 
 async function switchAdminToMember(btn=null){
