@@ -4587,7 +4587,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.3 · bascule admin membre instantanée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.4 · bascule rapide dernier clic gagnant · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4961,8 +4961,10 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', memberCalendarMode = 'auto', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
-let memberToAdminSwitchPromise=null;
-let adminToMemberSwitchPromise=null;
+let viewSwitchTarget='member';
+let viewSwitchEpoch=0;
+let adminSwitchRefreshPromise=null;
+let memberSwitchRefreshPromise=null;
 let memberStatusBatchTimer=0,memberStatusBatchInFlight=false,memberStatusSaveOpen=false,memberStatusCycleOk=true;
 let memberSaveTimer=0;
 const memberStatusPending=new Map();
@@ -6649,160 +6651,152 @@ async function refreshAdmin(btn=null,{silent=false}={}){
     setButtonBusy(btn,false)
   }
 }
+function activateCachedAdminView(){
+  currentAdminPage='calendar';
+  history.replaceState(null,'','/admin');
+  showOnly('adminRoot');
+  renderAdmin();
+  markAdminActivity()
+}
+
+function activateCachedMemberView(){
+  memberCalendarMode='auto';
+  if(!memberMonth)memberMonth=chooseInitialMonth();
+  history.replaceState(null,'','/calendar');
+  showOnly('memberRoot');
+  q('#githubAdminLink')?.classList.add('hidden');
+  renderMember()
+}
+
 async function switchMemberToAdmin(btn=null){
   if(!memberData?.me?.adminPrivilege)return;
 
-  /* Un double clic ou plusieurs commandes très rapprochées partagent
-     exactement la même bascule au lieu de lancer plusieurs sessions. */
-  if(memberToAdminSwitchPromise)return memberToAdminSwitchPromise;
-
   const sourceMemberId=String(memberData.me.id);
   const sourceMemberName=memberData.me.name;
+  const myEpoch=++viewSwitchEpoch;
+  viewSwitchTarget='admin';
 
-  const task=(async()=>{
-    setButtonBusy(btn,true,'Ouverture…');
+  const canShowCachedAdmin=
+    !!adminData &&
+    adminSessionContext?.fromMember===true &&
+    String(adminSessionContext?.memberId||'')===sourceMemberId;
 
-    /* Si l'admin a déjà été ouvert dans cette session navigateur,
-       afficher immédiatement le dernier état connu. La requête ci-dessous
-       valide la session et remplace ensuite ce cache par l'état frais. */
-    const canShowCachedAdmin=
-      !!adminData &&
-      adminSessionContext?.fromMember===true &&
-      String(adminSessionContext?.memberId||'')===sourceMemberId;
+  /* Dès qu'un cache admin existe, le clic ne met PLUS le bouton en busy :
+     la bascule est purement locale et donc réversible immédiatement. */
+  if(canShowCachedAdmin)activateCachedAdminView();
 
-    if(canShowCachedAdmin){
-      currentAdminPage='calendar';
-      history.replaceState(null,'','/admin');
-      showOnly('adminRoot');
-      renderAdmin();
-      markAdminActivity()
+  if(LOCAL){
+    adminSessionContext={fromMember:true,memberId:sourceMemberId,name:sourceMemberName};
+    adminData=localAdminSnapshot();
+    if(viewSwitchTarget==='admin'&&myEpoch===viewSwitchEpoch)activateCachedAdminView();
+    return
+  }
+
+  /* Premier accès seulement : sans cache on affiche l'état busy car il faut
+     réellement attendre le serveur avant de pouvoir construire l'admin. */
+  const firstOpen=!canShowCachedAdmin;
+  if(firstOpen)setButtonBusy(btn,true,'Ouverture…');
+
+  if(!adminSwitchRefreshPromise){
+    adminSwitchRefreshPromise=netApi('/api/session/admin-from-member',{method:'POST'})
+      .finally(()=>{adminSwitchRefreshPromise=null})
+  }
+
+  try{
+    const fresh=await adminSwitchRefreshPromise;
+    adminSessionContext=fresh.adminContext||{
+      fromMember:true,
+      memberId:sourceMemberId,
+      name:sourceMemberName
+    };
+    adminData=fresh;
+
+    /* Une réponse ancienne ne peut jamais reprendre l'écran après un clic
+       dans l'autre sens. Seule l'intention UI la plus récente décide. */
+    if(viewSwitchTarget==='admin'&&myEpoch===viewSwitchEpoch){
+      activateCachedAdminView()
     }
-
-    try{
-      if(LOCAL){
-        adminSessionContext={fromMember:true,memberId:sourceMemberId,name:sourceMemberName};
-        adminData=localAdminSnapshot();
-        currentAdminPage='calendar';
-        history.replaceState(null,'','/admin');
-        showOnly('adminRoot');
-        renderAdmin();
-        return
-      }
-
-      /* Un seul aller-retour : cette route crée/réutilise la session admin
-         ET renvoie directement le snapshot administrateur complet. */
-      const fresh=await netApi('/api/session/admin-from-member',{method:'POST'});
-
-      adminSessionContext=fresh.adminContext||{
-        fromMember:true,
-        memberId:sourceMemberId,
-        name:sourceMemberName
-      };
-      adminData=fresh;
-      currentAdminPage='calendar';
-      history.replaceState(null,'','/admin');
-      showOnly('adminRoot');
-      renderAdmin();
-      markAdminActivity()
-    }catch(e){
-      /* Si l'affichage optimiste du cache a déjà eu lieu mais que la
-         validation échoue, revenir proprement à la vue membre. */
-      if(canShowCachedAdmin){
-        history.replaceState(null,'','/calendar');
-        showOnly('memberRoot');
-        renderMember()
-      }
+  }catch(e){
+    if(viewSwitchTarget==='admin'&&myEpoch===viewSwitchEpoch){
+      history.replaceState(null,'','/calendar');
+      showOnly('memberRoot');
+      renderMember();
       showMemberError(e.message)
-    }finally{
-      setButtonBusy(btn,false)
     }
-  })();
-
-  memberToAdminSwitchPromise=task.finally(()=>{
-    memberToAdminSwitchPromise=null
-  });
-  return memberToAdminSwitchPromise
+  }finally{
+    if(firstOpen)setButtonBusy(btn,false)
+  }
 }
 
 async function switchAdminToMember(btn=null){
   const memberId=String(adminSessionContext?.memberId||'');
   if(!memberId)return;
 
-  if(adminToMemberSwitchPromise)return adminToMemberSwitchPromise;
+  const myEpoch=++viewSwitchEpoch;
+  viewSwitchTarget='member';
 
-  const task=(async()=>{
-    setButtonBusy(btn,true,'Ouverture…');
-
-    try{
-      if(LOCAL){
-        const m=localState.members.find(x=>String(x.id)===memberId&&x.active&&x.adminPrivilege===true);
-        if(!m)throw new Error('Privilèges administrateur retirés.');
-        currentLocalMemberId=memberId;
-        memberData=localMemberSnapshot(memberId);
-        memberCalendarMode='auto';
-        memberMonth=chooseInitialMonth();
-        history.replaceState(null,'','/calendar');
-        showOnly('memberRoot');
-        renderMember();
-        return
-      }
-
-      /* La session membre n'a jamais été quittée lorsqu'on est passé en
-         administration. On peut donc réafficher instantanément les données
-         membre déjà en mémoire, sans attendre le réseau. */
-      if(memberData?.me&&String(memberData.me.id)===memberId){
-        memberCalendarMode='auto';
-        if(!memberMonth)memberMonth=chooseInitialMonth();
-        history.replaceState(null,'','/calendar');
-        showOnly('memberRoot');
-        q('#githubAdminLink').classList.add('hidden');
-        renderMember()
-      }else{
-        /* Cas de secours exceptionnel : le cache membre n'existe plus.
-           On affiche tout de même la route membre avant le chargement. */
-        history.replaceState(null,'','/calendar')
-      }
-
-      /* Rafraîchissement en arrière-plan indépendant du poller standard :
-         il ne peut pas être annulé par memberRefreshBusy ou un batch planning. */
-      try{
-        const fresh=await netApi('/api/me');
-        memberData=memberPendingOverlay(fresh);
-        if(!memberMonth){
-          memberCalendarMode='auto';
-          memberMonth=chooseInitialMonth()
-        }
-
-        /* Si l'utilisateur est déjà reparti dans l'admin pendant que
-           /api/me répondait, ne surtout pas lui reprendre l'écran. */
-        if(!q('#memberRoot').classList.contains('hidden')&&location.pathname==='/calendar'){
-          renderMember()
-        }
-      }catch(e){
-        if(e.status===401){
-          invalidMemberSession();
-          return
-        }
-        /* Une panne réseau transitoire ne doit plus casser la bascule :
-           si le cache membre est affiché, on le conserve et on signale
-           seulement l'erreur sous forme flottante. */
-        if(memberData?.me&&String(memberData.me.id)===memberId){
-          showMemberError(`Actualisation impossible : ${e.message}`)
-        }else{
-          throw e
-        }
-      }
-    }catch(e){
-      setNotice(q('#adminError'),e.message)
-    }finally{
-      setButtonBusy(btn,false)
+  if(LOCAL){
+    const m=localState.members.find(x=>String(x.id)===memberId&&x.active&&x.adminPrivilege===true);
+    if(!m){
+      setNotice(q('#adminError'),'Privilèges administrateur retirés.');
+      return
     }
-  })();
+    currentLocalMemberId=memberId;
+    memberData=localMemberSnapshot(memberId);
+    memberCalendarMode='auto';
+    memberMonth=chooseInitialMonth();
+    activateCachedMemberView();
+    return
+  }
 
-  adminToMemberSwitchPromise=task.finally(()=>{
-    adminToMemberSwitchPromise=null
-  });
-  return adminToMemberSwitchPromise
+  const hasMemberCache=memberData?.me&&String(memberData.me.id)===memberId;
+
+  /* Normalement le cache membre existe toujours : on réaffiche donc
+     immédiatement la vue sans mettre Affichage membre en busy. */
+  if(hasMemberCache){
+    activateCachedMemberView()
+  }else{
+    history.replaceState(null,'','/calendar');
+    setButtonBusy(btn,true,'Ouverture…')
+  }
+
+  if(!memberSwitchRefreshPromise){
+    memberSwitchRefreshPromise=netApi('/api/me')
+      .finally(()=>{memberSwitchRefreshPromise=null})
+  }
+
+  try{
+    const fresh=await memberSwitchRefreshPromise;
+    memberData=memberPendingOverlay(fresh);
+    if(!memberMonth){
+      memberCalendarMode='auto';
+      memberMonth=chooseInitialMonth()
+    }
+
+    if(viewSwitchTarget==='member'&&myEpoch===viewSwitchEpoch){
+      activateCachedMemberView()
+    }
+  }catch(e){
+    if(e.status===401){
+      /* Ne détruit l'écran que si l'utilisateur demande encore la vue membre.
+         S'il est déjà reparti admin, cette ancienne réponse devient passive. */
+      if(viewSwitchTarget==='member'&&myEpoch===viewSwitchEpoch)invalidMemberSession();
+      return
+    }
+
+    if(viewSwitchTarget==='member'&&myEpoch===viewSwitchEpoch){
+      if(hasMemberCache){
+        showMemberError(`Actualisation impossible : ${e.message}`)
+      }else{
+        history.replaceState(null,'','/admin');
+        showOnly('adminRoot');
+        renderAdmin();
+        setNotice(q('#adminError'),e.message)
+      }
+    }
+  }finally{
+    if(!hasMemberCache)setButtonBusy(btn,false)
+  }
 }
 
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
