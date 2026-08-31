@@ -3956,11 +3956,115 @@ body{
   animation:calas-busy-stable .65s linear infinite;
 }
 
+
+/* =========================================================
+   V15.39 — AUDIT FINAL / UNITÉ GRAPHIQUE ADMIN
+   Cette couche fixe les invariants visuels des trois pages admin.
+   Les différences fonctionnelles (planning coloré, états, mini-actions)
+   restent volontairement distinctes.
+   ========================================================= */
+
+:root{
+  --admin-content-width:1080px;
+  --admin-radius-card:18px;
+  --admin-radius-table:15px;
+  --admin-radius-panel:13px;
+  --admin-grid-line:#cbd4cf;
+  --admin-head-bg:#f5f8f6;
+  --admin-head-text:#33423a;
+}
+
+/* Une même géométrie de référence sur Calendrier / Membres / Historique. */
+#adminRoot > .topbar,
+.admin-page > .admin-calendar-card,
+.admin-members-page,
+.admin-history-page{
+  width:min(var(--admin-content-width),100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Les trois cartes principales partagent exactement le même contenant. */
+.admin-page > .admin-calendar-card,
+.admin-members-page > #adminMembers,
+.admin-history-page > #adminHistory{
+  padding:22px !important;
+  border-radius:var(--admin-radius-card) !important;
+  border-color:var(--line) !important;
+  box-shadow:var(--shadow) !important;
+  background:#fff;
+}
+
+/* Même niveau typographique pour le titre de chaque page. */
+#adminCalendarTitle,
+#adminMembers h2,
+#adminHistory h2{
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+  font-weight:850;
+}
+
+/* Tableaux : même contour, même rayon, même langage d'en-tête. */
+.admin-schedule-wrap,
+.members-table-wrap{
+  border-radius:var(--admin-radius-table) !important;
+  border-color:var(--admin-grid-line) !important;
+}
+
+#adminHistory .table{
+  border-radius:var(--admin-radius-table) !important;
+  border-color:var(--admin-grid-line) !important;
+  overflow:hidden;
+}
+
+.admin-schedule thead th,
+.members-table th,
+#adminHistory .table th{
+  height:44px;
+  padding:10px 10px;
+  background:var(--admin-head-bg) !important;
+  color:var(--admin-head-text) !important;
+  font-size:12px !important;
+  font-weight:850 !important;
+  letter-spacing:0 !important;
+  text-transform:none !important;
+  vertical-align:middle;
+}
+
+/* Quadrillage commun, sans modifier les couleurs fonctionnelles des lignes. */
+.members-table td,
+#adminHistory .table th,
+#adminHistory .table td{
+  border-bottom-color:var(--admin-grid-line) !important;
+}
+
+/* Les panneaux secondaires suivent le même niveau de rayon. */
+.member-picker-modal,
+.admin-privilege-option,
+.member-management-panel{
+  border-radius:var(--admin-radius-panel) !important;
+}
+
+/* Les modales appartiennent toutes à la même famille visuelle. */
+.confirm-dialog{
+  border-radius:var(--admin-radius-card) !important;
+  border-color:var(--line) !important;
+}
+
+/* Conserver le comportement réduit-motion partout. */
+@media(prefers-reduced-motion:reduce){
+  #adminRoot *,
+  #memberRoot *{
+    scroll-behavior:auto !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.38.1 · feedback renouvellement liens · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.39 · audit final unité graphique admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4324,6 +4428,9 @@ let pendingAdminPageTransition=null;
 function motionReduced(){
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
 }
+const UI_FADE_TOTAL_MS=375;
+const UI_FADE_OUT_MS=105;
+const UI_FADE_IN_MS=270;
 function animFinished(animation){
   return animation?.finished?.catch(()=>{})||Promise.resolve()
 }
@@ -4340,7 +4447,7 @@ function calendarChangingElements(label,body,mobile){
     ...Array.from(mobile?.children||[])
   ].filter(Boolean)
 }
-async function microCalendarTransition({label,body,mobile,swapFn,outMs=140,inMs=360}){
+async function microCalendarTransition({label,body,mobile,swapFn,outMs=UI_FADE_OUT_MS,inMs=UI_FADE_IN_MS}){
   if(typeof swapFn!=='function')return;
   if(uiTransitionBusy)return;
   if(motionReduced()){
@@ -4418,7 +4525,7 @@ async function microAdminPageTransition(page,{push=false,scroll=false,preservedS
   try{
     const out=fromSurface.animate(
       [{opacity:1},{opacity:.06}],
-      {duration:140,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+      {duration:UI_FADE_OUT_MS,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
     );
     await animFinished(out);
 
@@ -4459,7 +4566,7 @@ async function microAdminPageTransition(page,{push=false,scroll=false,preservedS
 
     const inn=toSurface.animate(
       [{opacity:.06},{opacity:1}],
-      {duration:360,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
+      {duration:UI_FADE_IN_MS,easing:'cubic-bezier(0,0,.2,1)',fill:'both'}
     );
     await animFinished(inn);
     try{inn.cancel()}catch{}
