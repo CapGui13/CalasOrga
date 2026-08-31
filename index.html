@@ -4767,6 +4767,55 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.42.6 — MODIFIER : HAUTEUR DES RÔLES = PLANNING PRINCIPAL
+   ========================================================= */
+
+/* Le planning principal utilise une cellule de rôle de référence à 118 px.
+   Dans Modifier, seule la colonne Membres reste longue. */
+#adminCorrectionOverlay .day-column{
+  background:#fff !important;
+}
+
+/* Les 5 vraies cellules de rôle ont exactement la hauteur du planning. */
+#adminCorrectionOverlay .day-role-dropzone-column{
+  flex:0 0 118px !important;
+  height:118px !important;
+  min-height:118px !important;
+  max-height:118px !important;
+  overflow:auto !important;
+  box-sizing:border-box;
+}
+
+/* On garde les couleurs fonctionnelles uniquement sur la vraie cellule,
+   jamais sur tout le reste de la colonne. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-column{
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-column{
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column{
+  background:#fff !important;
+}
+
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* La liste des membres reste la seule partie qui détermine la hauteur totale. */
+#adminCorrectionOverlay .day-member-pool-column{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+}
+
 </style>
 </head>
 <body>
