@@ -3728,11 +3728,25 @@ body{
   letter-spacing:.03em;
 }
 
+
+/* =========================================================
+   V15.36.1 — ALIGNEMENT DU HEADER ADMIN SUR LE CONTENU
+   ========================================================= */
+
+/* Même largeur que la carte Planning / les pages admin :
+   le bord droit des actions est donc exactement aligné
+   avec le bord droit du tableau. */
+#adminRoot > .topbar{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36 · membres administrateurs · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.1 · header admin aligné · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
