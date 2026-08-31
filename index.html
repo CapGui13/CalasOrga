@@ -2409,11 +2409,34 @@ body.modal-open{overflow:hidden}
   color:#1d6e43;
 }
 
+
+/* =========================================================
+   V15.26 — TRANSITION DOUCE ENTRE LES PAGES ADMIN
+   ========================================================= */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeIn .18s ease-out both;
+}
+@keyframes adminPageFadeIn{
+  from{
+    opacity:0;
+    transform:translateY(4px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in{
+    animation:none;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.25 · correction de journée sans menus déroulants · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26 · bouton Modifier + transitions douces · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2666,9 +2689,19 @@ function adminPathForPage(page){
 }
 function showAdminPage(page,{push=false,scroll=true}={}){
   if(!['calendar','members','history'].includes(page))page='calendar';
+  const previous=currentAdminPage;
   currentAdminPage=page;
+  let targetView=null;
   for(const view of document.querySelectorAll('[data-admin-view]')){
-    view.classList.toggle('hidden',view.dataset.adminView!==page)
+    const active=view.dataset.adminView===page;
+    view.classList.toggle('hidden',!active);
+    if(active)targetView=view
+  }
+  if(targetView&&previous!==page){
+    targetView.classList.remove('admin-page-fade-in');
+    void targetView.offsetWidth;
+    targetView.classList.add('admin-page-fade-in');
+    setTimeout(()=>targetView.classList.remove('admin-page-fade-in'),220)
   }
   for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]')){
     const active=tab.dataset.adminPage===page;
@@ -3217,7 +3250,7 @@ function renderAdminCalendar(){
 
     const dateTd=document.createElement('td');dateTd.className='date-cell';
     const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
-    const edit=document.createElement('button');edit.type='button';edit.className='btn admin-calendar-edit';edit.textContent='Corriger cette date';edit.disabled=!open;
+    const edit=document.createElement('button');edit.type='button';edit.className='btn admin-calendar-edit';edit.textContent='Modifier';edit.disabled=!open;
     edit.addEventListener('click',()=>adminCorrectionForDate(date));
     dateTd.append(dm,edit);row.append(dateTd);
 
@@ -3294,7 +3327,7 @@ function renderAdminCalendar(){
       line.append(lab,val);roles.append(line)
     }
     card.append(roles);
-    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Corriger cette date';mobileEdit.disabled=!open;
+    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Modifier';mobileEdit.disabled=!open;
     mobileEdit.addEventListener('click',()=>adminCorrectionForDate(date));
     card.append(mobileEdit);
     mobile.append(card)
