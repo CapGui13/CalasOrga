@@ -2511,11 +2511,35 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+
+/* =========================================================
+   V15.26.4 — COULEUR SEMAINE 2 DISTINGUÉE DES LIGNES COMPLÈTES
+   ========================================================= */
+/* Semaine 2 : palette gris-bleu très légère pour éviter la confusion
+   avec le vert de validation des journées complètes. */
+.week-b .date-cell{background:#eef3f6 !important}
+.week-b .role-cell,.week-b .role-button{background:#f7fafc !important}
+
+.admin-schedule tr.week-b .date-cell{background:#e6edf2 !important}
+.admin-schedule tr.week-b .role-cell,.admin-schedule tr.week-b .role-button{background:#f3f7fa !important}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{border-top-color:#ccd8e1 !important}
+.admin-schedule tr.week-b .role-display.empty{color:#80909c !important}
+
+.admin-schedule-mobile .mobile-date-card.week-b{background:#eef4f7 !important; border-color:#d4dee6 !important}
+.mobile-date-card.week-b{background:#f3f7fa !important}
+
+@media(hover:hover){
+  .admin-schedule tr.week-b:hover .date-cell{background:#dde7ee !important}
+  .admin-schedule tr.week-b:hover .role-cell,.admin-schedule tr.week-b:hover .role-button{background:#edf3f7 !important}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.3 · fenêtre journée agrandie · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.4 · couleur semaine 2 différenciée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
