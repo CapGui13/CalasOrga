@@ -3189,11 +3189,109 @@ body{
   overflow:visible !important;
 }
 
+
+/* =========================================================
+   V15.30 — PAGE MEMBRES ÉPURÉE
+   ========================================================= */
+
+.members-card{
+  max-width:900px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.member-add-panel{
+  grid-template-columns:138px minmax(0,1fr);
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.member-add-form{
+  grid-template-columns:minmax(180px,.8fr) minmax(300px,1.45fr) 96px;
+  gap:8px;
+}
+.member-add-form .btn{
+  width:96px;
+}
+
+.members-table{
+  table-layout:fixed;
+}
+.members-table th:nth-child(1){width:30% !important}
+.members-table th:nth-child(2){width:50% !important}
+.members-table th:nth-child(3){width:20% !important}
+
+.members-table td{
+  height:52px;
+  padding:8px 12px;
+  overflow:hidden;
+}
+.members-table td:last-child{
+  overflow:visible !important;
+  position:static !important;
+}
+
+.member-display-name{
+  font-size:14px;
+}
+.member-display-email{
+  font-size:13px;
+}
+
+.member-state-cell{
+  text-align:left;
+}
+.member-state-pill{
+  min-height:28px;
+  padding:4px 10px;
+  border:1px solid transparent;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+  transition:transform .08s ease,background .15s ease,border-color .15s ease;
+}
+.member-state-pill:hover{
+  border-color:#bdccc3;
+}
+.member-state-pill:active{
+  transform:scale(.97);
+}
+.member-state-pill:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--focus) 55%,transparent);
+  outline-offset:2px;
+}
+
+@media(max-width:720px){
+  .members-card{max-width:none}
+  .member-add-form{grid-template-columns:1fr}
+  .members-table,
+  .members-table tbody{
+    display:table;
+    width:100%;
+  }
+  .members-table thead{display:table-header-group}
+  .members-table tr{display:table-row}
+  .members-table td{
+    display:table-cell;
+    height:52px;
+    padding:8px 9px;
+    border-bottom:1px solid #e4e9e6;
+  }
+  .members-table td:nth-child(1),
+  .members-table td:nth-child(2),
+  .members-table td:nth-child(3){
+    grid-column:auto;
+    grid-row:auto;
+  }
+  .members-table th:nth-child(1){width:28% !important}
+  .members-table th:nth-child(2){width:50% !important}
+  .members-table th:nth-child(3){width:22% !important}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.29.1 · menu actions Membres corrigé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.30 · page Membres épurée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
@@ -3374,8 +3472,6 @@ body{
                   <th>Membre</th>
                   <th>Email</th>
                   <th>Statut</th>
-                  <th>Appareils</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="membersTable"></tbody>
@@ -4307,102 +4403,20 @@ function renderMembers(){
     emailTd.append(email);
 
     const stateTd=document.createElement('td');
-    const state=document.createElement('span');
+    stateTd.className='member-state-cell';
+    const state=document.createElement('button');
+    state.type='button';
     state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
+    state.title=`Double-cliquez pour ${m.active?'désactiver':'activer'} ${m.name}`;
+    state.setAttribute('aria-label',state.title);
+    state.addEventListener('dblclick',e=>{
+      e.preventDefault();
+      toggleMemberActiveDirect(m.id,!m.active,m.name,state)
+    });
     stateTd.append(state);
 
-    const devicesTd=document.createElement('td');
-    devicesTd.className='member-device-cell';
-    const n=Number(m.deviceCount||0);
-    const deviceLine=document.createElement('div');
-    deviceLine.className='member-device-primary';
-    const dot=document.createElement('span');
-    dot.className='member-device-dot'+(n?' connected':'');
-    const deviceText=document.createElement('span');
-    deviceText.textContent=n?`${n} appareil${n>1?'s':''}`:'Aucun appareil';
-    deviceLine.append(dot,deviceText);
-    devicesTd.append(deviceLine);
-    if(n&&m.latestDeviceAt){
-      const last=document.createElement('div');
-      last.className='member-device-secondary';
-      last.textContent='Dernière connexion : '+new Intl.DateTimeFormat('fr-FR',{
-        dateStyle:'short',
-        timeStyle:'short',
-        timeZone:'Europe/Paris'
-      }).format(new Date(m.latestDeviceAt));
-      devicesTd.append(last)
-    }
-
-    const actTd=document.createElement('td');
-    const box=document.createElement('div');
-    box.className='member-action-wrap';
-
-    if(m.active){
-      const rot=document.createElement('button');
-      rot.type='button';
-      rot.className='btn primary member-link-btn';
-      rot.textContent='Nouveau lien';
-      rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));
-      box.append(rot);
-
-      const edit=document.createElement('button');
-      edit.type='button';
-      edit.className='btn member-edit-btn';
-      edit.textContent='Modifier';
-      edit.addEventListener('click',()=>openMemberEditor(m.id));
-      box.append(edit);
-
-      const menu=document.createElement('details');
-      menu.className='member-menu';
-      const summary=document.createElement('summary');
-      summary.className='btn';
-      summary.textContent='•••';
-      summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);
-      const panel=document.createElement('div');
-      panel.className='member-menu-panel';
-
-      if(n){
-        const kick=document.createElement('button');
-        kick.type='button';
-        kick.className='btn';
-        kick.textContent='Déconnecter les appareils';
-        kick.addEventListener('click',()=>{
-          menu.open=false;
-          revokeMemberDevices(m.id,m.name,n,kick)
-        });
-        panel.append(kick)
-      }
-
-      const disable=document.createElement('button');
-      disable.type='button';
-      disable.className='btn danger-option';
-      disable.textContent='Désactiver le membre';
-      disable.addEventListener('click',()=>{
-        menu.open=false;
-        setMemberActive(m.id,false,m.name,disable)
-      });
-      panel.append(disable);
-      menu.append(summary,panel);
-      box.append(menu)
-    }else{
-      const reactivate=document.createElement('button');
-      reactivate.type='button';
-      reactivate.className='btn primary';
-      reactivate.textContent='Réactiver';
-      reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));
-      box.append(reactivate);
-
-      const edit=document.createElement('button');
-      edit.type='button';
-      edit.className='btn member-edit-btn';
-      edit.textContent='Modifier';
-      edit.addEventListener('click',()=>openMemberEditor(m.id));
-      box.append(edit)
-    }
-
-    actTd.append(box);
-    tr.append(nameTd,emailTd,stateTd,devicesTd,actTd);
+    tr.append(nameTd,emailTd,stateTd);
     body.append(tr)
   }
 }
@@ -4583,6 +4597,56 @@ async function updateMemberEmail(id,email,input=null){
     if(input){input.disabled=false;input.removeAttribute('aria-busy')}
   }
 }
+async function toggleMemberActiveDirect(id,active,name='',btn=null){
+  setButtonBusy(btn,true,active?'Activation…':'Désactivation…');
+  beginAdminSave();
+  try{
+    if(LOCAL){
+      const m=localState.members.find(x=>x.id===id);
+      if(!m)return;
+      m.active=active;
+      if(!active){
+        for(const[d,ids]of Object.entries(localState.attendance)){
+          if(d>=parisToday()){
+            localState.attendance[d]=ids.filter(x=>x!==id);
+            if(!localState.attendance[d].length)delete localState.attendance[d]
+          }
+        }
+        for(const[d,roles]of Object.entries(localState.roleAssignments||{})){
+          if(d<parisToday())continue;
+          for(const role of ['accueil','tpe','mep','arbitrage']){
+            roles[role]=(roles[role]||[]).filter(x=>x!==id);
+            if(!roles[role].length)delete roles[role]
+          }
+          if(!Object.keys(roles).length)delete localState.roleAssignments[d]
+        }
+      }
+      audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});
+      saveLocal();
+      adminData=localAdminSnapshot();
+      if(active)showNewLink(localPersonalUrl(id))
+    }else{
+      const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({active})
+      });
+      adminData=j.snapshot;
+      if(active){
+        if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));
+        else if(j.personalPath)showNewLink(location.origin+j.personalPath)
+      }
+    }
+    renderAdmin();
+    endAdminSave(true)
+  }catch(e){
+    endAdminSave(false);
+    setNotice(q('#adminError'),e.message)
+  }finally{
+    setButtonBusy(btn,false)
+  }
+}
+
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function rotateMember(id,name='',btn=null){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function revokeMemberDevices(id,name,count,btn=null){const ok=await confirmModal(`Déconnecter ${count} appareil${count>1?'s':''} associé${count>1?'s':''} à ${name} ?\n\nLe lien personnel restera valide et pourra être utilisé pour reconnecter un appareil.`,{title:'Déconnecter les appareils',confirmText:'Déconnecter',danger:true});if(!ok)return;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/sessions/revoke`,{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} appareil${j.revoked>1?'s':''} déconnecté${j.revoked>1?'s':''}`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
