@@ -5840,28 +5840,52 @@ function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GI
 let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),memberPollTimer=0;
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
 function memberPollDelay(){const age=Date.now()-lastMemberActivityAt;return age<120000?2000:age<600000?5000:10000}
-async function refreshMember(){
+async function refreshMember({openIfSuccessful=false}={}){
   if(memberRefreshBusy||memberPlanningHasWork())return;
+
   if(LOCAL){
     memberData=localMemberSnapshot(currentLocalMemberId);
+    if(openIfSuccessful&&activeRootView!=='memberRoot')showOnly('memberRoot');
     if(activeRootView==='memberRoot')renderMember();
     return
   }
+
   memberRefreshBusy=true;
   try{
     const fresh=await netApi('/api/me');
     memberData=memberPendingOverlay(fresh);
-    if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth()}
+
+    if(!memberMonth){
+      memberCalendarMode='auto';
+      memberMonth=chooseInitialMonth()
+    }
+
+    /* Une ouverture explicite de /calendar a le droit d'afficher la vue.
+       Un polling / refresh de fond n'a toujours jamais le droit de naviguer. */
+    if(openIfSuccessful&&activeRootView!=='memberRoot'){
+      showOnly('memberRoot')
+    }
+
     if(activeRootView==='memberRoot'){
       q('#githubAdminLink').classList.add('hidden');
       renderMember()
     }
   }catch(e){
     if(e.status===401){
-      if(activeRootView==='memberRoot')invalidMemberSession();
+      if(openIfSuccessful||activeRootView==='memberRoot')invalidMemberSession();
       return
     }
-    if(activeRootView==='memberRoot')showMemberError(`Actualisation impossible : ${e.message}`)
+
+    if(openIfSuccessful){
+      setAdminLoginView(false);
+      showOnly('joinView');
+      q('#adminCodeForm').classList.add('hidden');
+      q('#joinTitle').textContent='Calendrier indisponible';
+      q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';
+      setNotice(q('#joinError'),e.message)
+    }else if(activeRootView==='memberRoot'){
+      showMemberError(`Actualisation impossible : ${e.message}`)
+    }
   }finally{
     memberRefreshBusy=false
   }
@@ -7308,7 +7332,7 @@ function setAdminLoginView(active){
   q('#joinView')?.classList.toggle('admin-login-view',!!active)
 }
 function showAdminCodeLogin(message='Entrez votre code administrateur.'){setAdminLoginView(true);showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#adminCodeForm').classList.remove('hidden');setTimeout(()=>q('#adminCode').focus(),0)}
-async function serverJoin(kind,token){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#githubAdminLink').classList.add('hidden');q('#joinTitle').textContent=kind==='admin'?'Ouverture de l’administration…':'Ouverture de votre calendrier…';q('#joinStatus').textContent='Vérification du lien.';setNotice(q('#joinError'));try{const endpoint=kind==='admin'?'/api/session/admin':kind==='short'?'/api/session/member-short':'/api/session/member';let confirmSwitch=false;for(;;){try{const body=kind==='short'?{shortToken:token,confirmSwitch}:{token};await netApi(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});break}catch(e){const p=e.payload||{};if(kind==='short'&&e.status===409&&p.requiresIdentitySwitch&&p.currentMember?.name&&p.targetMember?.name){const ok=await confirmModal(`Cet appareil est déjà associé à ${p.currentMember.name}.\n\nLe lien ouvert appartient à ${p.targetMember.name}.\n\nVoulez-vous réassocier cet appareil à ${p.targetMember.name} ?`,{title:'Changer de membre',confirmText:`Passer à ${p.targetMember.name}`});if(!ok){location.replace(GITHUB_HOME);return}confirmSwitch=true;q('#joinStatus').textContent=`Réassociation à ${p.targetMember.name}…`;continue}throw e}}history.replaceState(null,'',kind==='admin'?'/admin':'/calendar');if(kind==='admin'){await enterAdmin();return}if(kind==='short'){location.replace(`${GITHUB_HOME}#enrolled`);return}await refreshMember()}catch(e){q('#joinStatus').textContent='Impossible d’ouvrir le lien.';setNotice(q('#joinError'),e.message)}}
+async function serverJoin(kind,token){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#githubAdminLink').classList.add('hidden');q('#joinTitle').textContent=kind==='admin'?'Ouverture de l’administration…':'Ouverture de votre calendrier…';q('#joinStatus').textContent='Vérification du lien.';setNotice(q('#joinError'));try{const endpoint=kind==='admin'?'/api/session/admin':kind==='short'?'/api/session/member-short':'/api/session/member';let confirmSwitch=false;for(;;){try{const body=kind==='short'?{shortToken:token,confirmSwitch}:{token};await netApi(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});break}catch(e){const p=e.payload||{};if(kind==='short'&&e.status===409&&p.requiresIdentitySwitch&&p.currentMember?.name&&p.targetMember?.name){const ok=await confirmModal(`Cet appareil est déjà associé à ${p.currentMember.name}.\n\nLe lien ouvert appartient à ${p.targetMember.name}.\n\nVoulez-vous réassocier cet appareil à ${p.targetMember.name} ?`,{title:'Changer de membre',confirmText:`Passer à ${p.targetMember.name}`});if(!ok){location.replace(GITHUB_HOME);return}confirmSwitch=true;q('#joinStatus').textContent=`Réassociation à ${p.targetMember.name}…`;continue}throw e}}history.replaceState(null,'',kind==='admin'?'/admin':'/calendar');if(kind==='admin'){await enterAdmin();return}if(kind==='short'){location.replace(`${GITHUB_HOME}#enrolled`);return}await refreshMember({openIfSuccessful:true})}catch(e){q('#joinStatus').textContent='Impossible d’ouvrir le lien.';setNotice(q('#joinError'),e.message)}}
 async function serverAdminCode(code){adminSessionContext=null;setAdminLoginView(true);showOnly('joinView');q('#joinTitle').textContent='Administration';q('#joinStatus').textContent='Vérification du code…';setNotice(q('#joinError'));try{await netApi('/api/session/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});q('#adminCode').value='';history.replaceState(null,'','/admin');await enterAdmin()}catch(e){q('#joinStatus').textContent='Entrez votre code administrateur.';setNotice(q('#joinError'),e.message);q('#adminCode').select()}}
 async function boot(){
   if(GITHUB_PAGES){
@@ -7327,10 +7351,10 @@ async function boot(){
   if(path==='/join'&&token){history.replaceState(null,'',path);await serverJoin('member',token);return}
   if(path==='/admin-login'&&token){history.replaceState(null,'',path);await serverJoin('admin',token);return}
   if(path==='/admin'||path==='/admin/membres'||path==='/admin/historique'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
-  if(path==='/calendar'){await refreshMember();return}
+  if(path==='/calendar'){await refreshMember({openIfSuccessful:true});return}
   if(path==='/join'||path==='/join-short'||path==='/'){showMemberLinkRequired();return}
   if(path==='/admin-login'){showAdminCodeLogin();return}
-  await refreshMember()
+  await refreshMember({openIfSuccessful:true})
 }
 
 
