@@ -4816,11 +4816,132 @@ body{
   min-height:0 !important;
 }
 
+
+/* =========================================================
+   V15.42.7 — MODIFIER : SEULE LA COLONNE MEMBRES EST LONGUE
+   ========================================================= */
+
+/* Le wrapper n'est plus un grand rectangle qui fabrique visuellement
+   cinq colonnes vides jusqu'en bas. Chaque vraie colonne porte ses bordures. */
+#adminCorrectionOverlay .day-editor-columns{
+  align-items:start !important;
+  min-height:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
+}
+
+/* Géométrie commune des vraies colonnes. */
+#adminCorrectionOverlay .day-column{
+  align-self:start !important;
+  min-width:0;
+  border-top:1px solid #c5d0ca !important;
+  border-right:1px solid #c7d0cb !important;
+  border-bottom:1px solid #c5d0ca !important;
+  border-left:0 !important;
+  background:transparent !important;
+  overflow:hidden;
+}
+#adminCorrectionOverlay .day-column:first-child{
+  border-left:1px solid #c5d0ca !important;
+}
+
+/* Membres : seule colonne qui descend avec toute la liste. */
+#adminCorrectionOverlay .day-column-members{
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  border-radius:15px 0 0 15px !important;
+}
+#adminCorrectionOverlay .day-member-pool-column{
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+
+/* Rôles : exactement 44px d'en-tête + 118px de cellule, puis FIN. */
+#adminCorrectionOverlay .day-column-role{
+  height:162px !important;
+  min-height:162px !important;
+  max-height:162px !important;
+  align-self:start !important;
+}
+#adminCorrectionOverlay .day-column-role:last-child{
+  border-radius:0 15px 15px 0 !important;
+}
+#adminCorrectionOverlay .day-role-dropzone-column{
+  flex:0 0 118px !important;
+  height:118px !important;
+  min-height:118px !important;
+  max-height:118px !important;
+  overflow:auto !important;
+}
+
+/* La couleur ne couvre que les vraies zones existantes. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* Un nom = une seule ligne. Aucun tag / statut sous le prénom. */
+#adminCorrectionOverlay .day-member-source-item{
+  min-height:44px !important;
+  padding:7px 10px !important;
+}
+#adminCorrectionOverlay .day-member-source-text{
+  display:block !important;
+  min-width:0;
+}
+#adminCorrectionOverlay .day-member-source-text strong{
+  display:block;
+  font-size:13px !important;
+  line-height:1.25 !important;
+}
+#adminCorrectionOverlay .day-member-source-status{
+  display:none !important;
+}
+
+/* Le bas de la liste Membres ferme seul sa colonne. */
+#adminCorrectionOverlay .day-member-source-item:last-child{
+  border-bottom:0 !important;
+}
+
+/* Mobile : retour à des blocs pleine largeur ; pas de hauteur forcée
+   qui pourrait tronquer une interaction tactile. */
+@media(max-width:900px){
+  #adminCorrectionOverlay .day-column-role{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    min-height:118px !important;
+  }
+  #adminCorrectionOverlay .day-column-members,
+  #adminCorrectionOverlay .day-column-role,
+  #adminCorrectionOverlay .day-column-role:last-child{
+    border-radius:0 !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.5 · bascule sans course de polling · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.7 · colonnes rôles courtes et membres sans statut · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -6340,12 +6461,9 @@ function renderDayEditorDraft(){
     text.className='day-member-source-text';
     const name=document.createElement('strong');
     name.textContent=m.name;
-    const status=document.createElement('span');
-    status.className='day-member-source-status';
     const statusText=dayEditorMemberStatus(m.id);
-    status.textContent=statusText||'Non affecté';
 
-    text.append(name,status);
+    text.append(name);
     item.append(grip,text);
     item.title=statusText?`${m.name} · ${statusText}`:`Glisser ${m.name}`;
     makeDayMemberDraggable(item,m.id);
