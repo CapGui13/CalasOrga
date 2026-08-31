@@ -4062,7 +4062,7 @@ body{
 
 
 /* =========================================================
-   V15.40.1 — ÉDITEUR JOURNÉE EN COLONNES
+   V15.40.2 — ÉDITEUR JOURNÉE STYLE PLANNING PRINCIPAL
    ========================================================= */
 
 .available-check.is-disabled{
@@ -4079,9 +4079,9 @@ body{
 .available-check.is-disabled input{cursor:not-allowed!important}
 
 #adminCorrectionOverlay .admin-correction-dialog{
-  width:min(1260px,calc(100vw - 24px)) !important;
+  width:min(1320px,calc(100vw - 20px)) !important;
   max-height:calc(100vh - 18px) !important;
-  padding:20px 22px 18px !important;
+  padding:18px 18px 16px !important;
 }
 #adminCorrectionOverlay .day-editor-date{
   margin:0 0 14px;
@@ -4093,61 +4093,78 @@ body{
 
 .day-editor-columns{
   display:grid;
-  grid-template-columns:230px repeat(4,minmax(130px,1fr)) minmax(180px,1.25fr);
-  gap:10px;
-  min-height:430px;
+  grid-template-columns:230px repeat(4,minmax(128px,1fr)) minmax(190px,1.18fr);
+  gap:0;
+  min-height:460px;
   align-items:stretch;
+  border:1px solid #c7d0cb;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:0 1px 0 rgba(20,35,26,.02);
 }
 .day-column{
   display:flex;
   flex-direction:column;
   min-width:0;
-  border:1px solid var(--admin-grid-line,var(--line));
-  border-radius:14px;
   background:#fbfcfb;
-  overflow:hidden;
+  border-right:1px solid #c7d0cb;
 }
+.day-column:last-child{border-right:0}
 .day-column-head{
-  padding:10px 12px 9px;
-  border-bottom:1px solid var(--admin-grid-line,var(--line));
-  background:#f7faf8;
+  padding:12px 12px 10px;
+  border-bottom:1px solid #c7d0cb;
+  background:#eef3f0;
 }
 .day-editor-panel-title,
 .day-role-card-title{
-  font-size:13px;
+  font-size:12px;
+  line-height:1.2;
   font-weight:850;
+  letter-spacing:.02em;
+  text-transform:uppercase;
   color:#27372e;
 }
-.day-editor-pool-help{margin:3px 0 0}
+.day-editor-pool-help{
+  margin:4px 0 0;
+  font-size:11px;
+}
 .day-member-pool-column,
 .day-role-dropzone-column{
   flex:1 1 auto;
   min-height:0;
 }
+.day-member-pool,
+.day-role-dropzone{
+  background:#fff;
+  overflow:auto;
+  min-height:0;
+  scrollbar-gutter:stable;
+}
 .day-member-pool{
   display:flex;
   flex-direction:column;
-  gap:5px;
-  padding:10px;
-  overflow:auto;
+  gap:6px;
+  padding:8px;
 }
 .day-member-source-item{
   display:flex;
   align-items:center;
   gap:8px;
-  min-height:34px;
-  padding:5px 8px;
-  border:1px solid #d9e1dc;
-  border-radius:9px;
+  min-height:38px;
+  padding:7px 9px;
+  border:1px solid #d6dfda;
+  border-radius:10px;
   background:#fff;
   cursor:grab;
   user-select:none;
-  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease,opacity .12s ease;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease, opacity .12s ease;
 }
 .day-member-source-item:hover,
 .day-member-source-item:focus-visible{
-  border-color:#bfcfc6;
-  box-shadow:0 3px 10px rgba(25,48,35,.06);
+  background:#f8fbf9;
+  border-color:#c1cec6;
+  box-shadow:0 2px 8px rgba(25,48,35,.05);
   outline:none;
 }
 .day-member-source-item:active{cursor:grabbing}
@@ -4162,9 +4179,13 @@ body{
   min-width:0;
   display:flex;
   flex-direction:column;
-  gap:1px;
+  gap:2px;
 }
-.day-member-source-text strong{font-size:13px;line-height:1.2}
+.day-member-source-text strong{
+  font-size:13px;
+  line-height:1.2;
+  color:#17251e;
+}
 .day-member-source-status{
   overflow:hidden;
   text-overflow:ellipsis;
@@ -4174,25 +4195,23 @@ body{
   line-height:1.2;
 }
 .day-role-dropzone{
-  min-height:128px;
   display:flex;
   align-items:flex-start;
   justify-content:flex-start;
-  padding:10px;
-  border:1.5px dashed #c7d3cc;
-  border-radius:11px;
+  padding:12px 10px;
+  border:0;
+  border-radius:0;
+  margin:0;
   background:#fff;
-  margin:10px;
-  transition:background .13s ease,border-color .13s ease,box-shadow .13s ease;
+  transition:background .14s ease, box-shadow .14s ease;
 }
 .day-role-dropzone.drag-over{
-  border-color:#63a77d;
   background:#f0f8f3;
-  box-shadow:inset 0 0 0 1px rgba(24,130,71,.08);
+  box-shadow:inset 0 0 0 2px rgba(52,143,92,.24);
 }
 .day-role-dropzone.drop-denied{
-  border-color:#d7a5a5;
   background:#fff5f5;
+  box-shadow:inset 0 0 0 2px rgba(179,91,91,.18);
 }
 .day-drop-placeholder{
   color:#89958e;
@@ -4209,12 +4228,13 @@ body{
   max-width:100%;
   min-height:36px;
   padding:6px 7px 6px 13px;
-  border:1px solid #bdd9c8;
+  border:1px solid #bfcac4;
   border-radius:999px;
-  background:#e9f5ed;
-  color:#15231b;
+  background:#fff;
+  color:#17251e;
   font-size:14px;
   font-weight:850;
+  box-shadow:0 1px 2px rgba(24,39,31,.10);
 }
 .day-assignment-remove{
   display:inline-flex;
@@ -4225,7 +4245,7 @@ body{
   padding:0;
   border:0;
   border-radius:50%;
-  background:rgba(255,255,255,.72);
+  background:#f2f5f3;
   color:#526158;
   font:800 17px/1 system-ui,sans-serif;
   cursor:pointer;
@@ -4239,15 +4259,15 @@ body{
   width:100%;
 }
 .day-available-chip{
-  border-color:#cbdce5;
-  background:#f0f6f9;
+  background:#f4f8fb;
+  border-color:#c8d5de;
 }
 .day-editor-warning{margin-top:10px!important}
 .day-editor-actions{margin-top:12px!important}
 
 @media(max-width:1180px){
   .day-editor-columns{
-    grid-template-columns:220px repeat(3,minmax(120px,1fr));
+    grid-template-columns:220px repeat(3,minmax(122px,1fr));
   }
   .day-column-available{grid-column:2 / -1}
 }
@@ -4270,7 +4290,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40.1 · éditeur journée en colonnes · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40.2 · éditeur journée style planning principal · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
