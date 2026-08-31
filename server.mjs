@@ -2521,6 +2521,70 @@ class FileStore {
     }, { useCurrentRemote: true });
   }
 
+  async rotateAllActiveTokens() {
+    return this.mutate((s) => {
+      const activeMembers = s.members.filter((m) => m.active);
+      if (!activeMembers.length) {
+        return { ok: false, status: 409, error: 'Aucun membre actif.' };
+      }
+
+      const nowIso = this.now().toISOString();
+      let sessionsRevoked = 0;
+      const results = [];
+
+      /* Un seul commit pour l'ensemble : tous les liens sont renouvelés
+         ensemble ou aucun changement n'est persisté. */
+      for (const m of activeMembers) {
+        for (const t of s.memberTokens.filter((t) => t.memberId === m.id && t.active)) {
+          t.active = false;
+          t.revokedAt = nowIso;
+        }
+
+        sessionsRevoked += this.#revokeMemberSessions(s, m.id);
+
+        const raw = randomToken();
+        const short = this.#newShortPersonalToken(s, m.displayName);
+        s.memberTokens.push({
+          id: `t_${randomToken(10)}`,
+          memberId: m.id,
+          tokenHash: tokenHash(raw),
+          shortTokenHash: short.hash,
+          shortTokenEnc: encryptMemberShortToken(short.raw),
+          active: true,
+          createdAt: nowIso,
+          revokedAt: null
+        });
+
+        this.#log(s, 'Administrateur', 'lien_regenere', null, {
+          memberId: m.id,
+          name: m.displayName,
+          bulk: true
+        });
+
+        results.push({
+          memberId: m.id,
+          name: m.displayName,
+          shortToken: short.raw
+        });
+      }
+
+      this.#cleanupMemberTokens(s);
+      this.#log(s, 'Administrateur', 'liens_regeneres_globalement', null, {
+        regenerated: results.length,
+        sessionsRevoked,
+        inactiveSkipped: s.members.length - activeMembers.length
+      });
+
+      return {
+        ok: true,
+        regenerated: results.length,
+        inactiveSkipped: s.members.length - activeMembers.length,
+        sessionsRevoked,
+        results
+      };
+    }, { useCurrentRemote: true });
+  }
+
   async rotateToken(memberId) {
     const raw = randomToken();
     return this.mutate((s) => {
@@ -2547,7 +2611,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.37.0-planning-batch-vercel';
+const APP_VERSION = '0.15.38.0-member-link-controls-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3044,6 +3108,21 @@ export async function requestHandler(req, res) {
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
+    if (pathname === '/api/admin/members/rotate-all' && req.method === 'POST') {
+      const a = adminOk(req);
+      if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) {
+        return json(res, 403, { error: 'Protection de session invalide.' });
+      }
+      if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) {
+        return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      }
+
+      const r = await store.rotateAllActiveTokens();
+      if (!r.ok) return json(res, r.status || 400, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+    }
+
     const memberSessionsMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)\/sessions\/revoke$/);
     if (memberSessionsMatch && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });

@@ -3831,6 +3831,105 @@ body{
   text-overflow:clip;
 }
 
+
+/* =========================================================
+   V15.38 — GESTION MEMBRES / LIENS
+   ========================================================= */
+
+.members-head-inline{
+  justify-content:flex-start !important;
+  margin-bottom:10px !important;
+}
+.members-title-line{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.members-title-line h2{
+  margin:0 !important;
+}
+.members-title-line #memberCount{
+  min-width:0 !important;
+  width:auto !important;
+  padding:4px 9px;
+}
+
+/* Les actions appartiennent directement à la page, sans carte secondaire. */
+.member-management-actions-main{
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 14px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.member-management-actions-main .btn{
+  min-width:0 !important;
+}
+
+/* Le vieux conteneur physique n'est plus utilisé dans cette vue. */
+#adminMembers > .member-management-panel{
+  display:none !important;
+}
+
+/* Bouton de renouvellement individuel compact, devant l'URL. */
+.member-link-cell{
+  overflow:visible !important;
+}
+.member-link-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+.member-link-row .member-current-link,
+.member-link-row .member-link-legacy,
+.member-link-row .member-link-empty{
+  flex:1 1 auto;
+  min-width:0;
+}
+.member-link-refresh{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 26px;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #d1dbd5;
+  border-radius:8px;
+  background:#fff;
+  color:#34483e;
+  font:700 17px/1 system-ui,sans-serif;
+  cursor:pointer;
+  transition:background .12s ease,border-color .12s ease,transform .08s ease;
+}
+.member-link-refresh:hover:not(:disabled){
+  background:#f1f7f3;
+  border-color:#b9cac0;
+}
+.member-link-refresh:active:not(:disabled){
+  transform:rotate(-25deg) scale(.96);
+}
+.member-link-refresh:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+
+@media(max-width:720px){
+  .members-title-line{
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .member-management-actions-main{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4042,20 +4141,17 @@ body{
     <div class="admin-page hidden" data-admin-view="members">
       <div class="admin-members-page">
         <section class="card members-card" id="adminMembers">
-          <div class="members-head">
-            <div>
+          <div class="members-head members-head-inline">
+            <div class="members-title-line">
               <h2>Gestion des membres</h2>
+              <span class="pill" id="memberCount"></span>
             </div>
-            <span class="pill" id="memberCount"></span>
           </div>
 
-          <div class="member-management-panel">
-            <div class="member-management-head member-management-head-actions-only">
-              <div class="member-management-actions">
-                <button class="btn" type="button" id="memberManageCreate">Créer</button>
-                <button class="btn" type="button" id="memberManageModify">Modifier</button>
-              </div>
-            </div>
+          <div class="member-management-actions member-management-actions-main">
+            <button class="btn" type="button" id="memberManageCreate">Créer</button>
+            <button class="btn" type="button" id="memberManageModify">Modifier</button>
+            <button class="btn" type="button" id="memberManageRotateAll">Renouveler les liens</button>
           </div>
 
           <div class="secret-box hidden" id="newLinkBox">
@@ -5268,7 +5364,7 @@ function renderAdminCalendar(){
 }
 
 function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=addDays(parisToday(),i);if(!adminIsOpen(d))continue;open++;if(assignmentCoverage(adminData,d).covered)covered++}return{open,covered,missing:open-covered,pct:open?Math.round(covered/open*100):100}}
-function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#adminToMember')?.classList.toggle('hidden',!(adminSessionContext?.fromMember&&adminSessionContext?.memberId));q('#memberCount').textContent=`${adminData.membersAdmin.filter(m=>m.active).length} actifs`;renderAdminCalendar();renderMembers();renderDayEditorMembers();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
+function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#adminToMember')?.classList.toggle('hidden',!(adminSessionContext?.fromMember&&adminSessionContext?.memberId));q('#memberCount').textContent=`${adminData.membersAdmin.length} membres`;renderAdminCalendar();renderMembers();renderDayEditorMembers();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
 function renderCoverage(){for(const[n,id,detail]of [[30,'coverage30','coverage30Detail'],[90,'coverage90','coverage90Detail']]){const c=coverage(n);q('#'+id).textContent=`${c.pct}% couvert`;q('#'+detail).textContent=`${c.covered}/${c.open} journées · ${c.missing} à pourvoir`}let next=null;for(let i=0;i<=365;i++){const d=addDays(parisToday(),i),c=assignmentCoverage(adminData,d);if(adminIsOpen(d)&&!c.covered){next={d,c};break}}q('#nextUncovered').textContent=next?dayLabel(next.d):'Aucune';q('#nextUncoveredDetail').textContent=next?`${next.c.filled}/${CORE_ROLE_KEYS.length} postes pourvus · manque${next.c.missing.length>1?'nt':''} : ${next.c.missing.map(r=>ROLE_LABELS[r]).join(', ')}`:'Toutes les dates sont couvertes.'}
 function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=sortNamesAlpha(ids.map(id=>byId[id]).filter(Boolean));line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=sortNamesAlpha(present.map(id=>byId[id]).filter(Boolean));line.textContent=`Disponible : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
 function renderMembers(){
@@ -5360,22 +5456,37 @@ function renderMembers(){
     }
 
     const linkTd=document.createElement('td');
+    linkTd.className='member-link-cell';
+    const linkRow=document.createElement('div');
+    linkRow.className='member-link-row';
+
+    const refreshLink=document.createElement('button');
+    refreshLink.type='button';
+    refreshLink.className='member-link-refresh';
+    refreshLink.textContent='↻';
+    refreshLink.title=m.active?`Renouveler le lien de ${m.name}`:`Réactivez ${m.name} pour générer un lien`;
+    refreshLink.setAttribute('aria-label',refreshLink.title);
+    refreshLink.disabled=!m.active;
+    if(m.active)refreshLink.addEventListener('click',()=>rotateMember(m.id,m.name,refreshLink,{showResult:false,scrollResult:false}));
+    linkRow.append(refreshLink);
+
     if(LOCAL&&m.active){
       const url=localPersonalUrl(m.id);
       const a=document.createElement('a');
       a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
-      linkTd.append(a)
+      linkRow.append(a)
     }else if(m.currentShortToken){
       const url=shortPersonalUrl(m.currentShortToken);
       const a=document.createElement('a');
       a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
-      linkTd.append(a)
+      linkRow.append(a)
     }else{
       const span=document.createElement('span');
       span.className=m.hasActiveLink?'member-link-legacy':'member-link-empty';
       span.textContent=m.hasActiveLink?'Lien indisponible':'Aucun lien';
-      linkTd.append(span)
+      linkRow.append(span)
     }
+    linkTd.append(linkRow)
 
     tr.append(nameTd,emailTd,stateTd,devicesTd,linkTd);
     body.append(tr)
@@ -5720,7 +5831,7 @@ function paintMemberStatus(id,active){
     pill.setAttribute('aria-label',pill.title)
   }
   const count=q('#memberCount');
-  if(count&&adminData)count.textContent=`${adminData.membersAdmin.filter(x=>x.active).length} actifs`
+  if(count&&adminData)count.textContent=`${adminData.membersAdmin.length} membres`
 }
 function reapplyPendingMemberStatuses(){
   for(const pending of memberStatusPending.values())paintMemberStatus(pending.memberId,pending.active)
@@ -5827,7 +5938,45 @@ async function toggleMemberActiveDirect(id,active,name='',btn=null){
 
 
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
-async function rotateMember(id,name='',btn=null){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
+async function rotateMember(id,name='',btn=null,{showResult=true,scrollResult=true}={}){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){if(showResult)showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;if(showResult)showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');if(showResult&&scrollResult)setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
+async function rotateAllMemberLinks(btn=null){
+  const members=(adminData?.membersAdmin||[]);
+  const active=members.filter(m=>m.active);
+  if(!active.length){
+    toast('Aucun membre actif');
+    return
+  }
+
+  const ok=await confirmModal(
+    `Renouveler les liens de ${active.length} membre${active.length>1?'s':''} actif${active.length>1?'s':''} ?\n\nTous les anciens liens seront invalidés et les appareils associés devront se reconnecter. Si votre accès administrateur provient d’un compte membre concerné, votre session pourra également être interrompue.`,
+    {title:'Renouveler tous les liens',confirmText:'Renouveler les liens',danger:true}
+  );
+  if(!ok)return;
+
+  setButtonBusy(btn,true,'Renouvellement…');
+  toast('Renouvellement des liens…');
+  try{
+    if(LOCAL){
+      for(const m of active)audit('Administrateur','lien_regenere','',{memberId:m.id,bulk:true});
+      saveLocal();
+      adminData=localAdminSnapshot()
+    }else{
+      const j=await netApi('/api/admin/members/rotate-all',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:'{}'
+      });
+      adminData=j.snapshot
+    }
+    renderAdmin();
+    toast(`${active.length} lien${active.length>1?'s':''} renouvelé${active.length>1?'s':''}`)
+  }catch(e){
+    setNotice(q('#adminError'),e.message);
+    toast('Échec : '+e.message)
+  }finally{
+    setButtonBusy(btn,false)
+  }
+}
 async function revokeMemberDevices(id,name,count,btn=null){const ok=await confirmModal(`Déconnecter ${count} appareil${count>1?'s':''} associé${count>1?'s':''} à ${name} ?\n\nLe lien personnel restera valide et pourra être utilisé pour reconnecter un appareil.`,{title:'Déconnecter les appareils',confirmText:'Déconnecter',danger:true});if(!ok)return;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/sessions/revoke`,{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} appareil${j.revoked>1?'s':''} déconnecté${j.revoked>1?'s':''}`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 function setLocalDayAssignments(date,selections){
   if(!effectiveOpen(localAdminSnapshot(),date))throw new Error("Le club n'est pas ouvert ce jour-là.");
@@ -5997,6 +6146,7 @@ q('#adminExit').addEventListener('click',async()=>{adminSessionContext=null;if(L
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;const ok=await createMember(name,email,e.submitter);if(ok){q('#newName').value='';q('#newEmail').value='';closeMemberManagement()}});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#memberManageCreate').addEventListener('click',()=>setMemberManagementMode('create'));
 q('#memberManageModify').addEventListener('click',()=>setMemberManagementMode('modify'));
+q('#memberManageRotateAll').addEventListener('click',e=>rotateAllMemberLinks(e.currentTarget));
 q('#memberCreateClose').addEventListener('click',closeMemberManagement);
 q('#memberModifyClose').addEventListener('click',closeMemberManagement);
 q('#memberCreatePanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberManagement()});
