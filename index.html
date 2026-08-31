@@ -4062,7 +4062,7 @@ body{
 
 
 /* =========================================================
-   V15.40 — EXCLUSIVITÉ DISPONIBLE / RÔLES + ÉDITEUR DRAG&DROP
+   V15.40.1 — ÉDITEUR JOURNÉE EN COLONNES
    ========================================================= */
 
 .available-check.is-disabled{
@@ -4079,36 +4079,57 @@ body{
 .available-check.is-disabled input{cursor:not-allowed!important}
 
 #adminCorrectionOverlay .admin-correction-dialog{
-  width:min(1180px,calc(100vw - 24px)) !important;
+  width:min(1260px,calc(100vw - 24px)) !important;
   max-height:calc(100vh - 18px) !important;
   padding:20px 22px 18px !important;
 }
-#adminCorrectionOverlay .day-editor-date{margin:0 0 14px}
-
-.day-editor-workspace{
-  display:grid;
-  grid-template-columns:250px minmax(0,1fr);
-  gap:14px;
-  min-height:430px;
+#adminCorrectionOverlay .day-editor-date{
+  margin:0 0 14px;
+  text-align:center;
+  font-size:18px;
+  font-weight:850;
+  color:#1f2e25;
 }
-.day-member-pool-panel,
-.day-role-card{
+
+.day-editor-columns{
+  display:grid;
+  grid-template-columns:230px repeat(4,minmax(130px,1fr)) minmax(180px,1.25fr);
+  gap:10px;
+  min-height:430px;
+  align-items:stretch;
+}
+.day-column{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
   border:1px solid var(--admin-grid-line,var(--line));
   border-radius:14px;
   background:#fbfcfb;
+  overflow:hidden;
 }
-.day-member-pool-panel{padding:12px}
+.day-column-head{
+  padding:10px 12px 9px;
+  border-bottom:1px solid var(--admin-grid-line,var(--line));
+  background:#f7faf8;
+}
 .day-editor-panel-title,
 .day-role-card-title{
   font-size:13px;
   font-weight:850;
   color:#27372e;
 }
-.day-editor-pool-help{margin:3px 0 10px}
+.day-editor-pool-help{margin:3px 0 0}
+.day-member-pool-column,
+.day-role-dropzone-column{
+  flex:1 1 auto;
+  min-height:0;
+}
 .day-member-pool{
   display:flex;
   flex-direction:column;
   gap:5px;
+  padding:10px;
+  overflow:auto;
 }
 .day-member-source-item{
   display:flex;
@@ -4152,27 +4173,16 @@ body{
   font-size:10px;
   line-height:1.2;
 }
-
-.day-role-board{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-.day-role-card{
-  min-width:0;
-  padding:11px;
-}
-.day-role-card-title{margin-bottom:8px;text-align:left}
-.day-role-card-available{grid-column:1/-1}
 .day-role-dropzone{
   min-height:128px;
   display:flex;
-  align-items:center;
-  justify-content:center;
+  align-items:flex-start;
+  justify-content:flex-start;
   padding:10px;
   border:1.5px dashed #c7d3cc;
   border-radius:11px;
   background:#fff;
+  margin:10px;
   transition:background .13s ease,border-color .13s ease,box-shadow .13s ease;
 }
 .day-role-dropzone.drag-over{
@@ -4188,7 +4198,7 @@ body{
   color:#89958e;
   font-size:12px;
   font-style:italic;
-  text-align:center;
+  text-align:left;
   pointer-events:none;
 }
 .day-assignment-chip,
@@ -4221,11 +4231,6 @@ body{
   cursor:pointer;
 }
 .day-assignment-remove:hover{background:#fff;color:#a03535}
-.day-available-dropzone{
-  min-height:118px;
-  align-items:flex-start;
-  justify-content:flex-start;
-}
 .day-available-chip-wrap{
   display:flex;
   flex-wrap:wrap;
@@ -4240,22 +4245,32 @@ body{
 .day-editor-warning{margin-top:10px!important}
 .day-editor-actions{margin-top:12px!important}
 
-@media(max-width:820px){
+@media(max-width:1180px){
+  .day-editor-columns{
+    grid-template-columns:220px repeat(3,minmax(120px,1fr));
+  }
+  .day-column-available{grid-column:2 / -1}
+}
+@media(max-width:900px){
   #adminCorrectionOverlay .admin-correction-dialog{width:calc(100vw - 14px)!important}
-  .day-editor-workspace{grid-template-columns:1fr;min-height:0}
-  .day-member-pool{display:grid;grid-template-columns:1fr 1fr}
-  .day-role-board{grid-template-columns:1fr 1fr}
+  .day-editor-columns{
+    grid-template-columns:1fr 1fr;
+    min-height:0;
+  }
+  .day-column-members,
+  .day-column-available{grid-column:1 / -1}
 }
 @media(max-width:560px){
-  .day-member-pool,.day-role-board{grid-template-columns:1fr}
-  .day-role-card-available{grid-column:auto}
+  .day-editor-columns{grid-template-columns:1fr}
+  .day-column-members,
+  .day-column-available{grid-column:auto}
 }
 
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40 · éditeur journée drag & drop + exclusivité Disponible · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40.1 · éditeur journée en colonnes · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4517,33 +4532,33 @@ body{
         <form id="adminDayForm">
           <input type="hidden" id="dayEditorDate">
           <div class="day-editor-date" id="dayEditorDateLabel"></div>
-          <div class="day-editor-workspace" role="group" aria-label="Affectations de la journée">
-            <aside class="day-member-pool-panel" aria-label="Liste des membres">
-              <div class="day-editor-panel-title">Membres</div>
-              <div class="muted small day-editor-pool-help">Glissez un membre vers une case.</div>
-              <div id="dayMemberPool" class="day-member-pool"></div>
-            </aside>
-            <div class="day-role-board">
-              <div class="day-role-card">
-                <div class="day-role-card-title">Accueil</div>
-                <div id="dayAccueilChoices" class="day-role-dropzone" data-day-role="accueil" aria-label="Accueil"></div>
+          <div class="day-editor-workspace day-editor-columns" role="group" aria-label="Affectations de la journée">
+            <div class="day-column day-column-members" aria-label="Liste des membres">
+              <div class="day-column-head">
+                <div class="day-editor-panel-title">Membres</div>
+                <div class="muted small day-editor-pool-help">Glissez un membre.</div>
               </div>
-              <div class="day-role-card">
-                <div class="day-role-card-title">TPE</div>
-                <div id="dayTpeChoices" class="day-role-dropzone" data-day-role="tpe" aria-label="TPE"></div>
-              </div>
-              <div class="day-role-card">
-                <div class="day-role-card-title">MEP</div>
-                <div id="dayMepChoices" class="day-role-dropzone" data-day-role="mep" aria-label="MEP"></div>
-              </div>
-              <div class="day-role-card">
-                <div class="day-role-card-title">Arbitrage</div>
-                <div id="dayArbitrageChoices" class="day-role-dropzone" data-day-role="arbitrage" aria-label="Arbitrage"></div>
-              </div>
-              <div class="day-role-card day-role-card-available">
-                <div class="day-role-card-title">Disponible</div>
-                <div id="dayPresentChoices" class="day-role-dropzone day-available-dropzone" data-day-role="present" aria-label="Disponible"></div>
-              </div>
+              <div id="dayMemberPool" class="day-member-pool day-member-pool-column"></div>
+            </div>
+            <div class="day-column day-column-role">
+              <div class="day-column-head"><div class="day-role-card-title">Accueil</div></div>
+              <div id="dayAccueilChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="accueil" aria-label="Accueil"></div>
+            </div>
+            <div class="day-column day-column-role">
+              <div class="day-column-head"><div class="day-role-card-title">TPE</div></div>
+              <div id="dayTpeChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="tpe" aria-label="TPE"></div>
+            </div>
+            <div class="day-column day-column-role">
+              <div class="day-column-head"><div class="day-role-card-title">MEP</div></div>
+              <div id="dayMepChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="mep" aria-label="MEP"></div>
+            </div>
+            <div class="day-column day-column-role">
+              <div class="day-column-head"><div class="day-role-card-title">Arbitrage</div></div>
+              <div id="dayArbitrageChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="arbitrage" aria-label="Arbitrage"></div>
+            </div>
+            <div class="day-column day-column-role day-column-available">
+              <div class="day-column-head"><div class="day-role-card-title">Disponible</div></div>
+              <div id="dayPresentChoices" class="day-role-dropzone day-role-dropzone-column day-available-dropzone" data-day-role="present" aria-label="Disponible"></div>
             </div>
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
