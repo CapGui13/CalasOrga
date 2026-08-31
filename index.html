@@ -2535,11 +2535,78 @@ body.modal-open{overflow:hidden}
   .admin-schedule tr.week-b:hover .role-cell,.admin-schedule tr.week-b:hover .role-button{background:#edf3f7 !important}
 }
 
+
+/* =========================================================
+   V15.26.5 — FOND BLANC + COULEUR DISTINCTE POUR SEMAINE A
+   ========================================================= */
+
+/* Fond général de l'application */
+:root{
+  --bg:#ffffff;
+}
+html,
+body{
+  background:#ffffff !important;
+}
+
+/* Semaine A : beige/gris chaud très léger */
+.week-a .date-cell{
+  background:#f3eee7 !important;
+}
+.week-a .role-cell,
+.week-a .role-button{
+  background:#faf7f2 !important;
+}
+
+/* Admin : semaine A */
+.admin-schedule tr.week-a .date-cell{
+  background:#f1ebe3 !important;
+}
+.admin-schedule tr.week-a .role-cell,
+.admin-schedule tr.week-a .role-button{
+  background:#faf7f2 !important;
+}
+.admin-schedule tr.week-a .role-display.empty{
+  color:#83796f !important;
+}
+
+/* Mobile : semaine A */
+.mobile-date-card.week-a{
+  background:#faf7f2 !important;
+}
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#f7f2eb !important;
+  border-color:#e2d8cc !important;
+}
+
+/* Survol semaine A */
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell{
+    background:#ebe3d9 !important;
+  }
+  .admin-schedule tr.week-a:hover .role-cell,
+  .admin-schedule tr.week-a:hover .role-button{
+    background:#f5f0e9 !important;
+  }
+}
+
+/* La validation d'une journée reste prioritaire et verte */
+.admin-schedule tr.day-complete .date-cell{
+  background:#d7eee0 !important;
+}
+.admin-schedule tr.day-complete .role-cell{
+  background:#edf8f1 !important;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#edf8f1 !important;
+  border-color:#c7dece !important;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.4 · couleur semaine 2 différenciée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.5 · fond blanc + couleur semaine A · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
