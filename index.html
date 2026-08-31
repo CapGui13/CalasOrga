@@ -3930,11 +3930,37 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.38.1 — RETOUR VISUEL RENOUVELLEMENT DES LIENS
+   ========================================================= */
+
+/* Le petit ↻ utilise le même principe de spinner que les boutons .btn. */
+.member-link-refresh.is-busy{
+  position:relative;
+  pointer-events:none;
+  opacity:.78;
+  color:transparent!important;
+}
+.member-link-refresh.is-busy:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:13px;
+  height:13px;
+  border:2px solid #34483e;
+  border-right-color:transparent;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:calas-busy-stable .65s linear infinite;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.37 · planning optimiste + batch 150ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.38.1 · feedback renouvellement liens · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -5938,7 +5964,7 @@ async function toggleMemberActiveDirect(id,active,name='',btn=null){
 
 
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
-async function rotateMember(id,name='',btn=null,{showResult=true,scrollResult=true}={}){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){if(showResult)showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;if(showResult)showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');if(showResult&&scrollResult)setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
+async function rotateMember(id,name='',btn=null,{showResult=true,scrollResult=true}={}){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');beginAdminSave();let saveOk=false;toast('Création du nouveau lien…');try{if(LOCAL){if(showResult)showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;if(showResult)showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}saveOk=true;renderAdmin();toast('Nouveau lien créé');if(showResult&&scrollResult)setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{endAdminSave(saveOk);setButtonBusy(btn,false)}}
 async function rotateAllMemberLinks(btn=null){
   const members=(adminData?.membersAdmin||[]);
   const active=members.filter(m=>m.active);
@@ -5954,6 +5980,8 @@ async function rotateAllMemberLinks(btn=null){
   if(!ok)return;
 
   setButtonBusy(btn,true,'Renouvellement…');
+  beginAdminSave();
+  let saveOk=false;
   toast('Renouvellement des liens…');
   try{
     if(LOCAL){
@@ -5968,12 +5996,14 @@ async function rotateAllMemberLinks(btn=null){
       });
       adminData=j.snapshot
     }
+    saveOk=true;
     renderAdmin();
     toast(`${active.length} lien${active.length>1?'s':''} renouvelé${active.length>1?'s':''}`)
   }catch(e){
     setNotice(q('#adminError'),e.message);
     toast('Échec : '+e.message)
   }finally{
+    endAdminSave(saveOk);
     setButtonBusy(btn,false)
   }
 }
