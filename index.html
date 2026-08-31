@@ -2262,11 +2262,41 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.23.2 — FOCUS DISPONIBLE SANS FAUX SURLIGNAGE
+   ========================================================= */
+
+/* Le focus clavier/programmatique seul ne ressemble jamais à une sélection. */
+#adminCellAvailableChoices .available-check:focus-within:not(:hover):not(:has(input:checked)){
+  background:transparent !important;
+  border-color:transparent !important;
+}
+
+/* La vraie sélection reste verte. */
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0 !important;
+  border-color:#cfe2d6 !important;
+  color:var(--accent) !important;
+}
+
+/* Le survol souris reste gris léger. */
+#adminCellAvailableChoices .available-check:hover:not(:has(input:checked)){
+  background:#f3f7f4 !important;
+  border-color:#d9e4dd !important;
+}
+
+/* Si on navigue au clavier, seul le petit carré reçoit un indicateur de focus. */
+#adminCellAvailableChoices .available-check input:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--focus) 55%,transparent);
+  outline-offset:2px;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23.1 · séparation de semaines très marquée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23.2 · focus Disponible corrigé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2796,7 +2826,7 @@ function openAdminCellEditor(date,role){
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('modal-open');
-  setTimeout(()=>role==='present'?q('#adminCellAvailableChoices input')?.focus():q('#adminCellRoleChoices .single-choice-item.selected, #adminCellRoleChoices .single-choice-item')?.focus(),0)
+  setTimeout(()=>role==='present'?q('#adminCellClose')?.focus():q('#adminCellRoleChoices .single-choice-item.selected, #adminCellRoleChoices .single-choice-item')?.focus(),0)
 }
 function closeAdminCellEditor(){
   const overlay=q('#adminCellOverlay');
