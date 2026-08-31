@@ -2075,6 +2075,99 @@ class FileStore {
     });
   }
 
+  async setMembersActiveBatch(changes) {
+    if (!Array.isArray(changes) || !changes.length) return { ok: false, status: 400, error: 'Aucune modification à appliquer.' };
+    if (changes.length > 50) return { ok: false, status: 400, error: 'Trop de modifications groupées.' };
+
+    const lastByMember = new Map();
+    for (const change of changes) {
+      const memberId = String(change?.memberId || '').trim();
+      if (!memberId) return { ok: false, status: 400, error: 'Membre invalide.' };
+      lastByMember.set(memberId, { memberId, active: !!change.active });
+    }
+    const normalized = [...lastByMember.values()];
+
+    return this.mutate((s) => {
+      for (const change of normalized) {
+        if (!s.members.some((m) => m.id === change.memberId)) {
+          return { ok: false, status: 404, error: 'Membre introuvable.' };
+        }
+      }
+
+      const nowIso = this.now().toISOString();
+      const today = parisToday(this.now());
+      const results = [];
+      let generatedLink = false;
+
+      for (const change of normalized) {
+        const m = s.members.find((x) => x.id === change.memberId);
+        const requested = !!change.active;
+        const before = !!m.active;
+        if (before === requested) {
+          results.push({ memberId: m.id, active: requested, changed: false });
+          continue;
+        }
+
+        m.active = requested;
+        for (const t of s.memberTokens.filter((t) => t.memberId === m.id && t.active)) {
+          t.active = false;
+          t.revokedAt = nowIso;
+        }
+        this.#revokeMemberSessions(s, m.id);
+
+        let futureAttendanceRemoved = 0;
+        if (!requested) {
+          for (const [date, ids] of Object.entries(s.attendance || {})) {
+            if (date < today || !Array.isArray(ids) || !ids.includes(m.id)) continue;
+            const nextIds = ids.filter((id) => id !== m.id);
+            this.#log(s, 'Administrateur', 'presence_retiree_desactivation', date, { memberId: m.id, name: m.displayName });
+            if (nextIds.length) s.attendance[date] = nextIds; else delete s.attendance[date];
+            futureAttendanceRemoved += 1;
+          }
+          for (const [date, roles] of Object.entries(s.roleAssignments || {})) {
+            if (date < today || !roles || typeof roles !== 'object') continue;
+            let changedDay = false;
+            for (const role of ROLE_KEYS) {
+              const ids = Array.isArray(roles[role]) ? roles[role] : [];
+              if (!ids.includes(m.id)) continue;
+              const nextIds = ids.filter((id) => id !== m.id);
+              this.#log(s, 'Administrateur', 'role_retire_desactivation', date, { memberId: m.id, name: m.displayName, role });
+              if (nextIds.length) roles[role] = nextIds; else delete roles[role];
+              futureAttendanceRemoved += 1;
+              changedDay = true;
+            }
+            if (changedDay && !Object.keys(roles).length) delete s.roleAssignments[date];
+          }
+        } else {
+          const raw = randomToken();
+          const short = this.#newShortPersonalToken(s, m.displayName);
+          s.memberTokens.push({
+            id: `t_${randomToken(10)}`,
+            memberId: m.id,
+            tokenHash: tokenHash(raw),
+            shortTokenHash: short.hash,
+            shortTokenEnc: encryptMemberShortToken(short.raw),
+            active: true,
+            createdAt: nowIso,
+            revokedAt: null
+          });
+          generatedLink = true;
+        }
+
+        this.#log(s, 'Administrateur', requested ? 'membre_reactive' : 'membre_desactive', null, {
+          memberId: m.id,
+          name: m.displayName,
+          futureAttendanceRemoved,
+          batched: true
+        });
+        results.push({ memberId: m.id, active: requested, changed: true, futureAttendanceRemoved });
+      }
+
+      if (generatedLink) this.#cleanupMemberTokens(s);
+      return { ok: true, changedCount: results.filter((r) => r.changed).length, results };
+    }, { useCurrentRemote: true });
+  }
+
   async rotateToken(memberId) {
     const raw = randomToken();
     return this.mutate((s) => {
@@ -2101,7 +2194,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.31.1-real-links-vercel';
+const APP_VERSION = '0.15.32.0-status-batch-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2540,6 +2633,15 @@ export async function requestHandler(req, res) {
       if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req); const r = await store.createMember(b.name, b.email);
       if (!r.ok) return json(res, r.status, { error: r.error }); return json(res, 201, { ...r, personalPath: `/join#${r.rawToken}`, snapshot: store.adminSnapshot() });
+    }
+    if (pathname === '/api/admin/members/batch-active' && req.method === 'POST') {
+      const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
+      if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      const b = await bodyJson(req);
+      const r = await store.setMembersActiveBatch(b.changes);
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
     const memberSessionsMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)\/sessions\/revoke$/);
     if (memberSessionsMatch && req.method === 'POST') {

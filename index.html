@@ -3856,6 +3856,8 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let memberStatusBatchTimer=0,memberStatusBatchInFlight=false,memberStatusSaveOpen=false,memberStatusCycleOk=true;
+const memberStatusPending=new Map();
 function animateMemberCalendarIfNeeded(){}
 function animateAdminCalendarIfNeeded(){}
 let uiTransitionBusy=false;
@@ -4988,55 +4990,127 @@ async function updateMemberEmail(id,email,input=null){
     if(input){input.disabled=false;input.removeAttribute('aria-busy')}
   }
 }
-async function toggleMemberActiveDirect(id,active,name='',btn=null){
-  setButtonBusy(btn,true,active?'Activation…':'Désactivation…');
-  beginAdminSave();
-  try{
-    if(LOCAL){
-      const m=localState.members.find(x=>x.id===id);
-      if(!m)return;
-      m.active=active;
-      if(!active){
-        for(const[d,ids]of Object.entries(localState.attendance)){
-          if(d>=parisToday()){
-            localState.attendance[d]=ids.filter(x=>x!==id);
-            if(!localState.attendance[d].length)delete localState.attendance[d]
-          }
-        }
-        for(const[d,roles]of Object.entries(localState.roleAssignments||{})){
-          if(d<parisToday())continue;
-          for(const role of ['accueil','tpe','mep','arbitrage']){
-            roles[role]=(roles[role]||[]).filter(x=>x!==id);
-            if(!roles[role].length)delete roles[role]
-          }
-          if(!Object.keys(roles).length)delete localState.roleAssignments[d]
+function memberStatusRow(id){
+  return [...(q('#membersTable')?.querySelectorAll('tr[data-member-id]')||[])].find(tr=>tr.dataset.memberId===String(id))||null
+}
+function paintMemberStatus(id,active){
+  const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  if(m)m.active=!!active;
+  const row=memberStatusRow(id),pill=row?.querySelector('.member-state-pill');
+  if(pill){
+    pill.classList.toggle('active',!!active);
+    pill.classList.toggle('inactive',!active);
+    pill.textContent=active?'Actif':'Inactif';
+    const memberName=m?.name||m?.displayName||'';
+    pill.title=`Double-cliquez pour ${active?'désactiver':'activer'} ${memberName}`;
+    pill.setAttribute('aria-label',pill.title)
+  }
+  const count=q('#memberCount');
+  if(count&&adminData)count.textContent=`${adminData.membersAdmin.filter(x=>x.active).length} actifs`
+}
+function reapplyPendingMemberStatuses(){
+  for(const pending of memberStatusPending.values())paintMemberStatus(pending.memberId,pending.active)
+}
+function queueMemberStatusChange(id,active,name=''){
+  const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
+  if(!m)return;
+  const desired=!!active;
+  const current=!!m.active;
+  if(current===desired)return;
+
+  if(!memberStatusSaveOpen){
+    beginAdminSave();
+    memberStatusSaveOpen=true;
+    memberStatusCycleOk=true
+  }
+
+  const existing=memberStatusPending.get(id);
+  if(existing){
+    existing.active=desired;
+    if(desired===existing.rollbackActive)memberStatusPending.delete(id)
+  }else{
+    memberStatusPending.set(id,{memberId:id,active:desired,rollbackActive:current,name})
+  }
+
+  paintMemberStatus(id,desired);
+  clearTimeout(memberStatusBatchTimer);
+
+  if(!memberStatusPending.size&&!memberStatusBatchInFlight){
+    if(memberStatusSaveOpen){endAdminSave(true);memberStatusSaveOpen=false}
+    return
+  }
+  memberStatusBatchTimer=setTimeout(flushMemberStatusBatch,140)
+}
+async function applyLocalMemberStatusBatch(batch){
+  const today=parisToday();
+  for(const change of batch){
+    const m=localState.members.find(x=>x.id===change.memberId);
+    if(!m||!!m.active===!!change.active)continue;
+    m.active=!!change.active;
+    if(!change.active){
+      for(const[d,ids]of Object.entries(localState.attendance)){
+        if(d>=today){
+          localState.attendance[d]=ids.filter(x=>x!==change.memberId);
+          if(!localState.attendance[d].length)delete localState.attendance[d]
         }
       }
-      audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});
-      saveLocal();
-      adminData=localAdminSnapshot();
-      if(active)showNewLink(localPersonalUrl(id))
-    }else{
-      const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({active})
-      });
-      adminData=j.snapshot;
-      if(active){
-        if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));
-        else if(j.personalPath)showNewLink(location.origin+j.personalPath)
+      for(const[d,roles]of Object.entries(localState.roleAssignments||{})){
+        if(d<today)continue;
+        for(const role of ['accueil','tpe','mep','arbitrage']){
+          roles[role]=(roles[role]||[]).filter(x=>x!==change.memberId);
+          if(!roles[role].length)delete roles[role]
+        }
+        if(!Object.keys(roles).length)delete localState.roleAssignments[d]
       }
     }
-    renderAdmin();
-    endAdminSave(true)
+    audit('Administrateur',change.active?'membre_reactive':'membre_desactive','',{memberId:change.memberId})
+  }
+  saveLocal();
+  return{snapshot:localAdminSnapshot()}
+}
+async function flushMemberStatusBatch(){
+  clearTimeout(memberStatusBatchTimer);
+  memberStatusBatchTimer=0;
+  if(memberStatusBatchInFlight||!memberStatusPending.size)return;
+
+  const batch=[...memberStatusPending.values()];
+  memberStatusPending.clear();
+  memberStatusBatchInFlight=true;
+  try{
+    const j=LOCAL
+      ?await applyLocalMemberStatusBatch(batch)
+      :await netApi('/api/admin/members/batch-active',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({changes:batch.map(({memberId,active})=>({memberId,active}))})
+      });
+
+    adminData=j.snapshot;
+    reapplyPendingMemberStatuses();
+    renderAdmin()
   }catch(e){
-    endAdminSave(false);
+    memberStatusCycleOk=false;
+    for(const change of batch){
+      if(memberStatusPending.has(change.memberId))continue;
+      paintMemberStatus(change.memberId,change.rollbackActive)
+    }
+    reapplyPendingMemberStatuses();
     setNotice(q('#adminError'),e.message)
   }finally{
-    setButtonBusy(btn,false)
+    memberStatusBatchInFlight=false;
+    if(memberStatusPending.size){
+      clearTimeout(memberStatusBatchTimer);
+      memberStatusBatchTimer=setTimeout(flushMemberStatusBatch,140)
+    }else if(memberStatusSaveOpen){
+      endAdminSave(memberStatusCycleOk);
+      memberStatusSaveOpen=false
+    }
   }
 }
+async function toggleMemberActiveDirect(id,active,name='',btn=null){
+  queueMemberStatusChange(id,active,name)
+}
+
 
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function rotateMember(id,name='',btn=null){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}

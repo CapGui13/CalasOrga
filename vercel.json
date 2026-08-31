@@ -89,7 +89,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-p+Y0Z7tSf2a9ehGvMqLAbW8MgLtAzSfzn+GzWg4ZIZw='; style-src 'self' 'sha256-35NigAXAmThkKQE94wuFsM4vI6diAIZD2aQwQ5k4pUs='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-YNWWjthhsBI7/YpZgVCTj8b6t7yFY9uU8vUr5Y03dTc='; style-src 'self' 'sha256-35NigAXAmThkKQE94wuFsM4vI6diAIZD2aQwQ5k4pUs='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         }
       ]
     }
