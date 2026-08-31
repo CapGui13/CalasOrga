@@ -2007,7 +2007,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.28.0-roster-email-vercel';
+const APP_VERSION = '0.15.28.1-route-render-fix-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2214,7 +2214,13 @@ export async function requestHandler(req, res) {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);
     }
-    if (['/calendar','/join','/join-short','/admin-login','/admin','/invalid'].includes(pathname) && req.method === 'GET') return serveIndex(res);
+    if (
+      (
+        ['/calendar','/join','/join-short','/admin-login','/admin','/admin/membres','/admin/historique','/invalid'].includes(pathname)
+        || /^\/admin\/(?:membres|historique)\/$/.test(pathname)
+      )
+      && req.method === 'GET'
+    ) return serveIndex(res);
 
 
     // Connexions : une seule lecture Blob + une seule écriture principale. Les snapshots
