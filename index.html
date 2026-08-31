@@ -2703,11 +2703,53 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.26.7 — QUADRILLAGE DU PLANNING PLUS LISIBLE
+   ========================================================= */
+
+/* Bordures de cellules plus présentes sans devenir lourdes. */
+.schedule th,
+.schedule td{
+  border-bottom-color:#cbd4cf !important;
+  border-right-color:#cbd4cf !important;
+}
+
+/* En-tête plus nettement séparé du contenu. */
+.schedule thead th{
+  border-bottom:2px solid #b9c5bf !important;
+}
+
+/* Bord extérieur du tableau légèrement renforcé. */
+.schedule-wrap{
+  border-color:#c5d0ca !important;
+}
+
+/* Sur l'admin, même quadrillage avec un contraste stable
+   quelle que soit la couleur de semaine. */
+.admin-schedule th,
+.admin-schedule td{
+  border-bottom-color:#c7d0cb !important;
+  border-right-color:#c7d0cb !important;
+}
+
+/* Les séparations verticales restent visibles sur les lignes validées. */
+.admin-schedule tr.day-complete td{
+  border-right-color:#c1d0c6 !important;
+  border-bottom-color:#c1d0c6 !important;
+}
+
+/* Mobile : contours de cartes légèrement renforcés. */
+.admin-schedule-mobile .mobile-date-card,
+.schedule-mobile .mobile-date-card{
+  border-color:#c9d3ce !important;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.6 · lignes uniformes + fondu doux · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.7 · quadrillage planning renforcé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
