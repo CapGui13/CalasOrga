@@ -189,6 +189,7 @@ function sanitizeEmail(email) {
 }
 
 const CURRENT_ROSTER_VERSION = '2026-08-31-v1';
+const CURRENT_LINK_STORAGE_VERSION = '2026-08-31-recoverable-v1';
 const CURRENT_ROSTER = [
   { id: 'roster_20260831_01', displayName: "Pascal", email: "wolffpas94@gmail.com" },
   { id: 'roster_20260831_02', displayName: "Guillaume", email: "guillaume_capron@yahoo.fr" },
@@ -211,6 +212,7 @@ function applyCurrentRoster(state, nowIso = new Date().toISOString()) {
   const oldRoleDates = state?.roleAssignments && typeof state.roleAssignments === 'object' ? Object.keys(state.roleAssignments).length : 0;
 
   state.rosterVersion = CURRENT_ROSTER_VERSION;
+  state.linkStorageVersion = CURRENT_LINK_STORAGE_VERSION;
   state.members = CURRENT_ROSTER.map((m) => ({
     id: m.id,
     displayName: m.displayName,
@@ -372,6 +374,7 @@ function makeDemoSeed(now = new Date('2026-08-27T15:00:00Z')) {
   return {
     schemaVersion: 4,
     rosterVersion: CURRENT_ROSTER_VERSION,
+    linkStorageVersion: CURRENT_LINK_STORAGE_VERSION,
     settings: { minRequired: 1 },
     members,
     memberTokens,
@@ -601,12 +604,13 @@ class FileStore {
   async #loadStateFile(filename) {
     this.state = JSON.parse(await fs.readFile(filename, 'utf8'));
     const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
+    const linkStorageMigrationNeeded = this.state?.linkStorageVersion !== CURRENT_LINK_STORAGE_VERSION;
     this.#normalize({ requireEnvelope: true });
     const report = this.integrityReport();
     if (!report.ok) {
       throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
     }
-    return rosterMigrationNeeded;
+    return rosterMigrationNeeded || linkStorageMigrationNeeded;
   }
 
   #invalidateRecoveredCredentials(reason = 'reprise_stockage') {
@@ -670,6 +674,41 @@ class FileStore {
       for (const m of this.state.members) {
         const email = sanitizeEmail(m?.email);
         if (email) m.email = email;
+      }
+    }
+
+    if (this.state.linkStorageVersion !== CURRENT_LINK_STORAGE_VERSION) {
+      const nowIso = this.now().toISOString();
+      let upgraded = 0;
+      for (const m of this.state.members) {
+        const legacyActive = this.state.memberTokens.find((t) => t.memberId === m.id && t.active && !t.shortTokenEnc);
+        if (!legacyActive) continue;
+
+        /* L'ancien short token n'est pas réversible. On le remplace par un
+           nouveau lien affichable, mais on conserve les sessions appareils
+           existantes : seul l'ancien URL devient invalide. */
+        for (const t of this.state.memberTokens.filter((t) => t.memberId === m.id && t.active)) {
+          t.active = false;
+          t.revokedAt = nowIso;
+        }
+        const raw = randomToken();
+        const short = this.#newShortPersonalToken(this.state, m.displayName);
+        this.state.memberTokens.push({
+          id: `t_${randomToken(10)}`,
+          memberId: m.id,
+          tokenHash: tokenHash(raw),
+          shortTokenHash: short.hash,
+          shortTokenEnc: encryptMemberShortToken(short.raw),
+          active: true,
+          createdAt: nowIso,
+          revokedAt: null
+        });
+        upgraded += 1;
+      }
+      this.state.linkStorageVersion = CURRENT_LINK_STORAGE_VERSION;
+      if (upgraded) {
+        this.#log(this.state, 'Système', 'liens_anciens_convertis', null, { upgraded });
+        this.#cleanupMemberTokens(this.state);
       }
     }
   }
@@ -1327,7 +1366,7 @@ class FileStore {
       at: safeIsoInstant(x?.at) || this.now().toISOString(), actor: String(x?.actor || 'Inconnu').slice(0, 100), action: String(x?.action || 'import').slice(0, 100),
       date: x?.date && isIsoDate(x.date) ? x.date : null, metadata: sanitizeAuditMetadata(x?.metadata && typeof x.metadata === 'object' && !Array.isArray(x.metadata) ? x.metadata : {})
     })) : [];
-    const nextState = { schemaVersion: CURRENT_SCHEMA_VERSION, rosterVersion: CURRENT_ROSTER_VERSION, settings: { minRequired }, members, memberTokens, sessions: [], attendance, roleAssignments, scheduleExceptions, auditLog };
+    const nextState = { schemaVersion: CURRENT_SCHEMA_VERSION, rosterVersion: CURRENT_ROSTER_VERSION, linkStorageVersion: CURRENT_LINK_STORAGE_VERSION, settings: { minRequired }, members, memberTokens, sessions: [], attendance, roleAssignments, scheduleExceptions, auditLog };
     const probe = new FileStore(this.filePath, { now: this.now });
     probe.state = clone(nextState);
     const integrity = probe.integrityReport();
@@ -2062,7 +2101,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.31.0-member-management-links-vercel';
+const APP_VERSION = '0.15.31.1-real-links-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
