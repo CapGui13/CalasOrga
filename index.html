@@ -4587,7 +4587,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.2 · bascule membre admin rapide et fiable · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41.3 · bascule admin membre instantanée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4962,6 +4962,7 @@ const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', memberCalendarMode = 'auto', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
 let memberToAdminSwitchPromise=null;
+let adminToMemberSwitchPromise=null;
 let memberStatusBatchTimer=0,memberStatusBatchInFlight=false,memberStatusSaveOpen=false,memberStatusCycleOk=true;
 let memberSaveTimer=0;
 const memberStatusPending=new Map();
@@ -6724,31 +6725,84 @@ async function switchMemberToAdmin(btn=null){
 }
 
 async function switchAdminToMember(btn=null){
-  const memberId=adminSessionContext?.memberId;
+  const memberId=String(adminSessionContext?.memberId||'');
   if(!memberId)return;
-  setButtonBusy(btn,true,'Ouverture…');
-  try{
-    if(LOCAL){
-      const m=localState.members.find(x=>x.id===memberId&&x.active&&x.adminPrivilege===true);
-      if(!m)throw new Error('Privilèges administrateur retirés.');
-      currentLocalMemberId=memberId;
-      memberData=localMemberSnapshot(memberId);
-      memberCalendarMode='auto';
-      memberMonth=chooseInitialMonth();
-      history.replaceState(null,'','/calendar');
-      showOnly('memberRoot');
-      renderMember();
-      return
+
+  if(adminToMemberSwitchPromise)return adminToMemberSwitchPromise;
+
+  const task=(async()=>{
+    setButtonBusy(btn,true,'Ouverture…');
+
+    try{
+      if(LOCAL){
+        const m=localState.members.find(x=>String(x.id)===memberId&&x.active&&x.adminPrivilege===true);
+        if(!m)throw new Error('Privilèges administrateur retirés.');
+        currentLocalMemberId=memberId;
+        memberData=localMemberSnapshot(memberId);
+        memberCalendarMode='auto';
+        memberMonth=chooseInitialMonth();
+        history.replaceState(null,'','/calendar');
+        showOnly('memberRoot');
+        renderMember();
+        return
+      }
+
+      /* La session membre n'a jamais été quittée lorsqu'on est passé en
+         administration. On peut donc réafficher instantanément les données
+         membre déjà en mémoire, sans attendre le réseau. */
+      if(memberData?.me&&String(memberData.me.id)===memberId){
+        memberCalendarMode='auto';
+        if(!memberMonth)memberMonth=chooseInitialMonth();
+        history.replaceState(null,'','/calendar');
+        showOnly('memberRoot');
+        q('#githubAdminLink').classList.add('hidden');
+        renderMember()
+      }else{
+        /* Cas de secours exceptionnel : le cache membre n'existe plus.
+           On affiche tout de même la route membre avant le chargement. */
+        history.replaceState(null,'','/calendar')
+      }
+
+      /* Rafraîchissement en arrière-plan indépendant du poller standard :
+         il ne peut pas être annulé par memberRefreshBusy ou un batch planning. */
+      try{
+        const fresh=await netApi('/api/me');
+        memberData=memberPendingOverlay(fresh);
+        if(!memberMonth){
+          memberCalendarMode='auto';
+          memberMonth=chooseInitialMonth()
+        }
+
+        /* Si l'utilisateur est déjà reparti dans l'admin pendant que
+           /api/me répondait, ne surtout pas lui reprendre l'écran. */
+        if(!q('#memberRoot').classList.contains('hidden')&&location.pathname==='/calendar'){
+          renderMember()
+        }
+      }catch(e){
+        if(e.status===401){
+          invalidMemberSession();
+          return
+        }
+        /* Une panne réseau transitoire ne doit plus casser la bascule :
+           si le cache membre est affiché, on le conserve et on signale
+           seulement l'erreur sous forme flottante. */
+        if(memberData?.me&&String(memberData.me.id)===memberId){
+          showMemberError(`Actualisation impossible : ${e.message}`)
+        }else{
+          throw e
+        }
+      }
+    }catch(e){
+      setNotice(q('#adminError'),e.message)
+    }finally{
+      setButtonBusy(btn,false)
     }
-    history.replaceState(null,'','/calendar');
-    memberCalendarMode='auto';
-    memberMonth='';
-    await refreshMember()
-  }catch(e){
-    setNotice(q('#adminError'),e.message)
-  }finally{
-    setButtonBusy(btn,false)
-  }
+  })();
+
+  adminToMemberSwitchPromise=task.finally(()=>{
+    adminToMemberSwitchPromise=null
+  });
+  return adminToMemberSwitchPromise
 }
 
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
