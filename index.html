@@ -2211,11 +2211,62 @@ body.modal-open{overflow:hidden}
   margin-top:12px;
 }
 
+
+/* =========================================================
+   V15.23.1 — SÉPARATION DE SEMAINES ENCORE PLUS MARQUÉE
+   ========================================================= */
+.admin-schedule .week-separator-line{
+  height:36px;
+}
+.admin-schedule .week-separator-line::before{
+  height:4px;
+  background:#8fa49a;
+  box-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+
+/* Contraste plus net entre les blocs de semaines */
+.admin-schedule tr.week-a .date-cell,
+.admin-schedule tr.week-a .role-cell{
+  background:#ffffff;
+}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  background:#e4efe8;
+}
+.admin-schedule tr.week-b .date-cell{
+  background:#dbe9e0;
+}
+
+/* Première ligne de chaque nouvelle semaine légèrement soulignée */
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  border-top-color:#c6d7cc;
+}
+
+/* Mobile : même contraste */
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#ffffff;
+}
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#e4efe8;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell{
+    background:#f8fbf9;
+  }
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#dbe9e0;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23 · séparation de semaines renforcée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23.1 · séparation de semaines très marquée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
