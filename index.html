@@ -4370,11 +4370,168 @@ body{
   }
 }
 
+/* =========================================================
+   V15.41 — PARITÉ GRAPHIQUE / UX MEMBRE ↔ ADMIN
+   ========================================================= */
+
+#memberRoot > .topbar{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+#memberRoot > .topbar .top-actions{
+  position:relative;
+  flex-direction:column;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+}
+#memberRoot #memberExit{order:1}
+#memberRoot #memberToAdmin{order:2}
+#memberRoot #lastRefresh{order:3}
+#memberRoot #memberExit,
+#memberRoot #memberToAdmin{align-self:flex-end}
+
+#memberRoot .member-calendar-card{
+  width:min(1080px,100%);
+  margin:0 auto;
+  padding:22px!important;
+  border-radius:18px!important;
+  border-color:var(--line)!important;
+  box-shadow:var(--shadow)!important;
+  background:#fff;
+}
+#memberRoot .admin-calendar-head{
+  justify-content:center;
+  text-align:center;
+}
+#memberRoot #memberCalendarTitle{
+  margin:0!important;
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+  font-weight:850;
+}
+#memberRoot .member-monthnav{
+  display:grid!important;
+  width:min(430px,100%);
+  grid-template-columns:46px minmax(0,1fr) 46px!important;
+  grid-template-areas:'prev label next';
+  align-items:center;
+  margin:14px auto 18px;
+}
+#memberRoot #prevMonth{grid-area:prev;justify-self:center}
+#memberRoot #monthLabel{
+  grid-area:label;
+  width:100%;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#memberRoot #nextMonth{grid-area:next;justify-self:center}
+
+#memberRoot .member-schedule-wrap{
+  border-radius:15px!important;
+  border-color:var(--admin-grid-line,#cbd4cf)!important;
+  box-shadow:none!important;
+}
+#memberRoot .member-schedule thead th{
+  height:44px;
+  padding:10px;
+  background:var(--admin-head-bg,#f5f8f6)!important;
+  color:var(--admin-head-text,#33423a)!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+}
+#memberRoot .member-schedule .date-cell{
+  vertical-align:middle;
+}
+#memberRoot .member-schedule .date-main{
+  font-size:15px;
+}
+#memberRoot .member-role-cell{
+  padding:0!important;
+  vertical-align:middle;
+}
+#memberRoot .member-role-button{
+  width:100%;
+  min-height:102px;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  text-align:center;
+}
+#memberRoot .member-role-button:disabled{cursor:not-allowed}
+#memberRoot .member-role-button.mine{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#memberRoot .member-role-display{
+  min-height:102px;
+  width:100%;
+}
+#memberRoot .member-role-display.empty{
+  font-style:italic;
+}
+#memberRoot .member-role-button:hover:not(:disabled) .member-role-display{
+  box-shadow:inset 0 0 0 2px rgba(33,108,74,.10);
+}
+#memberRoot .member-schedule .role-chip.me,
+#memberRoot .member-schedule-mobile .role-chip.me{
+  background:#fff!important;
+  color:#17251e!important;
+  border:2px solid #78ad8d!important;
+  box-shadow:0 1px 3px rgba(24,39,31,.12)!important;
+}
+
+/* Le membre utilise exactement les couleurs de semaine / validation admin. */
+#memberRoot .member-schedule tr.week-a .date-cell,
+#memberRoot .member-schedule tr.week-a .role-cell,
+#memberRoot .member-schedule tr.week-a .role-button{
+  background:#f4eee6!important;
+}
+#memberRoot .member-schedule tr.week-b .date-cell,
+#memberRoot .member-schedule tr.week-b .role-cell,
+#memberRoot .member-schedule tr.week-b .role-button{
+  background:#e7eef3!important;
+}
+#memberRoot .member-schedule tr.day-complete .date-cell,
+#memberRoot .member-schedule tr.day-complete .role-cell,
+#memberRoot .member-schedule tr.day-complete .role-button{
+  background:#d5ecdf!important;
+}
+#memberRoot .member-schedule-mobile .mobile-date-card.week-a{background:#f4eee6!important}
+#memberRoot .member-schedule-mobile .mobile-date-card.week-b{background:#e7eef3!important}
+#memberRoot .member-schedule-mobile .mobile-date-card.day-complete{background:#d5ecdf!important}
+
+#memberRoot .member-schedule-mobile .mobile-date-head{
+  justify-content:flex-start;
+}
+#memberRoot .member-mobile-role{
+  cursor:pointer;
+}
+#memberRoot .member-mobile-role.mine{
+  background:transparent!important;
+}
+
+@media(max-width:820px){
+  #memberRoot > .topbar{width:100%}
+  #memberRoot > .topbar .top-actions{width:100%;align-items:stretch}
+  #memberRoot #memberExit,
+  #memberRoot #memberToAdmin{align-self:stretch;width:100%}
+  #memberRoot .member-calendar-card{padding:16px!important}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40.4 · formulaires membres harmonisés · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.41 · parité UI UX membre administration · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4502,30 +4659,32 @@ body{
       <div>
         <div class="brand">Présences du club</div>
         <div class="muted" id="welcome">Chargement…</div>
-        <div class="muted small sync-state" id="lastRefresh" aria-live="polite"></div>
       </div>
       <div class="top-actions">
-        <span class="pill">Vous ne modifiez que votre présence</span>
+        <span class="admin-save-state hidden" id="lastRefresh" role="status" aria-live="polite"></span>
         <button class="btn primary hidden" type="button" id="memberToAdmin">Administration</button>
-        <button class="btn server-only" type="button" id="refreshNow">Actualiser</button>
-        <button class="btn" type="button" id="memberExit">Quitter ce lien</button>
+        <button class="btn" type="button" id="memberExit">Déconnexion</button>
       </div>
     </header>
     <div class="notice error hidden" id="memberError" aria-live="assertive"></div>
-    <section class="card compact-card" aria-labelledby="myUpcomingTitle">
-      <div class="section-head"><div><h2 id="myUpcomingTitle">Mes prochaines inscriptions</h2><div class="muted small">Raccourcis vers les dates où vous avez déjà choisi au moins une case.</div></div><span class="pill" id="myUpcomingCount"></span></div>
-      <div class="upcoming-list" id="myUpcoming" aria-live="polite"></div>
-    </section>
-    <div class="member-calendar-surface">
-      <nav class="monthnav" aria-label="Navigation des mois">
-        <button class="btn icon-btn" id="prevMonth" type="button" aria-label="Mois précédent">‹</button>
-        <button class="btn" id="todayMonth" type="button">Aujourd’hui</button>
+
+    <section class="card admin-calendar-card member-calendar-card spaced" id="memberCalendar" aria-labelledby="memberCalendarTitle">
+      <div class="section-head admin-calendar-head">
+        <div><h2 id="memberCalendarTitle">Planning</h2></div>
+      </div>
+      <nav class="monthnav admin-monthnav member-monthnav" aria-label="Navigation du planning">
+        <button class="btn icon-btn" id="prevMonth" type="button" aria-label="Période précédente">‹</button>
         <div class="monthlabel" id="monthLabel" aria-live="polite"></div>
-        <button class="btn icon-btn" id="nextMonth" type="button" aria-label="Mois suivant">›</button>
+        <button class="btn icon-btn" id="nextMonth" type="button" aria-label="Période suivante">›</button>
       </nav>
-      <div class="schedule-wrap"><table class="schedule" aria-label="Tableau des permanences"><thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead><tbody id="scheduleBody"></tbody></table></div>
-      <div class="schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
-    </div>
+      <div class="schedule-wrap admin-schedule-wrap member-schedule-wrap">
+        <table class="schedule admin-schedule member-schedule" aria-label="Planning des permanences">
+          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+      <div class="schedule-mobile admin-schedule-mobile member-schedule-mobile" id="scheduleMobile" aria-label="Permanences"></div>
+    </section>
   </section>
 
 
@@ -4745,8 +4904,9 @@ const pad = (n) => String(n).padStart(2,'0');
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
-let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', memberCalendarMode = 'auto', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
 let memberStatusBatchTimer=0,memberStatusBatchInFlight=false,memberStatusSaveOpen=false,memberStatusCycleOk=true;
+let memberSaveTimer=0;
 const memberStatusPending=new Map();
 function animateMemberCalendarIfNeeded(){}
 function animateAdminCalendarIfNeeded(){}
@@ -5240,8 +5400,20 @@ function scheduleMemberPlanningFlush(){
 function setMemberPlanningVisualState(saved=false){
   const el=q('#lastRefresh');
   if(!el)return;
-  if(memberPlanningHasWork())el.textContent='Enregistrement…';
-  else if(saved)el.textContent='Enregistré ✓'
+  clearTimeout(memberSaveTimer);
+  if(memberPlanningHasWork()){
+    el.className='admin-save-state saving';
+    el.textContent='Enregistrement…';
+    return
+  }
+  if(saved){
+    el.className='admin-save-state saved';
+    el.textContent='Enregistré ✓';
+    memberSaveTimer=setTimeout(()=>el.classList.add('hidden'),1400);
+    return
+  }
+  el.textContent='';
+  el.className='admin-save-state hidden'
 }
 
 function queueMemberPlanningChange(date,role,present){
@@ -5384,19 +5556,161 @@ function actionLabel(a){return ({inscription:'inscription',retrait:'retrait',mem
 
 // --- Choix local / liens locaux ---
 function renderChooser(){const box=q('#chooserGrid');box.innerHTML='';for(const m of sortMembersAlpha(localState.members.filter(m=>m.active))){const b=document.createElement('button');b.className='btn';b.textContent=m.name;b.addEventListener('click',()=>enterLocalMember(m.id));box.append(b)}const a=document.createElement('button');a.className='btn admin-entry';a.textContent='⚙ Administration';a.addEventListener('click',()=>{adminSessionContext=null;enterAdmin()});box.append(a);showOnly('chooserView')}
-function enterLocalMember(id){currentLocalMemberId=id;memberData=localMemberSnapshot(id);memberMonth=chooseInitialMonth();showOnly('memberRoot');renderMember()}
+function enterLocalMember(id){currentLocalMemberId=id;memberData=localMemberSnapshot(id);memberCalendarMode='auto';memberMonth=chooseInitialMonth();showOnly('memberRoot');renderMember()}
 function localPersonalUrl(id){const base=location.href.split('#')[0];return `${base}#member=${encodeURIComponent(id)}`}
 function shortPersonalUrl(token){return `${GITHUB_HOME}#${String(token||'').normalize('NFC')}`}
 
 // --- Vue membre ---
-function memberDatesForMonth(k){const[y,m]=k.split('-').map(Number),out=[];for(let d=1;d<=daysInMonth(y,m);d++){const s=iso(y,m,d);if(defaultOpen(s)||memberData.scheduleExceptions?.[s]?.isOpen===true)out.push(s)}return out}
-function chooseInitialMonth(){const cur=monthKey(parisToday());return memberDatesForMonth(cur).filter(d=>d>=parisToday()&&effectiveOpen(memberData,d)).length>=3?cur:shiftMonth(cur,1)}
+function memberIsOpen(date){return effectiveOpen(memberData,date)}
+function memberHomeMode(today=parisToday()){
+  const[y,m,d]=today.split('-').map(Number);
+  return daysInMonth(y,m)-d<14?'upcoming':'month'
+}
+function memberHomeMonth(today=parisToday()){return monthKey(today)}
+function nextMemberOpenDate(from=parisToday()){
+  const max=memberData?.settings?.memberWindow?.to||from;
+  for(let i=0;i<=366;i++){
+    const s=addDays(from,i);
+    if(s>max)break;
+    if(memberIsOpen(s))return s
+  }
+  return from
+}
+function memberNextOpenDates(limit=6,from=parisToday()){
+  const out=[],max=memberData?.settings?.memberWindow?.to||from;
+  for(let i=0;i<=366&&out.length<limit;i++){
+    const s=addDays(from,i);
+    if(s>max)break;
+    if(memberIsOpen(s))out.push(s)
+  }
+  return out
+}
+function memberDatesForMonth(k){
+  const[y,m]=k.split('-').map(Number),out=[],today=parisToday();
+  const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
+  for(let d=1;d<=daysInMonth(y,m);d++){
+    const s=iso(y,m,d);
+    if(s<today||s<from||s>to)continue;
+    if(memberIsOpen(s))out.push(s)
+  }
+  return out
+}
+function chooseInitialMonth(){return memberHomeMonth()}
 function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay(),diff=wd===0?-6:1-wd;dt.setUTCDate(dt.getUTCDate()+diff);return iso(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate())}
 function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new Intl.DateTimeFormat('fr-FR',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad(d)}/${pad(m)}`}
-function renderUpcoming(){const box=q('#myUpcoming'),badge=q('#myUpcomingCount'),today=parisToday();box.innerHTML='';const dates=Object.entries(memberData.assignments||{}).filter(([d,roles])=>d>=today&&effectiveOpen(memberData,d)&&ROLE_KEYS.some(role=>(roles[role]||[]).includes(memberData.me.id))).map(([d])=>d).sort();badge.textContent=dates.length?`${dates.length} date${dates.length>1?'s':''}`:'Aucune';if(!dates.length){const e=document.createElement('span');e.className='muted small';e.textContent='Vous n’avez encore aucune inscription future.';box.append(e);return}for(const d of dates.slice(0,8)){const b=document.createElement('button');b.className='upcoming-chip';b.textContent=shortDayLabel(d);b.addEventListener('click',()=>{memberMonth=monthKey(d);renderMember();setTimeout(()=>document.getElementById('date-'+d)?.scrollIntoView({behavior:'smooth',block:'center'}),30)});box.append(b)}}
-function mobileRoleButton(date,role,assignments,open,past,outside,map){const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id),btn=document.createElement('button');btn.className='mobile-role-button'+(mine?' mine':'');btn.disabled=!open||past||outside;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];const value=document.createElement('span');value.className='mobile-role-value';if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=btn.disabled?'—':'Disponible · touchez pour vous inscrire';value.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;value.append(chip)}btn.append(label,value);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));return btn}
-function renderMember(){if(!memberData)return;setNotice(q('#memberError'));q('#memberToAdmin')?.classList.toggle('hidden',!memberData.me?.adminPrivilege);q('#welcome').textContent=`Bonjour ${memberData.me.name}`;q('#lastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':memberPlanningHasWork()?'Enregistrement…':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#monthLabel').textContent=monthLabel(memberMonth);const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;q('#prevMonth').disabled=memberMonth<=monthKey(from);q('#nextMonth').disabled=memberMonth>=monthKey(to);renderUpcoming();const body=q('#scheduleBody'),mobile=q('#scheduleMobile');body.innerHTML='';mobile.innerHTML='';const map=Object.fromEntries(memberData.members.map(m=>[m.id,m])),today=parisToday();let prevWeek='',weekIndex=-1;for(const date of memberDatesForMonth(memberMonth)){const open=effectiveOpen(memberData,date);if(!open&&memberData.scheduleExceptions?.[date]?.isOpen!==false)continue;const wk=weekStart(date);if(wk!==prevWeek){weekIndex++;if(prevWeek){const sr=document.createElement('tr');sr.className='week-separator';const td=document.createElement('td');td.colSpan=6;const ln=document.createElement('div');ln.className='week-separator-line';td.append(ln);sr.append(td);body.append(sr)}prevWeek=wk}const row=document.createElement('tr');row.id='date-'+date;row.className=weekIndex%2?'week-b':'week-a';const assignments=memberData.assignments?.[date]||{accueil:[],tpe:[],mep:[],arbitrage:[],present:memberData.attendance?.[date]||[]},present=assignments.present||[],past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered,missingCount=coverageState.missing.length;const dateTd=document.createElement('td');dateTd.className='date-cell';const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);const note=document.createElement('div');note.className='date-note';note.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;const badge=document.createElement('span');badge.className='date-status '+(!open?'closed':covered?'':'alert');badge.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;dateTd.append(dm,note,badge);row.append(dateTd);for(const role of ROLE_KEYS){const td=document.createElement('td');td.className='role-cell';const btn=document.createElement('button');btn.className='role-button';const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id);if(mine)btn.classList.add('mine');if(!ids.length)btn.classList.add('empty');btn.disabled=!open||past||outside;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const stack=document.createElement('div');stack.className='role-stack';if(!open){const x=document.createElement('span');x.className='muted small';x.textContent='—';stack.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='muted small';x.textContent=btn.disabled?'—':'Cliquer pour s’inscrire';stack.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)}btn.append(stack);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));td.append(btn);row.append(td)}body.append(row);
-const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}animateMemberCalendarIfNeeded()} 
+function mobileRoleButton(date,role,assignments,open,past,outside,map){
+  const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id),btn=document.createElement('button');
+  btn.className='mobile-role-button member-mobile-role'+(mine?' mine':'');
+  btn.disabled=!open||past||outside;
+  btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);
+  btn.title=mine?'Cliquez pour vous désinscrire':'Cliquez pour vous inscrire';
+  const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];
+  const value=document.createElement('span');value.className='mobile-role-value';
+  if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}
+  else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=role==='present'?'Personne disponible':'À pourvoir';value.append(x)}
+  else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;value.append(chip)}
+  btn.append(label,value);
+  if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
+  return btn
+}
+function renderMember(){
+  if(!memberData)return;
+  setNotice(q('#memberError'));
+  q('#memberToAdmin')?.classList.toggle('hidden',!memberData.me?.adminPrivilege);
+  q('#welcome').textContent=`Bonjour ${memberData.me.name}`;
+  setMemberPlanningVisualState(false);
+
+  const today=parisToday();
+  const homeMonth=memberHomeMonth(today);
+  const homeMode=memberHomeMode(today);
+  const effectiveMode=memberCalendarMode==='auto'?homeMode:memberCalendarMode;
+  const nextOpen=nextMemberOpenDate(today);
+  const max=monthKey(memberData.settings.memberWindow.to);
+
+  if(effectiveMode==='upcoming'){
+    if(memberCalendarMode==='auto')memberMonth='';
+    q('#monthLabel').textContent='Deux prochaines semaines';
+    q('#prevMonth').disabled=true;
+    q('#nextMonth').disabled=false
+  }else{
+    if(memberCalendarMode==='auto')memberMonth=homeMonth;
+    else if(!memberMonth)memberMonth=homeMonth;
+    q('#monthLabel').textContent=monthLabel(memberMonth);
+    q('#prevMonth').disabled=memberCalendarMode==='auto'||memberMonth<=homeMonth;
+    q('#nextMonth').disabled=memberMonth>=max
+  }
+
+  const body=q('#scheduleBody'),mobile=q('#scheduleMobile');
+  body.innerHTML='';mobile.innerHTML='';
+  const map=Object.fromEntries(memberData.members.map(m=>[m.id,m]));
+  const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
+  let prevWeek='',weekIndex=-1;
+  const dates=effectiveMode==='upcoming'?memberNextOpenDates(6,nextOpen):memberDatesForMonth(memberMonth);
+
+  for(const date of dates){
+    const open=memberIsOpen(date);
+    if(!open)continue;
+    const wk=weekStart(date);
+    if(wk!==prevWeek){
+      weekIndex++;
+      if(prevWeek){
+        const sr=document.createElement('tr');sr.className='week-separator';
+        const td=document.createElement('td');td.colSpan=6;
+        const ln=document.createElement('div');ln.className='week-separator-line';
+        td.append(ln);sr.append(td);body.append(sr)
+      }
+      prevWeek=wk
+    }
+
+    const assignments=memberData.assignments?.[date]||{accueil:[],tpe:[],mep:[],arbitrage:[],present:memberData.attendance?.[date]||[]};
+    const past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered;
+    const row=document.createElement('tr');
+    row.id='date-'+date;
+    row.className=(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'');
+
+    const dateTd=document.createElement('td');dateTd.className='date-cell';
+    const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
+    dateTd.append(dm);row.append(dateTd);
+
+    for(const role of ROLE_KEYS){
+      const td=document.createElement('td');td.className='role-cell member-role-cell';
+      const btn=document.createElement('button');btn.className='role-button member-role-button';
+      const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id);
+      if(mine)btn.classList.add('mine');
+      btn.disabled=!open||past||outside;
+      btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);
+      btn.title=mine?'Cliquez pour vous désinscrire':'Cliquez pour vous inscrire';
+
+      const display=document.createElement('div');display.className='admin-role-display member-role-display';
+      if(ids.length){
+        const stack=document.createElement('div');stack.className='role-stack';
+        for(const id of ids){
+          const m=map[id];if(!m)continue;
+          const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)
+        }
+        display.append(stack)
+      }else{
+        display.classList.add('empty');
+        display.textContent=role==='present'?'Personne disponible':'À pourvoir'
+      }
+      btn.append(display);
+      if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
+      td.append(btn);row.append(td)
+    }
+    body.append(row);
+
+    const card=document.createElement('article');
+    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'');
+    card.id='mobile-date-'+date;
+    const head=document.createElement('div');head.className='mobile-date-head';
+    const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
+    head.append(title);card.append(head);
+    const roles=document.createElement('div');roles.className='mobile-roles';
+    for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));
+    card.append(roles);mobile.append(card)
+  }
+  animateMemberCalendarIfNeeded()
+}
 function optimisticAssignment(data,date,role,present){const next=JSON.parse(JSON.stringify(data)),id=next.me.id;next.assignments ||= {};next.attendance ||= {};next.roleAssignments ||= {};const emptyDay=()=>({accueil:[],tpe:[],mep:[],arbitrage:[],present:[]});const day={...emptyDay(),...(next.assignments[date]||{})};const set=new Set(day[role]||[]);present?set.add(id):set.delete(id);day[role]=[...set];next.assignments[date]=day;if(role==='present'){if(day.present.length)next.attendance[date]=[...day.present];else delete next.attendance[date]}else{const roles={...(next.roleAssignments[date]||{})};if(day[role].length)roles[role]=[...day[role]];else delete roles[role];if(Object.keys(roles).length)next.roleAssignments[date]=roles;else delete next.roleAssignments[date]}return next}
 function toggleAssignment(date,role,present){
   queueMemberPlanningChange(date,role,present)
@@ -5407,7 +5721,7 @@ function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GI
 let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),memberPollTimer=0;
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
 function memberPollDelay(){const age=Date.now()-lastMemberActivityAt;return age<120000?2000:age<600000?5000:10000}
-async function refreshMember(){if(memberRefreshBusy||memberPlanningHasWork())return;if(LOCAL){memberData=localMemberSnapshot(currentLocalMemberId);renderMember();return}memberRefreshBusy=true;try{memberData=await netApi('/api/me');if(!memberMonth)memberMonth=chooseInitialMonth();showOnly('memberRoot');q('#githubAdminLink').classList.add('hidden');renderMember()}catch(e){if(e.status===401){invalidMemberSession();return}setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Calendrier indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';setNotice(q('#joinError'),e.message)}finally{memberRefreshBusy=false}}
+async function refreshMember(){if(memberRefreshBusy||memberPlanningHasWork())return;if(LOCAL){memberData=localMemberSnapshot(currentLocalMemberId);renderMember();return}memberRefreshBusy=true;try{memberData=await netApi('/api/me');if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth();}showOnly('memberRoot');q('#githubAdminLink').classList.add('hidden');renderMember()}catch(e){if(e.status===401){invalidMemberSession();return}setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Calendrier indisponible';q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';setNotice(q('#joinError'),e.message)}finally{memberRefreshBusy=false}}
 function scheduleMemberPoll(){clearTimeout(memberPollTimer);memberPollTimer=setTimeout(async()=>{if(document.visibilityState==='visible'&&!memberPlanningHasWork()&&!q('#memberRoot').classList.contains('hidden'))await refreshMember();scheduleMemberPoll()},memberPollDelay())}
 
 // --- Vue admin ---
@@ -6298,6 +6612,7 @@ async function switchAdminToMember(btn=null){
       if(!m)throw new Error('Privilèges administrateur retirés.');
       currentLocalMemberId=memberId;
       memberData=localMemberSnapshot(memberId);
+      memberCalendarMode='auto';
       memberMonth=chooseInitialMonth();
       history.replaceState(null,'','/calendar');
       showOnly('memberRoot');
@@ -6305,6 +6620,7 @@ async function switchAdminToMember(btn=null){
       return
     }
     history.replaceState(null,'','/calendar');
+    memberCalendarMode='auto';
     memberMonth='';
     await refreshMember()
   }catch(e){
@@ -6762,14 +7078,15 @@ async function boot(){
 // --- Listeners ---
 q('#prevMonth').addEventListener('click',async()=>{
   markMemberActivity();
-  const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);
-  if(n<min||uiTransitionBusy)return;
+  if(memberCalendarMode==='auto'||uiTransitionBusy)return;
   await microCalendarTransition({
     label:q('#monthLabel'),
     body:q('#scheduleBody'),
     mobile:q('#scheduleMobile'),
     swapFn:()=>{
-      memberMonth=n;
+      const homeMonth=memberHomeMonth(),n=shiftMonth(memberMonth,-1);
+      if(n<=homeMonth){memberCalendarMode='auto';memberMonth=''}
+      else memberMonth=n;
       renderMember();
       scrollTo({top:0,behavior:'instant'})
     }
@@ -6777,28 +7094,20 @@ q('#prevMonth').addEventListener('click',async()=>{
 });
 q('#nextMonth').addEventListener('click',async()=>{
   markMemberActivity();
-  const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);
-  if(n>max||uiTransitionBusy)return;
-  await microCalendarTransition({
-    label:q('#monthLabel'),
-    body:q('#scheduleBody'),
-    mobile:q('#scheduleMobile'),
-    swapFn:()=>{
-      memberMonth=n;
-      renderMember();
-      scrollTo({top:0,behavior:'instant'})
-    }
-  })
-});
-q('#todayMonth').addEventListener('click',async()=>{
-  markMemberActivity();
   if(uiTransitionBusy)return;
   await microCalendarTransition({
     label:q('#monthLabel'),
     body:q('#scheduleBody'),
     mobile:q('#scheduleMobile'),
     swapFn:()=>{
-      memberMonth=monthKey(parisToday());
+      const homeMonth=memberHomeMonth(),max=monthKey(memberData.settings.memberWindow.to);
+      if(memberCalendarMode==='auto'){
+        memberCalendarMode='month';
+        memberMonth=shiftMonth(homeMonth,1)
+      }else{
+        const n=shiftMonth(memberMonth,1);
+        if(n<=max)memberMonth=n
+      }
       renderMember();
       scrollTo({top:0,behavior:'instant'})
     }
@@ -6842,7 +7151,7 @@ q('#adminNextMonth').addEventListener('click',async()=>{
       scrollTo({top:0,behavior:'instant'})
     }
   })
-});q('#memberToAdmin').addEventListener('click',e=>switchMemberToAdmin(e.currentTarget));q('#adminToMember').addEventListener('click',e=>switchAdminToMember(e.currentTarget));q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
+});q('#memberToAdmin').addEventListener('click',e=>switchMemberToAdmin(e.currentTarget));q('#adminToMember').addEventListener('click',e=>switchAdminToMember(e.currentTarget));q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{adminSessionContext=null;if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;const ok=await createMember(name,email,e.submitter);if(ok){q('#newName').value='';q('#newEmail').value='';closeMemberManagement()}});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#memberManageCreate').addEventListener('click',()=>setMemberManagementMode('create'));
