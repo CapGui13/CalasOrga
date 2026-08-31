@@ -1715,6 +1715,19 @@ class FileStore {
       return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
     }
 
+    if (present && actor !== 'Administrateur') {
+      const currentRoles = s.roleAssignments?.[date] || {};
+      const occupants = new Set(Array.isArray(currentRoles[role]) ? currentRoles[role].map(String) : []);
+      const occupiedByOther = [...occupants].some((id) => id !== String(member.id));
+      if (occupiedByOther) {
+        return {
+          ok: false,
+          status: 409,
+          error: 'Cette position est déjà occupée par un autre membre.'
+        };
+      }
+    }
+
     let availabilityRemoved = false;
     if (present) {
       const available = new Set(Array.isArray(s.attendance[date]) ? s.attendance[date].map(String) : []);
@@ -2743,7 +2756,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.40.0-day-drag-exclusivity-vercel';
+const APP_VERSION = '0.15.41.1-member-role-lock-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
