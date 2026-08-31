@@ -1621,6 +1621,61 @@ class FileStore {
     };
   }
 
+
+  async setMemberAssignmentsBatch(memberId, changes) {
+    if (!Array.isArray(changes) || !changes.length) {
+      return { ok: false, status: 400, error: 'Aucune modification à enregistrer.' };
+    }
+    if (changes.length > 100) {
+      return { ok: false, status: 413, error: 'Trop de modifications dans un seul lot.' };
+    }
+
+    const final = new Map();
+    for (const raw of changes) {
+      const date = String(raw?.date || '');
+      const role = String(raw?.role || '').toLowerCase();
+      if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+      if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Rôle invalide.' };
+      final.set(`${date}|${role}`, { date, role, present: raw?.present === true });
+    }
+    const desired = [...final.values()];
+
+    return this.mutate((s) => {
+      const member = s.members.find((m) => m.id === memberId && m.active);
+      if (!member) return { ok: false, status: 401, error: 'Session invalide.' };
+
+      /* Validation complète avant la première mutation : le lot est tout ou rien. */
+      for (const change of desired) {
+        const valid = validateMemberDateChange(s, change.date, this.now());
+        if (!valid.ok) return valid;
+      }
+
+      const results = [];
+      for (const change of desired) {
+        const r = change.role === 'present'
+          ? this.#setAttendanceInState(
+              s, member, change.date, change.present,
+              member.displayName,
+              change.present ? 'inscription' : 'retrait'
+            )
+          : this.#setRoleInState(
+              s, member, change.date, change.role, change.present,
+              member.displayName,
+              change.present ? 'role_inscription' : 'role_retrait'
+            );
+        if (!r.ok) return r;
+        results.push({ date: change.date, role: change.role, present: change.present, changed: !!r.changed });
+      }
+
+      return {
+        ok: true,
+        batched: true,
+        changedCount: results.filter((r) => r.changed).length,
+        results
+      };
+    }, { useCurrentRemote: true });
+  }
+
   async setRoleAssignment(memberId, date, role, present) {
     role = String(role || '').toLowerCase();
     if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Rôle invalide.' };
@@ -1787,6 +1842,140 @@ class FileStore {
         copied: false,
         source: { date: sourceDate, role: sourceRole, memberIds: readIds(sourceDate, sourceRole) },
         target: { date: targetDate, role: targetRole, memberIds: readIds(targetDate, targetRole) }
+      };
+    }, { useCurrentRemote: true });
+  }
+
+
+  async setPlanningCellsAsAdmin(cells) {
+    if (!Array.isArray(cells) || !cells.length) {
+      return { ok: false, status: 400, error: 'Aucune modification à enregistrer.' };
+    }
+    if (cells.length > 200) {
+      return { ok: false, status: 413, error: 'Trop de cellules dans un seul lot.' };
+    }
+
+    const final = new Map();
+    for (const raw of cells) {
+      const date = String(raw?.date || '');
+      const role = String(raw?.role || '').toLowerCase();
+      if (!isIsoDate(date)) return { ok: false, status: 400, error: 'Date invalide.' };
+      if (!ALL_ROLE_KEYS.includes(role)) return { ok: false, status: 400, error: 'Position invalide.' };
+
+      const ids = [...new Set(
+        (Array.isArray(raw?.memberIds) ? raw.memberIds : [])
+          .map((id) => String(id || '').trim())
+          .filter(Boolean)
+      )];
+      if (role !== 'present' && ids.length > 1) {
+        return { ok: false, status: 400, error: 'Un poste principal ne peut contenir qu’un seul membre.' };
+      }
+      final.set(`${date}|${role}`, { date, role, memberIds: ids });
+    }
+    const desired = [...final.values()];
+
+    return this.mutate((s) => {
+      const active = new Map(s.members.filter((m) => m.active).map((m) => [m.id, m]));
+
+      /* Validation de tout le lot avant écriture. */
+      for (const cell of desired) {
+        const horizon = validatePlanningHorizonDate(cell.date, this.now());
+        if (!horizon.ok) return horizon;
+        if (!effectiveIsOpen(s, cell.date)) {
+          return { ok: false, status: 409, error: `Le club n'est pas ouvert le ${cell.date}.` };
+        }
+        for (const id of cell.memberIds) {
+          if (!active.has(id)) return { ok: false, status: 404, error: 'Un membre du lot n’est plus actif.' };
+        }
+      }
+
+      const readIds = (date, role) => {
+        if (role === 'present') {
+          return Array.isArray(s.attendance[date])
+            ? [...new Set(s.attendance[date].map(String))]
+            : [];
+        }
+        const roles = s.roleAssignments?.[date] || {};
+        return Array.isArray(roles[role])
+          ? [...new Set(roles[role].map(String))]
+          : [];
+      };
+
+      const writeIds = (date, role, nextIds) => {
+        const next = [...new Set((nextIds || []).map(String).filter(Boolean))];
+        const old = readIds(date, role);
+
+        if (role === 'present') {
+          if (next.length && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
+            return { ok: false, status: 409, error: 'Limite de dates de disponibilité atteinte.' };
+          }
+          for (const oldId of old) {
+            if (next.includes(oldId)) continue;
+            const m = s.members.find((x) => x.id === oldId);
+            this.#log(s, 'Administrateur', 'admin_retrait', date, {
+              memberId: oldId, name: m?.displayName || '', batched: true
+            });
+          }
+          for (const newId of next) {
+            if (old.includes(newId)) continue;
+            const m = active.get(newId);
+            this.#log(s, 'Administrateur', 'admin_inscription', date, {
+              memberId: newId, name: m?.displayName || '', batched: true
+            });
+          }
+          if (next.length) s.attendance[date] = next;
+          else delete s.attendance[date];
+          return { ok: true, oldIds: old, memberIds: next };
+        }
+
+        if (next.length && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
+          return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte.' };
+        }
+
+        const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object'
+          ? clone(s.roleAssignments[date])
+          : {};
+
+        for (const oldId of old) {
+          if (next.includes(oldId)) continue;
+          const m = s.members.find((x) => x.id === oldId);
+          this.#log(s, 'Administrateur', 'admin_role_retrait', date, {
+            memberId: oldId, name: m?.displayName || '', role, batched: true
+          });
+        }
+        for (const newId of next) {
+          if (old.includes(newId)) continue;
+          const m = active.get(newId);
+          this.#log(s, 'Administrateur', 'admin_role_inscription', date, {
+            memberId: newId, name: m?.displayName || '', role, batched: true
+          });
+        }
+
+        if (next.length) roles[role] = next;
+        else delete roles[role];
+        if (Object.keys(roles).length) s.roleAssignments[date] = roles;
+        else delete s.roleAssignments[date];
+
+        return { ok: true, oldIds: old, memberIds: next };
+      };
+
+      const results = [];
+      for (const cell of desired) {
+        const r = writeIds(cell.date, cell.role, cell.memberIds);
+        if (!r.ok) return r;
+        results.push({
+          date: cell.date,
+          role: cell.role,
+          memberIds: r.memberIds,
+          changed: JSON.stringify(r.oldIds) !== JSON.stringify(r.memberIds)
+        });
+      }
+
+      return {
+        ok: true,
+        batched: true,
+        changedCount: results.filter((r) => r.changed).length,
+        cells: results
       };
     }, { useCurrentRemote: true });
   }
@@ -2358,7 +2547,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.36.0-member-admins-vercel';
+const APP_VERSION = '0.15.37.0-planning-batch-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2668,6 +2857,21 @@ export async function requestHandler(req, res) {
       if (!result.ok) return json(res, result.status, { error: result.error });
       return json(res, 200, { ...result, snapshot: store.memberSnapshot(member.id) });
     }
+    if (pathname === '/api/me/assignments-batch' && req.method === 'POST') {
+      const { member, cookies } = sessionMember(req);
+      if (!member) return json(res, 401, { error: 'Session invalide.' });
+      if (!sameOriginCsrfOk(req, cookies, 'club_member_csrf')) {
+        return json(res, 403, { error: 'Protection de session invalide.' });
+      }
+      if (limited(`member-write:${member.id}`, 45)) {
+        return json(res, 429, { error: 'Trop de modifications en peu de temps. Réessayez dans une minute.' });
+      }
+      const body = await bodyJson(req, 32_768);
+      const result = await store.setMemberAssignmentsBatch(member.id, body.changes);
+      if (!result.ok) return json(res, result.status, { error: result.error });
+      return json(res, 200, { ...result, snapshot: store.memberSnapshot(member.id) });
+    }
+
     if (pathname === '/api/me/assignment' && req.method === 'POST') {
       const { member, cookies } = sessionMember(req); if (!member) return json(res, 401, { error: 'Session invalide.' });
       if (!sameOriginCsrfOk(req, cookies, 'club_member_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
@@ -2727,6 +2931,21 @@ export async function requestHandler(req, res) {
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
+    if (pathname === '/api/admin/planning-batch' && req.method === 'POST') {
+      const a = adminOk(req);
+      if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) {
+        return json(res, 403, { error: 'Protection de session invalide.' });
+      }
+      if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) {
+        return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      }
+      const body = await bodyJson(req, 65_536);
+      const r = await store.setPlanningCellsAsAdmin(body.cells);
+      if (!r.ok) return json(res, r.status, { error: r.error });
+      return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
+    }
+
     if (pathname === '/api/admin/day-assignments' && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
