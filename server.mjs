@@ -181,6 +181,68 @@ function sanitizeName(name) {
   return clean;
 }
 
+function sanitizeEmail(email) {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean || clean.length > 254 || /[\r\n\t\s]/.test(clean)) return null;
+  if (!/^[^@]+@[^@]+\.[^@]+$/u.test(clean)) return null;
+  return clean;
+}
+
+const CURRENT_ROSTER_VERSION = '2026-08-31-v1';
+const CURRENT_ROSTER = [
+  { id: 'roster_20260831_01', displayName: "Pascal", email: "wolffpas94@gmail.com" },
+  { id: 'roster_20260831_02', displayName: "Guillaume", email: "guillaume_capron@yahoo.fr" },
+  { id: 'roster_20260831_03', displayName: "Sylvie", email: "syl.loiseau@wanadoo.fr" },
+  { id: 'roster_20260831_04', displayName: "Véronique", email: "veronique.thamin@gmail.com" },
+  { id: 'roster_20260831_05', displayName: "Chantal", email: "ch.boye10@orange.fr" },
+  { id: 'roster_20260831_06', displayName: "Caroline C", email: "caroline_cottin@laposte.net" },
+  { id: 'roster_20260831_07', displayName: "Caroline E", email: "caroline.edgar@gmail.com" },
+  { id: 'roster_20260831_08', displayName: "Armelle", email: "a.sandret@yahoo.fr" },
+  { id: 'roster_20260831_09', displayName: "Christian", email: "maurychristian077@gmail.com" },
+  { id: 'roster_20260831_10', displayName: "Gérard", email: "lacombe.gerard@free.fr" }
+];
+
+function applyCurrentRoster(state, nowIso = new Date().toISOString()) {
+  const oldMembers = Array.isArray(state?.members) ? state.members.length : 0;
+  const oldActiveMembers = Array.isArray(state?.members) ? state.members.filter((m) => m?.active).length : 0;
+  const oldTokens = Array.isArray(state?.memberTokens) ? state.memberTokens.length : 0;
+  const oldMemberSessions = Array.isArray(state?.sessions) ? state.sessions.filter((s) => s?.kind === 'member').length : 0;
+  const oldAttendanceDates = state?.attendance && typeof state.attendance === 'object' ? Object.keys(state.attendance).length : 0;
+  const oldRoleDates = state?.roleAssignments && typeof state.roleAssignments === 'object' ? Object.keys(state.roleAssignments).length : 0;
+
+  state.rosterVersion = CURRENT_ROSTER_VERSION;
+  state.members = CURRENT_ROSTER.map((m) => ({
+    id: m.id,
+    displayName: m.displayName,
+    email: m.email,
+    active: true,
+    createdAt: nowIso
+  }));
+  state.memberTokens = [];
+  state.sessions = Array.isArray(state.sessions) ? state.sessions.filter((s) => s?.kind === 'admin') : [];
+  state.attendance = {};
+  state.roleAssignments = {};
+  state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
+  state.auditLog.push({
+    at: nowIso,
+    actor: 'Système',
+    action: 'liste_membres_reinitialisee',
+    date: null,
+    metadata: {
+      rosterVersion: CURRENT_ROSTER_VERSION,
+      oldMembers,
+      oldActiveMembers,
+      newMembers: CURRENT_ROSTER.length,
+      revokedLinks: oldTokens,
+      revokedMemberSessions: oldMemberSessions,
+      clearedAttendanceDates: oldAttendanceDates,
+      clearedRoleAssignmentDates: oldRoleDates
+    }
+  });
+  if (state.auditLog.length > 5000) state.auditLog = state.auditLog.slice(-5000);
+  return true;
+}
+
 function shortPersonalName(name) {
   const clean = sanitizeName(name) || 'Membre';
   const first = clean.split(/\s+/)[0].normalize('NFC');
@@ -252,49 +314,40 @@ function publicSnapshot(state, currentMemberId = null) {
 
 
 // ===== src/seed.mjs =====
-const DEMO_MEMBER_TOKENS = {
-  'Odile': 'demo-odile-Q7m2Kx9Lp4Vt',
-  'Guillaume': 'demo-guillaume-N8p3Rw6Zk2Hs',
-  'Sylvie': 'demo-sylvie-F5x9Md2Qa7Lc',
-  'Caroline': 'demo-caroline-T4v8Jp1Ys6Kn',
-  'Véronique': 'demo-veronique-C9h2Wx5Rb8Mf',
-  'Gérard': 'demo-gerard-L6q1Nz4Vk7Pt',
-  'Patrick': 'demo-patrick-A3s8Hy5Dm2Xc',
-  'Christian': 'demo-christian-U7k4Fp9Qw1Ze',
-  'Armelle': 'demo-armelle-B2m6Rt8Lj5Vs',
-  'Pascal': 'demo-pascal-E9x3Kn7Gc4Ha'
-};
+const DEMO_MEMBER_TOKENS = Object.fromEntries(
+  CURRENT_ROSTER.map((m, i) => [m.displayName, `demo-member-${i + 1}-Qx7vKp4mN2`])
+);
 
 function makeDemoSeed(now = new Date('2026-08-27T15:00:00Z')) {
-  const entries = Object.entries(DEMO_MEMBER_TOKENS);
-  const members = entries.map(([displayName], i) => ({ id: `demo_${String.fromCharCode(97 + i)}`, displayName, active: true, createdAt: now.toISOString() }));
-  const memberTokens = entries.map(([displayName, raw], i) => ({
-    id: `demo_token_${i + 1}`, memberId: members[i].id, tokenHash: tokenHash(raw), active: true, createdAt: now.toISOString(), revokedAt: null
+  const members = CURRENT_ROSTER.map((m, i) => ({
+    id: `demo_${String.fromCharCode(97 + i)}`,
+    displayName: m.displayName,
+    email: m.email,
+    active: true,
+    createdAt: now.toISOString()
   }));
+  const memberTokens = members.map((m, i) => {
+    const raw = DEMO_MEMBER_TOKENS[m.displayName];
+    return {
+      id: `demo_token_${i + 1}`,
+      memberId: m.id,
+      tokenHash: tokenHash(raw),
+      active: true,
+      createdAt: now.toISOString(),
+      revokedAt: null
+    };
+  });
   return {
-    schemaVersion: 2,
+    schemaVersion: 4,
+    rosterVersion: CURRENT_ROSTER_VERSION,
     settings: { minRequired: 1 },
     members,
     memberTokens,
     sessions: [],
-    attendance: {
-      '2026-09-01': ['demo_b'],
-      '2026-09-03': ['demo_a', 'demo_c'],
-      '2026-09-07': ['demo_d'],
-      '2026-09-08': ['demo_a', 'demo_b'],
-      '2026-09-14': ['demo_c'],
-      '2026-09-15': ['demo_a', 'demo_d'],
-      '2026-09-17': ['demo_b']
-    },
-    roleAssignments: {
-      '2026-09-01': { accueil: ['demo_a'], arbitrage: ['demo_d'] },
-      '2026-09-03': { tpe: ['demo_b'], mep: ['demo_c'] }
-    },
+    attendance: {},
+    roleAssignments: {},
     scheduleExceptions: { '2026-12-24': { isOpen: false, note: 'Fermeture de démonstration' } },
-    auditLog: [
-      { at: '2026-08-27T13:10:00Z', actor: 'Guillaume', action: 'inscription', date: '2026-09-01', metadata: {} },
-      { at: '2026-08-27T13:12:00Z', actor: 'Odile', action: 'inscription', date: '2026-09-03', metadata: {} }
-    ]
+    auditLog: []
   };
 }
 
@@ -304,7 +357,7 @@ function clone(v) { return JSON.parse(JSON.stringify(v)); }
 
 const RELAXED_FSYNC = process.env.RELAXED_FSYNC === '1';
 
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 const BACKUP_FORMAT_VERSION = 2;
 const ROLE_KEYS = ['accueil', 'tpe', 'mep', 'arbitrage'];
 const ALL_ROLE_KEYS = [...ROLE_KEYS, 'present'];
@@ -335,13 +388,13 @@ function sanitizeAuditMetadata(value, depth = 0) {
   return String(value).slice(0, 500);
 }
 
-const INITIAL_ROSTER = ['Odile','Guillaume','Sylvie','Caroline','Véronique','Gérard','Patrick','Christian','Armelle','Pascal'];
 function defaultState() {
   const createdAt = new Date().toISOString();
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
+    rosterVersion: CURRENT_ROSTER_VERSION,
     settings: { minRequired: 1 },
-    members: INITIAL_ROSTER.map((displayName, i) => ({ id: `initial_${i + 1}`, displayName, active: true, createdAt })),
+    members: CURRENT_ROSTER.map((m) => ({ id: m.id, displayName: m.displayName, email: m.email, active: true, createdAt })),
     memberTokens: [],
     sessions: [],
     attendance: {},
@@ -412,27 +465,32 @@ class FileStore {
     const before = this.state;
     try {
       this.state = JSON.parse(rawText);
+      const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
       this.#normalize({ requireEnvelope: true });
       const report = this.integrityReport();
       if (!report.ok) {
         throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
       }
-      return { state: clone(this.state), rawText, etag: meta?.etag || null };
+      return { state: clone(this.state), rawText, etag: meta?.etag || null, rosterMigrationNeeded };
     } finally {
       this.state = before;
     }
   }
 
-  async #loadRemotePrimary() {
+  async #loadRemotePrimary({ persistRosterMigration = false } = {}) {
     const loaded = await this.#readRemoteCandidate(this.blobPath);
     this.state = loaded.state;
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
+    if (persistRosterMigration && loaded.rosterMigrationNeeded) {
+      await this.#persist({ preserveCurrent: false, snapshots: true });
+    }
+    return loaded;
   }
 
   async refresh() {
     if (!this.remoteBlob) return this;
-    await this.#loadRemotePrimary();
+    await this.#loadRemotePrimary({ persistRosterMigration: true });
     return this;
   }
 
@@ -440,7 +498,7 @@ class FileStore {
     if (this.remoteBlob) {
       let primaryError = null;
       try {
-        await this.#loadRemotePrimary();
+        await this.#loadRemotePrimary({ persistRosterMigration: true });
         return this;
       } catch (err) {
         if (err?.code === 'UNSUPPORTED_SCHEMA') throw err;
@@ -481,7 +539,8 @@ class FileStore {
     await this.#cleanupStaleTemps();
     let primaryError = null;
     try {
-      await this.#loadStateFile(this.filePath);
+      const migrated = await this.#loadStateFile(this.filePath);
+      if (migrated) await this.#persist({ preserveCurrent: false });
       return this;
     } catch (err) {
       if (err?.code === 'ENOENT') {
@@ -509,11 +568,13 @@ class FileStore {
 
   async #loadStateFile(filename) {
     this.state = JSON.parse(await fs.readFile(filename, 'utf8'));
+    const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
     this.#normalize({ requireEnvelope: true });
     const report = this.integrityReport();
     if (!report.ok) {
       throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
     }
+    return rosterMigrationNeeded;
   }
 
   #invalidateRecoveredCredentials(reason = 'reprise_stockage') {
@@ -533,6 +594,7 @@ class FileStore {
   }
 
   #normalize({ requireEnvelope = false } = {}) {
+    const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
     const rawVersion = Number(this.state?.schemaVersion);
     if (!Number.isInteger(rawVersion) || rawVersion < 1) {
       throw Object.assign(new Error('Version de stockage invalide.'), { code: 'INVALID_SCHEMA' });
@@ -569,6 +631,15 @@ class FileStore {
     }
     this.state.scheduleExceptions ||= {};
     this.state.auditLog ||= [];
+    if (rosterMigrationNeeded) {
+      applyCurrentRoster(this.state, this.now().toISOString());
+    } else {
+      this.state.rosterVersion = CURRENT_ROSTER_VERSION;
+      for (const m of this.state.members) {
+        const email = sanitizeEmail(m?.email);
+        if (email) m.email = email;
+      }
+    }
   }
 
   async #cleanupStaleTemps() {
@@ -982,6 +1053,7 @@ class FileStore {
   integrityReport() {
     const issues = [];
     if (Number(this.state?.schemaVersion) !== CURRENT_SCHEMA_VERSION) issues.push(`schema_version_invalid:${this.state?.schemaVersion}`);
+    if (this.state?.rosterVersion !== CURRENT_ROSTER_VERSION) issues.push(`roster_version_invalid:${this.state?.rosterVersion || ''}`);
     if (this.state.members.length > 500) issues.push(`members_limit_exceeded:${this.state.members.length}`);
     if (this.state.memberTokens.length > 1500) issues.push(`member_tokens_limit_exceeded:${this.state.memberTokens.length}`);
     if (this.state.sessions.length > 4000) issues.push(`sessions_limit_exceeded:${this.state.sessions.length}`);
@@ -995,6 +1067,7 @@ class FileStore {
       else if (memberIds.has(m.id)) issues.push(`member_duplicate:${m.id}`);
       else memberIds.add(m.id);
       if (!sanitizeName(m?.displayName)) issues.push(`member_name_invalid:${m?.id || '?'}`);
+      if (!sanitizeEmail(m?.email)) issues.push(`member_email_invalid:${m?.id || '?'}`);
       if (typeof m?.active !== 'boolean') issues.push(`member_active_invalid:${m?.id || '?'}`);
       if (!safeIsoInstant(m?.createdAt)) issues.push(`member_created_at_invalid:${m?.id || '?'}`);
     }
@@ -1095,6 +1168,7 @@ class FileStore {
   portableBackup() {
     const state = clone({
       schemaVersion: CURRENT_SCHEMA_VERSION,
+      rosterVersion: CURRENT_ROSTER_VERSION,
       settings: this.state.settings,
       members: this.state.members,
       memberTokens: this.state.memberTokens,
@@ -1127,6 +1201,9 @@ class FileStore {
       const actual = sha256Text(canonicalJson(src));
       if (!/^[a-f0-9]{64}$/.test(expected) || expected !== actual) return { ok: false, status: 400, error: 'La sauvegarde est incomplète ou a été modifiée (empreinte invalide).' };
     }
+    if (src.rosterVersion !== CURRENT_ROSTER_VERSION) {
+      return { ok: false, status: 409, error: 'Cette sauvegarde utilise une ancienne liste de membres et ne peut pas remplacer la liste actuelle.' };
+    }
     const warnings = [];
     const exportedAt = safeIsoInstant(payload.exportedAt);
     if (!exportedAt) warnings.push('date_export_invalide');
@@ -1141,11 +1218,11 @@ class FileStore {
     const members = [];
     const ids = new Set();
     for (const m of src.members) {
-      const id = String(m?.id || ''); const displayName = sanitizeName(m?.displayName);
+      const id = String(m?.id || ''); const displayName = sanitizeName(m?.displayName); const email = sanitizeEmail(m?.email);
       if (typeof m?.active !== 'boolean') return { ok: false, status: 400, error: 'État actif/inactif invalide pour un membre.' };
-      if (!id || id.length > 120 || ids.has(id) || !displayName) return { ok: false, status: 400, error: 'Membre invalide dans la sauvegarde.' };
+      if (!id || id.length > 120 || ids.has(id) || !displayName || !email) return { ok: false, status: 400, error: 'Membre invalide dans la sauvegarde.' };
       ids.add(id);
-      members.push({ id, displayName, active: !!m.active, createdAt: safeIsoInstant(m?.createdAt) || this.now().toISOString() });
+      members.push({ id, displayName, email, active: !!m.active, createdAt: safeIsoInstant(m?.createdAt) || this.now().toISOString() });
     }
     if (!Array.isArray(src.memberTokens) || src.memberTokens.length > 1500) return { ok: false, status: 400, error: 'Liens personnels invalides dans la sauvegarde.' };
     const memberTokens = []; const hashes = new Set(); const shortHashes = new Set(); const activeTokenMembers = new Set();
@@ -1201,7 +1278,7 @@ class FileStore {
       at: safeIsoInstant(x?.at) || this.now().toISOString(), actor: String(x?.actor || 'Inconnu').slice(0, 100), action: String(x?.action || 'import').slice(0, 100),
       date: x?.date && isIsoDate(x.date) ? x.date : null, metadata: sanitizeAuditMetadata(x?.metadata && typeof x.metadata === 'object' && !Array.isArray(x.metadata) ? x.metadata : {})
     })) : [];
-    const nextState = { schemaVersion: CURRENT_SCHEMA_VERSION, settings: { minRequired }, members, memberTokens, sessions: [], attendance, roleAssignments, scheduleExceptions, auditLog };
+    const nextState = { schemaVersion: CURRENT_SCHEMA_VERSION, rosterVersion: CURRENT_ROSTER_VERSION, settings: { minRequired }, members, memberTokens, sessions: [], attendance, roleAssignments, scheduleExceptions, auditLog };
     const probe = new FileStore(this.filePath, { now: this.now });
     probe.state = clone(nextState);
     const integrity = probe.integrityReport();
@@ -1313,6 +1390,7 @@ class FileStore {
       membersAdmin: this.state.members.map((m) => ({
         id: m.id,
         name: m.displayName,
+        email: m.email,
         active: !!m.active,
         createdAt: m.createdAt,
         hasActiveLink: this.state.memberTokens.some((t) => t.memberId === m.id && t.active),
@@ -1810,20 +1888,22 @@ class FileStore {
     });
   }
 
-  async createMember(name) {
+  async createMember(name, email) {
     const clean = sanitizeName(name);
+    const cleanEmail = sanitizeEmail(email);
     if (!clean) return { ok: false, status: 400, error: 'Nom invalide.' };
+    if (!cleanEmail) return { ok: false, status: 400, error: 'Adresse email invalide.' };
     const raw = randomToken();
     const id = `m_${randomToken(12)}`;
     return this.mutate((s) => {
       if (s.members.length >= 500) return { ok: false, status: 409, error: 'Limite de membres atteinte.' };
-      const member = { id, displayName: clean, active: true, createdAt: this.now().toISOString() };
+      const member = { id, displayName: clean, email: cleanEmail, active: true, createdAt: this.now().toISOString() };
       s.members.push(member);
       const short = this.#newShortPersonalToken(s, clean);
       s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'membre_cree', null, { memberId: id, name: clean });
-      return { ok: true, member: { id, name: clean }, rawToken: raw, shortToken: short.raw };
+      return { ok: true, member: { id, name: clean, email: cleanEmail }, rawToken: raw, shortToken: short.raw };
     });
   }
 
@@ -1835,6 +1915,19 @@ class FileStore {
       if (!m) return { ok: false, status: 404, error: 'Membre introuvable.' };
       const before = m.displayName; m.displayName = clean;
       if (before !== clean) this.#log(s, 'Administrateur', 'membre_renomme', null, { memberId, before, after: clean });
+      return { ok: true };
+    });
+  }
+
+  async setMemberEmail(memberId, email) {
+    const clean = sanitizeEmail(email);
+    if (!clean) return { ok: false, status: 400, error: 'Adresse email invalide.' };
+    return this.mutate((s) => {
+      const m = s.members.find((x) => x.id === memberId);
+      if (!m) return { ok: false, status: 404, error: 'Membre introuvable.' };
+      const before = m.email || '';
+      m.email = clean;
+      if (before !== clean) this.#log(s, 'Administrateur', 'email_membre_modifie', null, { memberId, name: m.displayName });
       return { ok: true };
     });
   }
@@ -1899,7 +1992,7 @@ class FileStore {
       s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId, tokenHash: tokenHash(raw), shortTokenHash: short.hash, active: true, createdAt: this.now().toISOString(), revokedAt: null });
       this.#cleanupMemberTokens(s);
       this.#log(s, 'Administrateur', 'lien_regenere', null, { memberId, name: m.displayName });
-      return { ok: true, member: { id: m.id, name: m.displayName }, rawToken: raw, shortToken: short.raw };
+      return { ok: true, member: { id: m.id, name: m.displayName, email: m.email }, rawToken: raw, shortToken: short.raw };
     });
   }
 
@@ -1914,7 +2007,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.20.0-dnd-copy-no-confirm-vercel';
+const APP_VERSION = '0.15.28.0-roster-email-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2345,7 +2438,7 @@ export async function requestHandler(req, res) {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
-      const b = await bodyJson(req); const r = await store.createMember(b.name);
+      const b = await bodyJson(req); const r = await store.createMember(b.name, b.email);
       if (!r.ok) return json(res, r.status, { error: r.error }); return json(res, 201, { ...r, personalPath: `/join#${r.rawToken}`, snapshot: store.adminSnapshot() });
     }
     const memberSessionsMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)\/sessions\/revoke$/);
@@ -2370,6 +2463,7 @@ export async function requestHandler(req, res) {
       }
       const b = await bodyJson(req); let r;
       if (Object.hasOwn(b, 'name')) r = await store.renameMember(memberId, b.name);
+      else if (Object.hasOwn(b, 'email')) r = await store.setMemberEmail(memberId, b.email);
       else if (Object.hasOwn(b, 'active')) r = await store.setMemberActive(memberId, !!b.active);
       else return json(res, 400, { error: 'Modification inconnue.' });
       if (!r.ok) return json(res, r.status, { error: r.error });

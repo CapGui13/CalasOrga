@@ -1773,7 +1773,7 @@ body.modal-open{overflow:hidden}
 
 /* Ajout membre : bouton dans une colonne réservée. */
 #addMember.form-row{
-  grid-template-columns:minmax(0,1fr) 120px;
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) 120px;
 }
 #addMember.form-row>.btn{width:120px}
 
@@ -2832,11 +2832,18 @@ body{
   animation:none !important;
 }
 
+
+.member-email-input{
+  width:100%;
+  min-width:210px;
+  box-sizing:border-box;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.27 · micro-fondus ciblés 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.28 · nouvelle liste membres + emails · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2953,7 +2960,7 @@ body{
 
     
     <div class="admin-page hidden" data-admin-view="members">
-      <div class="admin-members-page"><section class="card" id="adminMembers"><div class="section-head"><h2>Membres</h2><span class="pill" id="memberCount"></span></div><form id="addMember" class="form-row"><div class="field"><label for="newName">Ajouter un membre</label><input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom"></div><button class="btn primary" type="submit">Créer</button></form><div class="secret-box hidden" id="newLinkBox"><strong>Nouveau lien personnel</strong><div id="newLink" class="small link-line"></div><div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Nom</th><th>État</th><th>Actions</th></tr></thead><tbody id="membersTable"></tbody></table></div></section></div>
+      <div class="admin-members-page"><section class="card" id="adminMembers"><div class="section-head"><h2>Membres</h2><span class="pill" id="memberCount"></span></div><form id="addMember" class="form-row"><div class="field"><label for="newName">Ajouter un membre</label><input id="newName" autocomplete="off" maxlength="80" required placeholder="Nom et prénom"></div><div class="field"><label for="newEmail">Email</label><input id="newEmail" type="email" autocomplete="email" maxlength="254" required placeholder="adresse@exemple.fr"></div><button class="btn primary" type="submit">Créer</button></form><div class="secret-box hidden" id="newLinkBox"><strong>Nouveau lien personnel</strong><div id="newLink" class="small link-line"></div><div class="spaced"><button class="btn primary" id="copyNewLink" type="button">Copier le lien</button></div></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Nom</th><th>Email</th><th>État</th><th>Actions</th></tr></thead><tbody id="membersTable"></tbody></table></div></section></div>
     </div>
 
     
@@ -3033,7 +3040,8 @@ const PROD_ORIGIN = 'https://calasorga.vercel.app';
 const PROD_ADMIN_URL = 'https://capgui13.github.io/CalasOrga/Admin/';
 const DEVICE_MARKER_KEY = 'calasorga-member-device-v1';
 const STORAGE_KEY = 'club-presences-complete-v14';
-const INITIAL_NAMES = ['Odile','Guillaume','Sylvie','Caroline','Véronique','Gérard','Patrick','Christian','Armelle','Pascal'];
+const LOCAL_ROSTER_VERSION='2026-08-31-v1';
+const INITIAL_MEMBERS=[{"name":"Pascal","email":"wolffpas94@gmail.com"},{"name":"Guillaume","email":"guillaume_capron@yahoo.fr"},{"name":"Sylvie","email":"syl.loiseau@wanadoo.fr"},{"name":"Véronique","email":"veronique.thamin@gmail.com"},{"name":"Chantal","email":"ch.boye10@orange.fr"},{"name":"Caroline C","email":"caroline_cottin@laposte.net"},{"name":"Caroline E","email":"caroline.edgar@gmail.com"},{"name":"Armelle","email":"a.sandret@yahoo.fr"},{"name":"Christian","email":"maurychristian077@gmail.com"},{"name":"Gérard","email":"lacombe.gerard@free.fr"}];
 const CORE_ROLE_KEYS=['accueil','tpe','mep','arbitrage'];
 const ROLE_KEYS=[...CORE_ROLE_KEYS,'present'];
 const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
@@ -3315,13 +3323,13 @@ function scheduleAdminReconcile(delay=8000){
   },delay)
 }
 
-function localSeed(){return {schema:2,members:INITIAL_NAMES.map((name,i)=>({id:`m${i+1}`,name,active:true,createdAt:nowIso()})),attendance:{},roleAssignments:{},scheduleExceptions:{},settings:{minRequired:1},auditLog:[]}}
-function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(x&&Array.isArray(x.members)&&x.attendance&&x.scheduleExceptions){x.roleAssignments=x.roleAssignments&&typeof x.roleAssignments==='object'?x.roleAssignments:{};return x}}catch{}return localSeed()}
+function localSeed(){return {schema:3,rosterVersion:LOCAL_ROSTER_VERSION,members:INITIAL_MEMBERS.map((m,i)=>({id:`roster_local_${i+1}`,name:m.name,email:m.email,active:true,createdAt:nowIso()})),attendance:{},roleAssignments:{},scheduleExceptions:{},settings:{minRequired:1},auditLog:[]}}
+function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(x&&x.rosterVersion===LOCAL_ROSTER_VERSION&&Array.isArray(x.members)&&x.attendance&&x.scheduleExceptions){x.roleAssignments=x.roleAssignments&&typeof x.roleAssignments==='object'?x.roleAssignments:{};return x}}catch{}return localSeed()}
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(localState))}catch{}}
 function audit(actor,action,date='',meta={}){localState.auditLog.push({at:nowIso(),actor,action,date,...meta});if(localState.auditLog.length>1000)localState.auditLog=localState.auditLog.slice(-1000)}
 function localAssignmentsSnapshot(){const out={};const dates=new Set([...Object.keys(localState.attendance||{}),...Object.keys(localState.roleAssignments||{})]);for(const d of dates){const r=localState.roleAssignments?.[d]||{};out[d]={accueil:[...(r.accueil||[])],tpe:[...(r.tpe||[])],mep:[...(r.mep||[])],arbitrage:[...(r.arbitrage||[])],present:[...(localState.attendance?.[d]||[])]}}return out}
 function localMemberSnapshot(id){const me=localState.members.find(m=>m.id===id&&m.active);if(!me)return null;const from=parisToday(),to=addDays(from,366),all=localAssignmentsSnapshot(),assignments={},visible=new Set([id]);for(const[d,roles]of Object.entries(all)){if(d<from||d>to)continue;const clean={};for(const role of ROLE_KEYS){const ids=(roles[role]||[]).filter(mid=>localState.members.some(m=>m.id===mid&&m.active));clean[role]=ids;for(const x of ids)visible.add(x)}if(ROLE_KEYS.some(r=>clean[r].length))assignments[d]=clean}const attendance=Object.fromEntries(Object.entries(assignments).filter(([,r])=>r.present.length).map(([d,r])=>[d,r.present]));const exceptions=Object.fromEntries(Object.entries(localState.scheduleExceptions).filter(([d])=>d>=from&&d<=to));return {me:{id:me.id,name:me.name},members:localState.members.filter(m=>m.active&&visible.has(m.id)).map(m=>({id:m.id,name:m.name})),attendance,roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(exceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS,memberWindow:{from,to}}}}
-function localAdminSnapshot(){const members=localState.members.map(m=>({id:m.id,name:m.name,active:m.active})),assignments=localAssignmentsSnapshot();return {members,attendance:clone(localState.attendance),roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(localState.scheduleExceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS},membersAdmin:members.map(m=>({...m,createdAt:m.createdAt,hasActiveLink:m.active})),auditLog:clone(localState.auditLog.slice(-200).reverse()),integrity:{ok:true,counts:{activeMembers:members.filter(m=>m.active).length,attendanceDates:Object.keys(localState.attendance).length,roleAssignmentDates:Object.keys(localState.roleAssignments).length}}}}
+function localAdminSnapshot(){const members=localState.members.map(m=>({id:m.id,name:m.name,email:m.email||'',active:m.active})),assignments=localAssignmentsSnapshot();return {members,attendance:clone(localState.attendance),roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(localState.scheduleExceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS},membersAdmin:members.map(m=>({...m,createdAt:m.createdAt,hasActiveLink:m.active})),auditLog:clone(localState.auditLog.slice(-200).reverse()),integrity:{ok:true,counts:{activeMembers:members.filter(m=>m.active).length,attendanceDates:Object.keys(localState.attendance).length,roleAssignmentDates:Object.keys(localState.roleAssignments).length}}}}
 function csrf(name){const m=document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
 async function netApi(url,opts={}){const h=new Headers(opts.headers||{});if(opts.method&&opts.method!=='GET')h.set('X-CSRF-Token',url.startsWith('/api/admin')?csrf('club_admin_csrf'):csrf('club_member_csrf'));const r=await fetch(url,{...opts,headers:h,cache:'no-store'});let j={};try{j=await r.json()}catch{}if(!r.ok)throw Object.assign(new Error(j.error||'Erreur'),{status:r.status,payload:j});return j}
 function downloadBlob(name,type,text){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)}
@@ -3853,9 +3861,87 @@ function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=add
 function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#memberCount').textContent=`${adminData.membersAdmin.filter(m=>m.active).length} actifs`;renderAdminCalendar();renderMembers();renderDayEditorMembers();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
 function renderCoverage(){for(const[n,id,detail]of [[30,'coverage30','coverage30Detail'],[90,'coverage90','coverage90Detail']]){const c=coverage(n);q('#'+id).textContent=`${c.pct}% couvert`;q('#'+detail).textContent=`${c.covered}/${c.open} journées · ${c.missing} à pourvoir`}let next=null;for(let i=0;i<=365;i++){const d=addDays(parisToday(),i),c=assignmentCoverage(adminData,d);if(adminIsOpen(d)&&!c.covered){next={d,c};break}}q('#nextUncovered').textContent=next?dayLabel(next.d):'Aucune';q('#nextUncoveredDetail').textContent=next?`${next.c.filled}/${CORE_ROLE_KEYS.length} postes pourvus · manque${next.c.missing.length>1?'nt':''} : ${next.c.missing.map(r=>ROLE_LABELS[r]).join(', ')}`:'Toutes les dates sont couvertes.'}
 function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=sortNamesAlpha(ids.map(id=>byId[id]).filter(Boolean));line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=sortNamesAlpha(present.map(id=>byId[id]).filter(Boolean));line.textContent=`Disponible : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
-function renderMembers(){const body=q('#membersTable');body.innerHTML='';for(const m of sortMembersAlpha(adminData.membersAdmin)){const tr=document.createElement('tr'),nameTd=document.createElement('td'),stateTd=document.createElement('td'),actTd=document.createElement('td');const input=document.createElement('input');input.className='member-name-input';input.value=m.name;input.maxLength=80;input.addEventListener('change',()=>renameMember(m.id,input.value,input));nameTd.append(input);const state=document.createElement('div');state.textContent=m.active?'Actif':'Inactif';stateTd.append(state);const devices=document.createElement('div');devices.className='device-info';const n=Number(m.deviceCount||0);devices.textContent=n?`${n} appareil${n>1?'s':''} connecté${n>1?'s':''}${m.latestDeviceAt?' · dernier : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt)):''}`:'Aucun appareil connecté';stateTd.append(devices);const box=document.createElement('div');box.className='member-action-wrap';if(m.active){const rot=document.createElement('button');rot.className='btn primary';rot.textContent='Nouveau lien';rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));box.append(rot);const menu=document.createElement('details');menu.className='member-menu';const summary=document.createElement('summary');summary.className='btn';summary.textContent='•••';summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);const panel=document.createElement('div');panel.className='member-menu-panel';if(n){const kick=document.createElement('button');kick.type='button';kick.className='btn';kick.textContent='Déconnecter les appareils';kick.addEventListener('click',()=>{menu.open=false;revokeMemberDevices(m.id,m.name,n,kick)});panel.append(kick)}const disable=document.createElement('button');disable.type='button';disable.className='btn danger-option';disable.textContent='Désactiver le membre';disable.addEventListener('click',()=>{menu.open=false;setMemberActive(m.id,false,m.name,disable)});panel.append(disable);menu.append(summary,panel);box.append(menu)}else{const reactivate=document.createElement('button');reactivate.className='btn primary';reactivate.textContent='Réactiver';reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));box.append(reactivate)}actTd.append(box);tr.append(nameTd,stateTd,actTd);body.append(tr)}}
-function renderDayEditorMembers(){const date=q('#dayEditorDate')?.value;if(date&&!q('#adminCorrectionOverlay').classList.contains('hidden'))populateDayEditor(date)}
-function renderExceptions(){const box=q('#exceptionList');box.innerHTML='';const entries=Object.entries(adminData.scheduleExceptions||{}).sort(([a],[b])=>a.localeCompare(b));for(const[d,ex]of entries){const row=document.createElement('div');row.className='exception-item';const t=document.createElement('div');const s=document.createElement('strong');s.textContent=dayLabel(d,true);const p=document.createElement('div');p.className='muted small';p.textContent=`${ex.isOpen?'Ouvert':'Fermé'}${ex.note?' · '+ex.note:''}`;t.append(s,p);const del=document.createElement('button');del.className='btn danger';del.textContent='Supprimer';del.addEventListener('click',()=>removeException(d));row.append(t,del);box.append(row)}if(!entries.length){const e=document.createElement('div');e.className='muted small';e.textContent='Aucune exception.';box.append(e)}}
+function renderMembers(){
+  const body=q('#membersTable');
+  body.innerHTML='';
+  for(const m of sortMembersAlpha(adminData.membersAdmin)){
+    const tr=document.createElement('tr'),
+      nameTd=document.createElement('td'),
+      emailTd=document.createElement('td'),
+      stateTd=document.createElement('td'),
+      actTd=document.createElement('td');
+
+    const input=document.createElement('input');
+    input.className='member-name-input';
+    input.value=m.name;
+    input.maxLength=80;
+    input.addEventListener('change',()=>renameMember(m.id,input.value,input));
+    nameTd.append(input);
+
+    const email=document.createElement('input');
+    email.className='member-email-input';
+    email.type='email';
+    email.value=m.email||'';
+    email.maxLength=254;
+    email.autocomplete='off';
+    email.addEventListener('change',()=>updateMemberEmail(m.id,email.value,email));
+    emailTd.append(email);
+
+    const state=document.createElement('div');
+    state.textContent=m.active?'Actif':'Inactif';
+    stateTd.append(state);
+    const devices=document.createElement('div');
+    devices.className='device-info';
+    const n=Number(m.deviceCount||0);
+    devices.textContent=n?`${n} appareil${n>1?'s':''} connecté${n>1?'s':''}${m.latestDeviceAt?' · dernier : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt)):''}`:'Aucun appareil connecté';
+    stateTd.append(devices);
+
+    const box=document.createElement('div');
+    box.className='member-action-wrap';
+    if(m.active){
+      const rot=document.createElement('button');
+      rot.className='btn primary';
+      rot.textContent='Nouveau lien';
+      rot.addEventListener('click',()=>rotateMember(m.id,m.name,rot));
+      box.append(rot);
+
+      const menu=document.createElement('details');
+      menu.className='member-menu';
+      const summary=document.createElement('summary');
+      summary.className='btn';
+      summary.textContent='•••';
+      summary.setAttribute('aria-label',`Autres actions pour ${m.name}`);
+      const panel=document.createElement('div');
+      panel.className='member-menu-panel';
+      if(n){
+        const kick=document.createElement('button');
+        kick.type='button';
+        kick.className='btn';
+        kick.textContent='Déconnecter les appareils';
+        kick.addEventListener('click',()=>{menu.open=false;revokeMemberDevices(m.id,m.name,n,kick)});
+        panel.append(kick)
+      }
+      const disable=document.createElement('button');
+      disable.type='button';
+      disable.className='btn danger-option';
+      disable.textContent='Désactiver le membre';
+      disable.addEventListener('click',()=>{menu.open=false;setMemberActive(m.id,false,m.name,disable)});
+      panel.append(disable);
+      menu.append(summary,panel);
+      box.append(menu)
+    }else{
+      const reactivate=document.createElement('button');
+      reactivate.className='btn primary';
+      reactivate.textContent='Réactiver';
+      reactivate.addEventListener('click',()=>setMemberActive(m.id,true,m.name,reactivate));
+      box.append(reactivate)
+    }
+    actTd.append(box);
+    tr.append(nameTd,emailTd,stateTd,actTd);
+    body.append(tr)
+  }
+}
+
 function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`}
 let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),adminPollTimer=0;
 function markAdminActivity(){
@@ -3923,8 +4009,31 @@ async function refreshAdmin(btn=null,{silent=false}={}){
   }
 }
 function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q('#newLinkBox').classList.remove('hidden')}
-async function createMember(name,btn=null){setButtonBusy(btn,true,'Création…');try{if(LOCAL){name=String(name).trim();if(!name)return;const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
+async function createMember(name,email,btn=null){setButtonBusy(btn,true,'Création…');try{name=String(name).trim();email=String(email).trim().toLowerCase();if(!name||!email)return;if(LOCAL){const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,email,active:true,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé')}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
 async function renameMember(id,name,input=null){if(input){input.disabled=true;input.setAttribute('aria-busy','true')}try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.name=String(name).trim().slice(0,80)||m.name;audit('Administrateur','membre_renomme','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});adminData=j.snapshot}renderAdmin();toast('Nom enregistré')}catch(e){setNotice(q('#adminError'),e.message)}finally{if(input){input.disabled=false;input.removeAttribute('aria-busy')}}}
+async function updateMemberEmail(id,email,input=null){
+  if(input){input.disabled=true;input.setAttribute('aria-busy','true')}
+  try{
+    email=String(email||'').trim().toLowerCase();
+    if(LOCAL){
+      const m=localState.members.find(x=>x.id===id);
+      if(!m)return;
+      m.email=email;
+      audit('Administrateur','email_membre_modifie','',{memberId:id});
+      saveLocal();
+      adminData=localAdminSnapshot()
+    }else{
+      const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      adminData=j.snapshot
+    }
+    renderAdmin();
+    toast('Email enregistré')
+  }catch(e){
+    setNotice(q('#adminError'),e.message)
+  }finally{
+    if(input){input.disabled=false;input.removeAttribute('aria-busy')}
+  }
+}
 async function setMemberActive(id,active,name='',btn=null){if(!active){const ok=await confirmModal(`Désactiver ${name||'ce membre'} ?\n\nSes accès seront révoqués et ses inscriptions futures seront retirées.`,{title:'Désactiver un membre',confirmText:'Désactiver',danger:true});if(!ok)return}setButtonBusy(btn,true,active?'Réactivation…':'Désactivation…');toast(active?'Réactivation…':'Désactivation…');try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.active=active;if(!active){for(const[d,ids]of Object.entries(localState.attendance)){if(d>=parisToday()){localState.attendance[d]=ids.filter(x=>x!==id);if(!localState.attendance[d].length)delete localState.attendance[d]}}for(const[d,roles]of Object.entries(localState.roleAssignments||{})){if(d<parisToday())continue;for(const role of ['accueil','tpe','mep','arbitrage']){roles[role]=(roles[role]||[]).filter(x=>x!==id);if(!roles[role].length)delete roles[role]}if(!Object.keys(roles).length)delete localState.roleAssignments[d]}}audit('Administrateur',active?'membre_reactive':'membre_desactive','',{memberId:id});saveLocal();adminData=localAdminSnapshot();if(active)showNewLink(localPersonalUrl(id))}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active})});adminData=j.snapshot;if(j.shortToken)showNewLink(shortPersonalUrl(j.shortToken));else if(j.personalPath)showNewLink(location.origin+j.personalPath)}renderAdmin();toast(active?'Membre réactivé':'Membre désactivé')}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function rotateMember(id,name='',btn=null){const ok=await confirmModal(`Générer un nouveau lien pour ${name||'ce membre'} ?\n\nL’ancien lien ne fonctionnera plus et les appareils déjà associés devront se reconnecter avec le nouveau lien.`,{title:'Nouveau lien personnel',confirmText:'Générer le lien',danger:true});if(!ok)return;setButtonBusy(btn,true,'Création…');toast('Création du nouveau lien…');try{if(LOCAL){showNewLink(localPersonalUrl(id));audit('Administrateur','lien_regenere','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/rotate`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});adminData=j.snapshot;showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath)}renderAdmin();toast('Nouveau lien créé');setTimeout(()=>q('#newLinkBox')?.scrollIntoView({behavior:'smooth',block:'center'}),30)}catch(e){setNotice(q('#adminError'),e.message);toast('Échec : '+e.message)}finally{setButtonBusy(btn,false)}}
 async function revokeMemberDevices(id,name,count,btn=null){const ok=await confirmModal(`Déconnecter ${count} appareil${count>1?'s':''} associé${count>1?'s':''} à ${name} ?\n\nLe lien personnel restera valide et pourra être utilisé pour reconnecter un appareil.`,{title:'Déconnecter les appareils',confirmText:'Déconnecter',danger:true});if(!ok)return;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}/sessions/revoke`,{method:'POST'});adminData=j.snapshot;renderAdmin();toast(`${j.revoked} appareil${j.revoked>1?'s':''} déconnecté${j.revoked>1?'s':''}`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}}
@@ -4094,7 +4203,7 @@ q('#adminNextMonth').addEventListener('click',async()=>{
   })
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
-q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
+q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim(),email=q('#newEmail').value.trim();if(!name||!email)return;await createMember(name,email,e.submitter);q('#newName').value='';q('#newEmail').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
 q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
 q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
