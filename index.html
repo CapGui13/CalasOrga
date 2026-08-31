@@ -1157,23 +1157,78 @@ body.modal-open{overflow:hidden}
   font-weight:850;
   color:#27372e;
 }
-.day-editor-position select{
-  width:100%;
-  min-height:44px;
+.day-editor-position .day-role-choices,
+.day-editor-position .day-available-choices{
+  min-height:382px;
+  max-height:382px;
+  overflow:auto;
+  padding:8px;
   border:1px solid var(--line-strong);
   border-radius:10px;
-  padding:8px 30px 8px 10px;
   background:#fff;
-  color:var(--text);
+}
+.day-editor-position .day-role-choices{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.day-editor-position .day-role-choices .single-choice-item{
+  width:100%;
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:#1f2923;
   font:inherit;
+  font-size:14px;
+  font-weight:750;
+  text-align:left;
+  cursor:pointer;
+  transition:background .14s ease,border-color .14s ease,box-shadow .14s ease,color .14s ease;
 }
-.day-editor-position select:focus{
-  outline:2px solid rgba(36,113,232,.18);
-  outline-offset:1px;
-  border-color:var(--focus);
+.day-editor-position .day-role-choices .single-choice-item:hover,
+.day-editor-position .day-role-choices .single-choice-item:focus-visible,
+.day-editor-position .day-available-choices .available-check:hover,
+.day-editor-position .day-available-choices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d6e2da;
+  outline:none;
 }
-.day-editor-actions{margin-top:18px;justify-content:center}
-.day-editor-actions .btn{min-width:150px}
+.day-editor-position .day-role-choices .single-choice-item.selected,
+.day-editor-position .day-available-choices .available-check:has(input:checked){
+  background:#e8f3ec;
+  border-color:#c4ddce;
+  color:#117440;
+  box-shadow:inset 0 0 0 1px rgba(17,116,64,.06);
+}
+.day-editor-position .day-role-choices .single-choice-item.empty-choice{
+  color:#62716a;
+  font-weight:700;
+}
+.day-editor-position .day-role-choices .single-choice-item.empty-choice.selected{
+  color:#557165;
+}
+.day-editor-position .day-available-choices{
+  gap:8px;
+}
+.day-editor-position .day-available-choices .available-check{
+  min-height:36px;
+  padding:7px 10px;
+  gap:10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  font-size:14px;
+  font-weight:750;
+}
+.day-editor-position .day-available-choices .available-check input{
+  width:16px;
+  height:16px;
+  margin:0;
+}
+.day-editor-actions{margin-top:18px;justify-content:flex-end}
+.day-editor-actions .btn{min-width:190px}
 .day-editor-warning{
   margin-top:14px;
   background:#fff9e8;
@@ -1193,6 +1248,14 @@ body.modal-open{overflow:hidden}
   .day-editor-position:last-child{grid-column:auto;border-bottom:0}
   .day-editor-actions{flex-direction:column-reverse}
   .day-editor-actions .btn{width:100%}
+}
+@media(max-width:820px){
+  .day-editor-position .day-role-choices,
+  .day-editor-position .day-available-choices{min-height:280px;max-height:280px}
+}
+@media(max-width:520px){
+  .day-editor-position .day-role-choices,
+  .day-editor-position .day-available-choices{min-height:220px;max-height:260px}
 }
 
 
@@ -2350,7 +2413,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.24 · statut simplifié par couleur · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.25 · correction de journée sans menus déroulants · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2487,11 +2550,11 @@ body.modal-open{overflow:hidden}
           <input type="hidden" id="dayEditorDate">
           <div class="day-editor-date" id="dayEditorDateLabel"></div>
           <div class="day-editor-grid" role="group" aria-label="Affectations de la journée">
-            <div class="day-editor-position"><label for="dayAccueil">Accueil</label><select id="dayAccueil" data-day-role="accueil"></select></div>
-            <div class="day-editor-position"><label for="dayTpe">TPE</label><select id="dayTpe" data-day-role="tpe"></select></div>
-            <div class="day-editor-position"><label for="dayMep">MEP</label><select id="dayMep" data-day-role="mep"></select></div>
-            <div class="day-editor-position"><label for="dayArbitrage">Arbitrage</label><select id="dayArbitrage" data-day-role="arbitrage"></select></div>
-            <div class="day-editor-position"><label>Disponible</label><div id="dayPresentChoices" class="available-checklist" data-day-role="present" aria-label="Membres disponibles"></div></div>
+            <div class="day-editor-position"><label>Accueil</label><div id="dayAccueilChoices" class="single-choice-list day-role-choices" data-day-role="accueil" aria-label="Membres pour Accueil"></div></div>
+            <div class="day-editor-position"><label>TPE</label><div id="dayTpeChoices" class="single-choice-list day-role-choices" data-day-role="tpe" aria-label="Membres pour TPE"></div></div>
+            <div class="day-editor-position"><label>MEP</label><div id="dayMepChoices" class="single-choice-list day-role-choices" data-day-role="mep" aria-label="Membres pour MEP"></div></div>
+            <div class="day-editor-position"><label>Arbitrage</label><div id="dayArbitrageChoices" class="single-choice-list day-role-choices" data-day-role="arbitrage" aria-label="Membres pour Arbitrage"></div></div>
+            <div class="day-editor-position"><label>Disponible</label><div id="dayPresentChoices" class="available-checklist day-available-choices" data-day-role="present" aria-label="Membres disponibles"></div></div>
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
           <div class="actions day-editor-actions">
@@ -2621,7 +2684,7 @@ function showAdminPage(page,{push=false,scroll=true}={}){
   if(scroll)scrollTo({top:0,behavior:'instant'})
 }
 
-function toast(text){const e=q('#toast');e.textContent=text;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),2200)}
+function toast(text){const admin=q('#adminRoot');if(admin&&!admin.classList.contains('hidden'))return;const e=q('#toast');e.textContent=text;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),2200)}
 function setNotice(el,text=''){el.classList.toggle('hidden',!text);el.textContent=text}
 let confirmResolve=null,confirmLastFocus=null;
 function closeConfirmModal(value){const overlay=q('#confirmOverlay');if(!overlay||overlay.classList.contains('hidden'))return;overlay.classList.add('hidden');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');const resolve=confirmResolve;confirmResolve=null;if(confirmLastFocus?.focus)confirmLastFocus.focus();confirmLastFocus=null;if(resolve)resolve(Boolean(value))}
@@ -2780,12 +2843,32 @@ function adminDatesForMonth(k){
   }
   return out
 }
-function fillDayEditorSelect(select,role,currentIds,members){
-  const emptyLabel=role==='present'?'— Personne disponible —':'— À pourvoir —';
-  select.innerHTML='';
-  const empty=document.createElement('option');empty.value='';empty.textContent=emptyLabel;select.append(empty);
-  for(const m of sortMembersAlpha(members)){const o=document.createElement('option');o.value=m.id;o.textContent=m.name;select.append(o)}
-  select.value=currentIds[0]||''
+function fillDaySingleChoiceList(container,currentIds,members){
+  const current=String((currentIds||[])[0]||'');
+  container.innerHTML='';
+  container.dataset.selectedId=current;
+  const makeButton=(id,label,extra='')=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=`single-choice-item${extra?` ${extra}`:''}${current===String(id)?' selected':''}`;
+    btn.dataset.memberId=String(id);
+    btn.textContent=label;
+    btn.addEventListener('click',()=>setDaySingleChoice(container,String(id)));
+    container.append(btn)
+  };
+  makeButton('','À pourvoir','empty-choice');
+  for(const m of sortMembersAlpha(members))makeButton(String(m.id),m.name)
+}
+function setDaySingleChoice(container,memberId){
+  const selected=String(memberId||'');
+  container.dataset.selectedId=selected;
+  for(const btn of container.querySelectorAll('.single-choice-item'))btn.classList.toggle('selected',String(btn.dataset.memberId||'')===selected)
+}
+function getDaySingleChoiceValue(container){
+  return String(container?.dataset.selectedId||'')
+}
+function dayRoleChoiceContainer(role){
+  return q(role==='accueil'?'#dayAccueilChoices':role==='tpe'?'#dayTpeChoices':role==='mep'?'#dayMepChoices':'#dayArbitrageChoices')
 }
 function fillAvailableChecklist(container,currentIds,members,prefix){
   const current=new Set((currentIds||[]).map(String));
@@ -2824,8 +2907,8 @@ function populateDayEditor(date){
   const warnings=[];
   for(const role of CORE_ROLE_KEYS){
     const ids=Array.isArray(assignments[role])?assignments[role]:[];
-    const select=q(`[data-day-role="${role}"]`);
-    fillDayEditorSelect(select,role,ids,active);
+    const container=dayRoleChoiceContainer(role);
+    fillDaySingleChoiceList(container,ids,active);
     if(ids.length>1)warnings.push(`${ROLE_LABELS[role]} : ${ids.length} membres actuellement affectés`)
   }
   fillAvailableChecklist(q('#dayPresentChoices'),assignments.present||[],active,'day-available');
@@ -2841,7 +2924,7 @@ function openAdminCorrection(date){
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('modal-open');
-  setTimeout(()=>q('#dayAccueil')?.focus(),0)
+  setTimeout(()=>q('#dayAccueilChoices .single-choice-item.selected, #dayAccueilChoices .single-choice-item')?.focus(),0)
 }
 function closeAdminCorrection(){
   const overlay=q('#adminCorrectionOverlay');
@@ -3323,7 +3406,7 @@ function setLocalDayAssignments(date,selections){
 }
 async function saveAdminDay(btn=null){
   const date=q('#dayEditorDate').value;
-  const assignments=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[role,q(`[data-day-role="${role}"]`).value||'']));
+  const assignments=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[role,getDaySingleChoiceValue(dayRoleChoiceContainer(role))]));
   assignments.present=checkedAvailableIds(q('#dayPresentChoices'));
   if(LOCAL){
     try{setLocalDayAssignments(date,assignments);renderAdmin();closeAdminCorrection();toast('Journée mise à jour')}
