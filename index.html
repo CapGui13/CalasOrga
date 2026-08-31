@@ -2108,11 +2108,101 @@ body.modal-open{overflow:hidden}
   padding:18px;
 }
 
+
+/* =========================================================
+   V15.22.9 — GÉOMÉTRIE STRICTEMENT IDENTIQUE DES LIGNES
+   ========================================================= */
+
+/* Les deux listes ont exactement le même rythme. */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:6px;
+  max-height:none;
+  overflow:visible;
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* Hauteur FIXE identique : aucun label/checkbox ne peut étirer la ligne. */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  width:100%;
+  height:31px;
+  min-height:31px;
+  max-height:31px;
+  flex:0 0 31px;
+  margin:0;
+  padding:0 10px;
+  box-sizing:border-box;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:650;
+  line-height:1;
+}
+
+/* Rôle */
+#adminCellRoleChoices .single-choice-item{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  text-align:left;
+}
+
+/* Disponible : même ligne, avec une colonne fixe de 15px pour la checkbox. */
+#adminCellAvailableChoices .available-check{
+  display:grid;
+  grid-template-columns:15px minmax(0,1fr);
+  align-items:center;
+  column-gap:10px;
+}
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  min-width:15px;
+  min-height:15px;
+  margin:0;
+  padding:0;
+  align-self:center;
+}
+#adminCellAvailableChoices .available-check span{
+  min-width:0;
+  line-height:1;
+}
+
+/* États visuels strictement communs. */
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible,
+#adminCellAvailableChoices .available-check:hover,
+#adminCellAvailableChoices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+#adminCellRoleChoices .single-choice-item.selected,
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+/* Le bouton d'enregistrement reste la seule hauteur supplémentaire
+   spécifique à Disponible. */
+#adminCellActions{
+  margin-top:12px;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.8 · panneaux rôle et Disponible jumeaux · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.9 · géométrie rôle/Disponible identique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
