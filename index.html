@@ -3499,11 +3499,54 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.34 — GESTION DES MEMBRES + INFOS APPAREILS
+   ========================================================= */
+
+/* Le libellé central est plus long : emplacement fixe élargi,
+   sans faire bouger les deux autres onglets. */
+.admin-tabs{
+  grid-template-columns:120px 178px 120px !important;
+  width:432px !important;
+}
+.admin-tabs a[data-admin-page="members"]{
+  width:178px !important;
+}
+
+/* Panneau épuré : uniquement les deux actions. */
+.member-management-head-actions-only{
+  justify-content:flex-end !important;
+}
+.member-management-head-actions-only .member-management-actions{
+  margin-left:auto;
+}
+
+/* Détail appareil compact. */
+.member-device-secondary{
+  line-height:1.25;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+@media(max-width:720px){
+  .admin-tabs{
+    width:100% !important;
+    grid-template-columns:1fr 1.45fr 1fr !important;
+  }
+  .admin-tabs a,
+  .admin-tabs a[data-admin-page="members"]{
+    width:100% !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.33 · planning limité à 3 mois · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.34 · gestion membres + infos appareils · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -3668,7 +3711,7 @@ body{
 
     <nav class="admin-tabs" aria-label="Pages de l’administration">
       <a href="/admin" data-admin-page="calendar">Calendrier</a>
-      <a href="/admin/membres" data-admin-page="members">Membres</a>
+      <a href="/admin/membres" data-admin-page="members">Gestion des membres</a>
       <a href="/admin/historique" data-admin-page="history">Historique</a>
     </nav>
 
@@ -3703,18 +3746,13 @@ body{
         <section class="card members-card" id="adminMembers">
           <div class="members-head">
             <div>
-              <h2>Membres</h2>
-              <div class="muted small">Coordonnées, accès personnel et appareils associés.</div>
+              <h2>Gestion des membres</h2>
             </div>
             <span class="pill" id="memberCount"></span>
           </div>
 
           <div class="member-management-panel">
-            <div class="member-management-head">
-              <div>
-                <div class="member-management-title">Gestion des membres</div>
-                <div class="muted small">Créer un membre ou modifier ses coordonnées et son lien personnel.</div>
-              </div>
+            <div class="member-management-head member-management-head-actions-only">
               <div class="member-management-actions">
                 <button class="btn" type="button" id="memberManageCreate">Créer</button>
                 <button class="btn" type="button" id="memberManageModify">Modifier</button>
@@ -4699,11 +4737,22 @@ function renderMembers(){
     deviceText.textContent=n?`${n} appareil${n>1?'s':''}`:'Aucun appareil';
     deviceLine.append(dot,deviceText);
     devicesTd.append(deviceLine);
-    if(n&&m.latestDeviceAt){
-      const last=document.createElement('div');
-      last.className='member-device-secondary';
-      last.textContent='Dernière connexion : '+new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt));
-      devicesTd.append(last)
+    if(n){
+      const details=document.createElement('div');
+      details.className='member-device-secondary';
+      const labels=(m.devices||[]).map(d=>d?.label).filter(Boolean);
+      const unique=[...new Set(labels)];
+      const dateText=m.latestDeviceAt
+        ? new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(m.latestDeviceAt))
+        : '';
+      if(unique.length){
+        details.textContent=unique.join(' · ')+(dateText?` · ${dateText}`:'');
+        details.title=unique.join('\n')+(dateText?`\nDernière connexion : ${dateText}`:'')
+      }else{
+        details.textContent=dateText?`Appareil déjà reconnu · ${dateText}`:'Appareil déjà reconnu';
+        details.title='Les informations détaillées seront disponibles lors de la prochaine reconnexion de cet appareil.'
+      }
+      devicesTd.append(details)
     }
 
     const linkTd=document.createElement('td');

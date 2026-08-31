@@ -104,6 +104,53 @@ function browserMutationMetadataOk(req) {
 }
 
 
+function cleanHeaderToken(value, max = 80) {
+  return String(value || '').replace(/^"|"$/g, '').replace(/[\r\n]/g, ' ').trim().slice(0, max);
+}
+
+function clientDeviceInfo(req) {
+  const ua = cleanHeaderToken(req.headers['user-agent'], 512);
+  const lower = ua.toLowerCase();
+  const platformHint = cleanHeaderToken(req.headers['sec-ch-ua-platform'], 40);
+  const mobileHint = cleanHeaderToken(req.headers['sec-ch-ua-mobile'], 8);
+
+  let type = 'Ordinateur';
+  if (mobileHint === '?1' || /iphone|ipod|android.+mobile|windows phone/.test(lower)) type = 'Mobile';
+  else if (/ipad|tablet|android/.test(lower)) type = 'Tablette';
+
+  let os = platformHint;
+  if (!os) {
+    if (/windows nt/.test(lower)) os = 'Windows';
+    else if (/iphone|ipod/.test(lower)) os = 'iOS';
+    else if (/ipad/.test(lower)) os = 'iPadOS';
+    else if (/android/.test(lower)) os = 'Android';
+    else if (/macintosh|mac os x/.test(lower)) os = 'macOS';
+    else if (/cros/.test(lower)) os = 'ChromeOS';
+    else if (/linux/.test(lower)) os = 'Linux';
+    else os = 'Système inconnu';
+  }
+
+  let browser = 'Navigateur inconnu';
+  if (/\bedg\//.test(lower)) browser = 'Edge';
+  else if (/\bopr\//.test(lower) || /\bopera\//.test(lower)) browser = 'Opera';
+  else if (/\bfirefox\//.test(lower) || /\bfxios\//.test(lower)) browser = 'Firefox';
+  else if (/\bcrios\//.test(lower) || (/\bchrome\//.test(lower) && !/\bedg\//.test(lower))) browser = 'Chrome';
+  else if (/\bsafari\//.test(lower) && /\bversion\//.test(lower)) browser = 'Safari';
+
+  const label = [type, browser, os].filter(Boolean).join(' · ').slice(0, 160);
+  return { type, browser, os, label };
+}
+
+function sanitizeSessionDevice(info) {
+  if (!info || typeof info !== 'object') return null;
+  const type = cleanHeaderToken(info.type, 30) || 'Appareil';
+  const browser = cleanHeaderToken(info.browser, 40) || 'Navigateur inconnu';
+  const os = cleanHeaderToken(info.os, 40) || 'Système inconnu';
+  const label = cleanHeaderToken(info.label, 160) || [type, browser, os].join(' · ');
+  return { type, browser, os, label };
+}
+
+
 // ===== src/domain.mjs =====
 const OPEN_WEEKDAYS = new Set([1, 2, 4]); // lundi, mardi, jeudi (UTC weekday)
 const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -932,7 +979,7 @@ class FileStore {
     return !!this.#findSession(rawToken, 'admin', credentialTag);
   }
 
-  #appendMemberSession(s, memberId, raw, expiresAt, now) {
+  #appendMemberSession(s, memberId, raw, expiresAt, now, deviceInfo = null) {
     const member = s.members.find((m) => m.id === memberId && m.active);
     if (!member) return { ok: false, status: 401, error: 'Membre inactif ou introuvable.' };
     this.#cleanupSessions(s);
@@ -945,19 +992,20 @@ class FileStore {
     s.sessions.push({
       id: `s_${randomToken(10)}`, kind: 'member', memberId,
       tokenHash: tokenHash(raw), active: true,
-      createdAt: now.toISOString(), expiresAt, revokedAt: null
+      createdAt: now.toISOString(), expiresAt, revokedAt: null,
+      device: sanitizeSessionDevice(deviceInfo)
     });
     return { ok: true, rawToken: raw, expiresAt, member: { id: member.id, name: member.displayName } };
   }
 
-  async createMemberSession(memberId, ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
+  async createMemberSession(memberId, ttlSeconds = MEMBER_SESSION_TTL_SECONDS, deviceInfo = null) {
     const raw = randomToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
-    return this.mutate((s) => this.#appendMemberSession(s, memberId, raw, expiresAt, now), { snapshots: false });
+    return this.mutate((s) => this.#appendMemberSession(s, memberId, raw, expiresAt, now, deviceInfo), { snapshots: false });
   }
 
-  async loginMemberByRawToken(rawToken, currentRawSession = '', ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
+  async loginMemberByRawToken(rawToken, currentRawSession = '', ttlSeconds = MEMBER_SESSION_TTL_SECONDS, deviceInfo = null) {
     const rawSession = randomToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
@@ -970,11 +1018,11 @@ class FileStore {
         currentSession.active = false;
         currentSession.revokedAt = now.toISOString();
       }
-      return this.#appendMemberSession(s, rec.memberId, rawSession, expiresAt, now);
+      return this.#appendMemberSession(s, rec.memberId, rawSession, expiresAt, now, deviceInfo);
     }, { snapshots: false });
   }
 
-  async loginMemberByShortToken(rawToken, currentRawSession = '', confirmSwitch = false, ttlSeconds = MEMBER_SESSION_TTL_SECONDS) {
+  async loginMemberByShortToken(rawToken, currentRawSession = '', confirmSwitch = false, ttlSeconds = MEMBER_SESSION_TTL_SECONDS, deviceInfo = null) {
     const clean = String(rawToken || '').trim().normalize('NFC');
     if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(clean)) return { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
     const hashes = new Set(shortPersonalTokenHashCandidates(clean));
@@ -1000,7 +1048,7 @@ class FileStore {
         currentSession.active = false;
         currentSession.revokedAt = now.toISOString();
       }
-      return this.#appendMemberSession(s, target.id, rawSession, expiresAt, now);
+      return this.#appendMemberSession(s, target.id, rawSession, expiresAt, now, deviceInfo);
     }, { snapshots: false });
   }
 
@@ -1485,7 +1533,15 @@ class FileStore {
     return {
       deviceCount: active.length,
       oldestDeviceAt: active[0]?.createdAt || null,
-      latestDeviceAt: active.at(-1)?.createdAt || null
+      latestDeviceAt: active.at(-1)?.createdAt || null,
+      devices: active.map((rec) => ({
+        createdAt: rec.createdAt || null,
+        expiresAt: rec.expiresAt || null,
+        type: rec.device?.type || null,
+        browser: rec.device?.browser || null,
+        os: rec.device?.os || null,
+        label: rec.device?.label || null
+      }))
     };
   }
 
@@ -2225,7 +2281,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.33.0-three-month-horizon-vercel';
+const APP_VERSION = '0.15.34.0-device-info-labels-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2448,7 +2504,7 @@ export async function requestHandler(req, res) {
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
       const b = await bodyJson(req, 4096); const raw = String(b.token || '');
       const cookies = parseCookies(req.headers.cookie || '');
-      const result = raw ? await store.loginMemberByRawToken(raw, cookies.club_session || '') : { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
+      const result = raw ? await store.loginMemberByRawToken(raw, cookies.club_session || '', MEMBER_SESSION_TTL_SECONDS, clientDeviceInfo(req)) : { ok: false, status: 401, error: 'Lien personnel invalide ou révoqué.' };
       if (!result.ok) return json(res, result.status, { error: result.error });
       const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
       return json(res, 200, { ok: true, member: result.member }, { 'Set-Cookie': [cookie('club_session', result.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
@@ -2467,7 +2523,7 @@ export async function requestHandler(req, res) {
         return json(res, 429, { error: 'Trop de tentatives pour ce lien. Réessayez plus tard.' });
       }
       const cookies = parseCookies(req.headers.cookie || '');
-      const result = await store.loginMemberByShortToken(raw, cookies.club_session || '', b.confirmSwitch === true);
+      const result = await store.loginMemberByShortToken(raw, cookies.club_session || '', b.confirmSwitch === true, MEMBER_SESSION_TTL_SECONDS, clientDeviceInfo(req));
       if (!result.ok) return json(res, result.status, { ...result });
       const csrf = csrfCookie('club_member_csrf', secure, MEMBER_SESSION_TTL_SECONDS);
       return json(res, 200, { ok: true, member: result.member }, { 'Set-Cookie': [cookie('club_session', result.rawToken, { secure, maxAge: MEMBER_SESSION_TTL_SECONDS }), csrf.header] });
