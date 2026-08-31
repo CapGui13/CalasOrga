@@ -3835,7 +3835,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.4 · onglets sans saut + libellés admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.5 · onglets rapides sans clic perdu · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4197,6 +4197,8 @@ const memberStatusPending=new Map();
 function animateMemberCalendarIfNeeded(){}
 function animateAdminCalendarIfNeeded(){}
 let uiTransitionBusy=false;
+let adminTabTransitionBusy=false;
+let pendingAdminPageTransition=null;
 function motionReduced(){
   return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
 }
@@ -4256,9 +4258,15 @@ function adminPageSurface(page){
   const view=document.querySelector(`[data-admin-view="${page}"]`);
   return view?.querySelector('section.card')||view?.firstElementChild||view
 }
-async function microAdminPageTransition(page,{push=false,scroll=false}={}){
+async function microAdminPageTransition(page,{push=false,scroll=false,preservedScrollY=window.scrollY}={}){
   if(!['calendar','members','history'].includes(page))page='calendar';
-  const preservedScrollY=window.scrollY;
+
+  /* Pendant une transition, on ne perd plus les clics :
+     seule la dernière intention est conservée. */
+  if(adminTabTransitionBusy){
+    pendingAdminPageTransition={page,push,scroll,preservedScrollY:window.scrollY};
+    return
+  }
 
   const restoreAdminScroll=()=>{
     if(scroll)return;
@@ -4270,7 +4278,7 @@ async function microAdminPageTransition(page,{push=false,scroll=false}={}){
     restoreAdminScroll();
     return
   }
-  if(uiTransitionBusy)return;
+
   if(motionReduced()){
     showAdminPage(page,{push,scroll:false});
     restoreAdminScroll();
@@ -4284,7 +4292,7 @@ async function microAdminPageTransition(page,{push=false,scroll=false}={}){
     return
   }
 
-  uiTransitionBusy=true;
+  adminTabTransitionBusy=true;
   try{
     const out=fromSurface.animate(
       [{opacity:1},{opacity:.06}],
@@ -4292,10 +4300,31 @@ async function microAdminPageTransition(page,{push=false,scroll=false}={}){
     );
     await animFinished(out);
 
-    showAdminPage(page,{push,scroll:false});
-    restoreAdminScroll();
+    /* Si un autre onglet a été demandé pendant le fade-out,
+       on cible directement le dernier demandé au lieu d'afficher
+       inutilement l'onglet intermédiaire. */
+    let targetPage=page;
+    let targetPush=push;
+    let targetScroll=scroll;
+    let targetScrollY=preservedScrollY;
 
-    const toSurface=adminPageSurface(page);
+    if(pendingAdminPageTransition){
+      targetPage=pendingAdminPageTransition.page;
+      targetPush=pendingAdminPageTransition.push;
+      targetScroll=pendingAdminPageTransition.scroll;
+      targetScrollY=pendingAdminPageTransition.preservedScrollY;
+      pendingAdminPageTransition=null
+    }
+
+    const restoreTargetScroll=()=>{
+      if(targetScroll)return;
+      window.scrollTo({top:targetScrollY,behavior:'instant'})
+    };
+
+    showAdminPage(targetPage,{push:targetPush,scroll:false});
+    restoreTargetScroll();
+
+    const toSurface=adminPageSurface(targetPage);
     if(!toSurface){
       try{out.cancel()}catch{}
       return
@@ -4304,7 +4333,7 @@ async function microAdminPageTransition(page,{push=false,scroll=false}={}){
     toSurface.style.opacity='.06';
     try{out.cancel()}catch{}
     await new Promise(requestAnimationFrame);
-    restoreAdminScroll();
+    restoreTargetScroll();
 
     const inn=toSurface.animate(
       [{opacity:.06},{opacity:1}],
@@ -4313,12 +4342,22 @@ async function microAdminPageTransition(page,{push=false,scroll=false}={}){
     await animFinished(inn);
     try{inn.cancel()}catch{}
     toSurface.style.removeProperty('opacity');
-    restoreAdminScroll()
+    restoreTargetScroll()
   }finally{
-    uiTransitionBusy=false
+    adminTabTransitionBusy=false;
+
+    /* Un clic peut encore arriver pendant le fade-in.
+       On traite alors immédiatement la dernière demande restante. */
+    const pending=pendingAdminPageTransition;
+    pendingAdminPageTransition=null;
+    if(pending&&pending.page!==currentAdminPage){
+      queueMicrotask(()=>microAdminPageTransition(pending.page,pending))
+    }else if(pending&&pending.page===currentAdminPage){
+      if(pending.push)showAdminPage(pending.page,{push:true,scroll:false});
+      if(!pending.scroll)window.scrollTo({top:pending.preservedScrollY,behavior:'instant'})
+    }
   }
 }
-
 function updateDayEditorListHeight(memberCount){
   const dialog=q('#adminCorrectionOverlay .admin-correction-dialog');
   if(!dialog)return;
