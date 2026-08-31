@@ -1026,14 +1026,27 @@ body.modal-open{overflow:hidden}
   color:#216a40;
 }
 
-/* Séparation des semaines plus discrète */
+/* Séparation des semaines plus marquée */
 .admin-schedule .week-separator td{
-  padding:0;
-  border:0;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
 }
 .admin-schedule .week-separator-line{
-  height:5px;
-  background:#eef3f0;
+  position:relative;
+  height:26px;
+  background:transparent;
+}
+.admin-schedule .week-separator-line::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  height:2px;
+  border-radius:999px;
+  background:#b8c8bf;
 }
 
 /* Survol d'une date sur desktop */
@@ -1073,40 +1086,40 @@ body.modal-open{overflow:hidden}
 
 
 /* =========================================================
-   V15.12.2 — ALTERNANCE DE SEMAINES PLUS MARQUÉE
+   V15.23 — SÉPARATION ET CONTRASTE DE SEMAINES RENFORCÉS
    ========================================================= */
 .admin-schedule tr.week-a .date-cell,
 .admin-schedule tr.week-a .role-cell{
-  background:#fcfdfc;
+  background:#ffffff;
 }
 .admin-schedule tr.week-b .date-cell,
 .admin-schedule tr.week-b .role-cell{
-  background:#f1f6f3;
+  background:#edf5f0;
 }
 .admin-schedule tr.week-b .date-cell{
-  background:#eef4f0;
+  background:#e7f0ea;
 }
 .admin-schedule tr.week-b .role-display.empty{
-  color:#718078;
+  color:#68766f;
 }
 
 @media(hover:hover){
   .admin-schedule tr.week-a:hover .date-cell,
   .admin-schedule tr.week-a:hover .role-cell{
-    background:#f7fbf8;
+    background:#f8fbf9;
   }
   .admin-schedule tr.week-b:hover .date-cell,
   .admin-schedule tr.week-b:hover .role-cell{
-    background:#e8f1eb;
+    background:#e4efe8;
   }
 }
 
 /* Mobile : alternance visible aussi sur les cartes dates */
 .admin-schedule-mobile .mobile-date-card.week-a{
-  background:#fcfdfc;
+  background:#ffffff;
 }
 .admin-schedule-mobile .mobile-date-card.week-b{
-  background:#f1f6f3;
+  background:#edf5f0;
 }
 
 
@@ -2202,7 +2215,7 @@ body.modal-open{overflow:hidden}
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.22.9 · géométrie rôle/Disponible identique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23 · séparation de semaines renforcée · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
