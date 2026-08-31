@@ -2602,11 +2602,112 @@ body{
   border-color:#c7dece !important;
 }
 
+
+/* =========================================================
+   V15.26.6 — LIGNES UNIFORMES + PASTILLES SOMBRES + FONDU PLUS DOUX
+   ========================================================= */
+
+/* Une seule couleur par ligne : on étend la couleur du bloc Date
+   à toutes les cellules de la semaine concernée. */
+.week-a .date-cell,
+.week-a .role-cell,
+.week-a .role-button{
+  background:#f3eee7 !important;
+}
+.admin-schedule tr.week-a .date-cell,
+.admin-schedule tr.week-a .role-cell,
+.admin-schedule tr.week-a .role-button{
+  background:#f1ebe3 !important;
+}
+
+.week-b .date-cell,
+.week-b .role-cell,
+.week-b .role-button{
+  background:#eef3f6 !important;
+}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell,
+.admin-schedule tr.week-b .role-button{
+  background:#e6edf2 !important;
+}
+
+/* Mobile : même logique, une teinte homogène par semaine. */
+.mobile-date-card.week-a,
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#f3eee7 !important;
+}
+.mobile-date-card.week-b,
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#eef3f6 !important;
+}
+
+/* Une journée validée reste entièrement verte. */
+.admin-schedule tr.day-complete .date-cell,
+.admin-schedule tr.day-complete .role-cell,
+.admin-schedule tr.day-complete .role-button{
+  background:#d7eee0 !important;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#d7eee0 !important;
+  border-color:#c7dece !important;
+}
+
+/* Les noms dans toutes les pastilles restent bien sombres. */
+.role-chip,
+.role-chip.me,
+.admin-schedule .role-chip,
+.admin-schedule tr.day-complete .role-chip{
+  color:#17251e !important;
+}
+
+/* Fondu plus doux : plus long, pure opacité, sans déplacement brutal. */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeInSoft .30s ease-in-out both !important;
+}
+@keyframes adminPageFadeInSoft{
+  from{opacity:.35}
+  to{opacity:1}
+}
+
+.calendar-fade-in{
+  animation:calendarSurfaceFadeSoft .30s ease-in-out both !important;
+}
+@keyframes calendarSurfaceFadeSoft{
+  from{opacity:.35}
+  to{opacity:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in,
+  .calendar-fade-in{
+    animation:none !important;
+  }
+}
+
+/* Hover : garde la couleur de semaine, seulement très légèrement modulée. */
+@media(hover:hover){
+  .admin-schedule tr.week-a:not(.day-complete):hover .date-cell,
+  .admin-schedule tr.week-a:not(.day-complete):hover .role-cell,
+  .admin-schedule tr.week-a:not(.day-complete):hover .role-button{
+    background:#eee7de !important;
+  }
+  .admin-schedule tr.week-b:not(.day-complete):hover .date-cell,
+  .admin-schedule tr.week-b:not(.day-complete):hover .role-cell,
+  .admin-schedule tr.week-b:not(.day-complete):hover .role-button{
+    background:#dfe8ee !important;
+  }
+  .admin-schedule tr.day-complete:hover .date-cell,
+  .admin-schedule tr.day-complete:hover .role-cell,
+  .admin-schedule tr.day-complete:hover .role-button{
+    background:#cde7d8 !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.5 · fond blanc + couleur semaine A · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.6 · lignes uniformes + fondu doux · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
