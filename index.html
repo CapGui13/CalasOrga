@@ -2292,11 +2292,65 @@ body.modal-open{overflow:hidden}
   outline-offset:2px;
 }
 
+
+/* =========================================================
+   V15.24 — DATE COMPLÈTE SIGNALÉE PAR LA COULEUR
+   ========================================================= */
+
+/* Dans le planning admin, on épure la colonne Date :
+   plus de ligne "x/x postes pourvus" ni de badge "Complet / manquants". */
+.admin-schedule .date-cell{
+  padding-top:14px;
+  padding-bottom:14px;
+}
+.admin-schedule .date-main{
+  margin-bottom:10px;
+}
+.admin-schedule .date-note,
+.admin-schedule .date-status,
+.admin-schedule-mobile .mobile-date-note,
+.admin-schedule-mobile .mobile-date-head .date-status{
+  display:none !important;
+}
+
+/* Une journée complète se repère uniquement par la couleur. */
+.admin-schedule tr.day-complete .date-cell{
+  background:#d7eee0 !important;
+}
+.admin-schedule tr.day-complete .role-cell{
+  background:#edf8f1 !important;
+}
+.admin-schedule tr.day-complete .admin-role-display.empty{
+  color:#6f8a79;
+}
+.admin-schedule tr.day-complete .role-chip{
+  background:#dff0e5;
+  border-color:#bdd9c7;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.day-complete:hover .date-cell{
+    background:#cde7d8 !important;
+  }
+  .admin-schedule tr.day-complete:hover .role-cell{
+    background:#e6f4eb !important;
+  }
+}
+
+/* Mobile admin : même logique visuelle. */
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#edf8f1 !important;
+  border-color:#c7dece;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete .mobile-date-title{
+  color:#1d6e43;
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.23.2 · focus Disponible corrigé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.24 · statut simplifié par couleur · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -3074,20 +3128,15 @@ function renderAdminCalendar(){
     const assignments=adminData.assignments?.[date]||{};
     const present=assignments.present||[];
     const coverageState=assignmentCoverage(adminData,date);
-    const missingCount=coverageState.missing.length;
     const row=document.createElement('tr');
-    row.className=weekIndex%2?'week-b':'week-a';
+    row.className=(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'');
+    row.dataset.covered=open&&coverageState.covered?'true':'false';
 
     const dateTd=document.createElement('td');dateTd.className='date-cell';
     const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
-    const note=document.createElement('div');note.className='date-note';
-    note.textContent=!open?(adminData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;
-    const badge=document.createElement('span');
-    badge.className='date-status '+(!open?'closed':coverageState.covered?'':'alert');
-    badge.textContent=!open?'Fermé':coverageState.covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;
     const edit=document.createElement('button');edit.type='button';edit.className='btn admin-calendar-edit';edit.textContent='Corriger cette date';edit.disabled=!open;
     edit.addEventListener('click',()=>adminCorrectionForDate(date));
-    dateTd.append(dm,note,badge,edit);row.append(dateTd);
+    dateTd.append(dm,edit);row.append(dateTd);
 
     for(const role of ROLE_KEYS){
       const td=document.createElement('td');td.className='role-cell';
@@ -3135,14 +3184,12 @@ function renderAdminCalendar(){
     }
     body.append(row);
 
-    const card=document.createElement('article');card.className='mobile-date-card';
+    const card=document.createElement('article');card.className='mobile-date-card'+(open&&coverageState.covered?' day-complete':'');
     const head=document.createElement('div');head.className='mobile-date-head';
     const left=document.createElement('div');
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
-    const mnote=document.createElement('div');mnote.className='mobile-date-note';mnote.textContent=note.textContent;
-    left.append(title,mnote);
-    const mbadge=document.createElement('span');mbadge.className=badge.className;mbadge.textContent=badge.textContent;
-    head.append(left,mbadge);card.append(head);
+    left.append(title);
+    head.append(left);card.append(head);
 
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS){
