@@ -2432,11 +2432,71 @@ body.modal-open{overflow:hidden}
   }
 }
 
+
+/* =========================================================
+   V15.26.1 — FONDU NAVIGATION MOIS + ÉDITEUR JOURNÉE SANS SCROLL
+   ========================================================= */
+.calendar-fade-in{
+  animation:calendarSurfaceFade .18s ease-out both;
+}
+@keyframes calendarSurfaceFade{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .calendar-fade-in{animation:none}
+}
+
+.admin-correction-dialog{
+  width:min(1240px, calc(100vw - 28px));
+  max-height:calc(100vh - 24px);
+  display:flex;
+  flex-direction:column;
+}
+#adminDayForm{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.day-editor-grid{align-items:stretch}
+.day-editor-position{padding:12px 8px 14px}
+.day-editor-position label{margin-bottom:8px}
+.day-editor-position .day-role-choices,
+.day-editor-position .day-available-choices{
+  min-height:var(--day-editor-list-height, 430px);
+  max-height:var(--day-editor-list-height, 430px);
+  padding:6px;
+  scrollbar-gutter:stable;
+}
+.day-editor-position .day-role-choices{gap:4px}
+.day-editor-position .day-role-choices .single-choice-item{
+  min-height:31px;
+  padding:5px 9px;
+  font-size:13px;
+}
+.day-editor-position .day-available-choices{gap:4px}
+.day-editor-position .day-available-choices .available-check{
+  min-height:31px;
+  padding:5px 9px;
+  gap:8px;
+  font-size:13px;
+}
+.day-editor-position .day-available-choices .available-check input{
+  width:15px;
+  height:15px;
+}
+@media(max-width:820px){
+  .admin-correction-dialog{
+    width:min(720px, calc(100vw - 20px));
+    max-height:calc(100vh - 16px);
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26 · bouton Modifier + transitions douces · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.1 · fondu des mois + éditeur journée sans scroll · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
@@ -2663,6 +2723,37 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, memberMonth = '', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let memberCalendarShouldFade=false,adminCalendarShouldFade=false;
+function restartAnimClass(el,className){
+  if(!el)return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(()=>el.classList.remove(className),220)
+}
+function animateMemberCalendarIfNeeded(){
+  if(!memberCalendarShouldFade)return;
+  memberCalendarShouldFade=false;
+  restartAnimClass(q('#monthLabel'),'calendar-fade-in');
+  restartAnimClass(q('#scheduleBody')?.closest('.schedule-wrap'),'calendar-fade-in');
+  restartAnimClass(q('#scheduleMobile'),'calendar-fade-in')
+}
+function animateAdminCalendarIfNeeded(){
+  if(!adminCalendarShouldFade)return;
+  adminCalendarShouldFade=false;
+  restartAnimClass(q('#adminMonthLabel'),'calendar-fade-in');
+  restartAnimClass(q('#adminScheduleBody')?.closest('.schedule-wrap'),'calendar-fade-in');
+  restartAnimClass(q('#adminScheduleMobile'),'calendar-fade-in')
+}
+function updateDayEditorListHeight(memberCount){
+  const dialog=q('#adminCorrectionOverlay .admin-correction-dialog');
+  if(!dialog)return;
+  const rows=Math.max(Number(memberCount||0)+1,1);
+  const contentNeeded=28+(rows*31)+(Math.max(rows-1,0)*4);
+  const viewportCap=Math.max(260,window.innerHeight-290);
+  const target=Math.max(320,Math.min(contentNeeded,viewportCap));
+  dialog.style.setProperty('--day-editor-list-height',`${target}px`)
+}
 function parisToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
 function addDays(s,n){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d+n));return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth()+1)}-${pad(dt.getUTCDate())}`}
 function monthKey(s){return s.slice(0,7)}
@@ -2830,7 +2921,7 @@ function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new I
 function renderUpcoming(){const box=q('#myUpcoming'),badge=q('#myUpcomingCount'),today=parisToday();box.innerHTML='';const dates=Object.entries(memberData.assignments||{}).filter(([d,roles])=>d>=today&&effectiveOpen(memberData,d)&&ROLE_KEYS.some(role=>(roles[role]||[]).includes(memberData.me.id))).map(([d])=>d).sort();badge.textContent=dates.length?`${dates.length} date${dates.length>1?'s':''}`:'Aucune';if(!dates.length){const e=document.createElement('span');e.className='muted small';e.textContent='Vous n’avez encore aucune inscription future.';box.append(e);return}for(const d of dates.slice(0,8)){const b=document.createElement('button');b.className='upcoming-chip';b.textContent=shortDayLabel(d);b.addEventListener('click',()=>{memberMonth=monthKey(d);renderMember();setTimeout(()=>document.getElementById('date-'+d)?.scrollIntoView({behavior:'smooth',block:'center'}),30)});box.append(b)}}
 function mobileRoleButton(date,role,assignments,open,past,outside,map){const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id),btn=document.createElement('button');btn.className='mobile-role-button'+(mine?' mine':'');btn.disabled=!open||past||outside||memberBusy;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];const value=document.createElement('span');value.className='mobile-role-value';if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=btn.disabled?'—':'Disponible · touchez pour vous inscrire';value.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;value.append(chip)}btn.append(label,value);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));return btn}
 function renderMember(){if(!memberData)return;setNotice(q('#memberError'));q('#welcome').textContent=`Bonjour ${memberData.me.name}`;q('#lastRefresh').textContent=LOCAL?'Mode local · enregistré dans ce navigateur':`Mis à jour à ${new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).format(new Date())}`;q('#monthLabel').textContent=monthLabel(memberMonth);const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;q('#prevMonth').disabled=memberMonth<=monthKey(from);q('#nextMonth').disabled=memberMonth>=monthKey(to);renderUpcoming();const body=q('#scheduleBody'),mobile=q('#scheduleMobile');body.innerHTML='';mobile.innerHTML='';const map=Object.fromEntries(memberData.members.map(m=>[m.id,m])),today=parisToday();let prevWeek='',weekIndex=-1;for(const date of memberDatesForMonth(memberMonth)){const open=effectiveOpen(memberData,date);if(!open&&memberData.scheduleExceptions?.[date]?.isOpen!==false)continue;const wk=weekStart(date);if(wk!==prevWeek){weekIndex++;if(prevWeek){const sr=document.createElement('tr');sr.className='week-separator';const td=document.createElement('td');td.colSpan=6;const ln=document.createElement('div');ln.className='week-separator-line';td.append(ln);sr.append(td);body.append(sr)}prevWeek=wk}const row=document.createElement('tr');row.id='date-'+date;row.className=weekIndex%2?'week-b':'week-a';const assignments=memberData.assignments?.[date]||{accueil:[],tpe:[],mep:[],arbitrage:[],present:memberData.attendance?.[date]||[]},present=assignments.present||[],past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered,missingCount=coverageState.missing.length;const dateTd=document.createElement('td');dateTd.className='date-cell';const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);const note=document.createElement('div');note.className='date-note';note.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;const badge=document.createElement('span');badge.className='date-status '+(!open?'closed':covered?'':'alert');badge.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} poste${missingCount>1?'s':''} manquant${missingCount>1?'s':''}`;dateTd.append(dm,note,badge);row.append(dateTd);for(const role of ROLE_KEYS){const td=document.createElement('td');td.className='role-cell';const btn=document.createElement('button');btn.className='role-button';const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id);if(mine)btn.classList.add('mine');if(!ids.length)btn.classList.add('empty');btn.disabled=!open||past||outside||memberBusy;btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':'vous n’êtes pas inscrit'}`);const stack=document.createElement('div');stack.className='role-stack';if(!open){const x=document.createElement('span');x.className='muted small';x.textContent='—';stack.append(x)}else if(!ids.length){const x=document.createElement('span');x.className='muted small';x.textContent=btn.disabled?'—':'Cliquer pour s’inscrire';stack.append(x)}else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)}btn.append(stack);if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));td.append(btn);row.append(td)}body.append(row);
-const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}} 
+const card=document.createElement('article');card.className='mobile-date-card';card.id='mobile-date-'+date;const head=document.createElement('div');head.className='mobile-date-head';const ht=document.createElement('div');const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);const mn=document.createElement('div');mn.className='mobile-date-note';mn.textContent=!open?(memberData.scheduleExceptions?.[date]?.note||'Club fermé'):`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus${present.length?` · ${present.length} disponible${present.length>1?'s':''}`:''}`;ht.append(title,mn);const mb=document.createElement('span');mb.className='date-status '+(!open?'closed':covered?'':'alert');mb.textContent=!open?'Fermé':covered?'Complet ✓':`${missingCount} manquant${missingCount>1?'s':''}`;head.append(ht,mb);const roles=document.createElement('div');roles.className='mobile-roles';for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));card.append(head,roles);mobile.append(card)}animateMemberCalendarIfNeeded()} 
 function optimisticAssignment(data,date,role,present){const next=JSON.parse(JSON.stringify(data)),id=next.me.id;next.assignments ||= {};next.attendance ||= {};next.roleAssignments ||= {};const emptyDay=()=>({accueil:[],tpe:[],mep:[],arbitrage:[],present:[]});const day={...emptyDay(),...(next.assignments[date]||{})};const set=new Set(day[role]||[]);present?set.add(id):set.delete(id);day[role]=[...set];next.assignments[date]=day;if(role==='present'){if(day.present.length)next.attendance[date]=[...day.present];else delete next.attendance[date]}else{const roles={...(next.roleAssignments[date]||{})};if(day[role].length)roles[role]=[...day[role]];else delete roles[role];if(Object.keys(roles).length)next.roleAssignments[date]=roles;else delete next.roleAssignments[date]}return next}
 async function toggleAssignment(date,role,present){if(memberBusy)return;markMemberActivity();const before=memberData;memberBusy=true;if(!LOCAL){memberData=optimisticAssignment(memberData,date,role,present);renderMember();q('#lastRefresh').textContent='Enregistrement…'}else renderMember();try{if(LOCAL){if(role==='present'){const ids=localState.attendance[date]||[];if(present)localState.attendance[date]=[...new Set([...ids,currentLocalMemberId])];else{localState.attendance[date]=ids.filter(x=>x!==currentLocalMemberId);if(!localState.attendance[date].length)delete localState.attendance[date]}}else{const day=localState.roleAssignments[date]||{},ids=day[role]||[];if(present)day[role]=[...new Set([...ids,currentLocalMemberId])];else{day[role]=ids.filter(x=>x!==currentLocalMemberId);if(!day[role].length)delete day[role]}if(Object.keys(day).length)localState.roleAssignments[date]=day;else delete localState.roleAssignments[date]}const m=localState.members.find(x=>x.id===currentLocalMemberId);audit(m.name,present?'role_inscription':'role_retrait',date,{role});saveLocal();memberData=localMemberSnapshot(currentLocalMemberId)}else{const j=await netApi('/api/me/assignment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,role,present})});memberData=j.snapshot}q('#lastRefresh').textContent='Enregistré ✓';toast(present?`${ROLE_LABELS[role]} : inscrit`:`${ROLE_LABELS[role]} : retiré`)}catch(e){if(!LOCAL)memberData=before;if(e.status===401){memberBusy=false;invalidMemberSession();return}setNotice(q('#memberError'),`Modification non enregistrée : ${e.message}`)}finally{memberBusy=false;if(!q('#memberRoot').classList.contains('hidden'))renderMember()}}
 function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
@@ -2934,6 +3025,7 @@ function fillSingleChoiceList(container,currentIds,members,onChoose){
 
 function populateDayEditor(date){
   const active=(adminData.membersAdmin||[]).filter(m=>m.active);
+  updateDayEditorListHeight(active.length);
   const assignments=adminData.assignments?.[date]||{};
   q('#dayEditorDate').value=date;
   q('#dayEditorDateLabel').textContent=dayLabel(date);
@@ -3332,6 +3424,7 @@ function renderAdminCalendar(){
     card.append(mobileEdit);
     mobile.append(card)
   }
+  animateAdminCalendarIfNeeded()
 }
 
 function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=addDays(parisToday(),i);if(!adminIsOpen(d))continue;open++;if(assignmentCoverage(adminData,d).covered)covered++}return{open,covered,missing:open-covered,pct:open?Math.round(covered/open*100):100}}
@@ -3495,7 +3588,7 @@ async function boot(){
 }
 
 // --- Listeners ---
-q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;renderMember()}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;renderMember()}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());renderMember()});q('#adminPrevMonth').addEventListener('click',()=>{
+q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=monthKey(memberData.settings.memberWindow.from),n=shiftMonth(memberMonth,-1);if(n>=min){memberMonth=n;memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})}});q('#nextMonth').addEventListener('click',()=>{markMemberActivity();const max=monthKey(memberData.settings.memberWindow.to),n=shiftMonth(memberMonth,1);if(n<=max){memberMonth=n;memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})}});q('#todayMonth').addEventListener('click',()=>{markMemberActivity();memberMonth=monthKey(parisToday());memberCalendarShouldFade=true;renderMember();scrollTo({top:0,behavior:'instant'})});q('#adminPrevMonth').addEventListener('click',()=>{
   if(adminCalendarMode==='auto')return;
   const homeMonth=adminHomeMonth(),n=shiftMonth(adminMonth,-1);
   if(n<=homeMonth){
@@ -3504,7 +3597,9 @@ q('#prevMonth').addEventListener('click',()=>{markMemberActivity();const min=mon
   }else{
     adminMonth=n
   }
-  renderAdminCalendar()
+  adminCalendarShouldFade=true;
+  renderAdminCalendar();
+  scrollTo({top:0,behavior:'instant'})
 });
 q('#adminNextMonth').addEventListener('click',()=>{
   const homeMonth=adminHomeMonth(),max=shiftMonth(homeMonth,12);
@@ -3515,7 +3610,9 @@ q('#adminNextMonth').addEventListener('click',()=>{
     const n=shiftMonth(adminMonth,1);
     if(n<=max)adminMonth=n
   }
-  renderAdminCalendar()
+  adminCalendarShouldFade=true;
+  renderAdminCalendar();
+  scrollTo({top:0,behavior:'instant'})
 });q('#refreshNow').addEventListener('click',async e=>{markMemberActivity();const btn=e.currentTarget;setButtonBusy(btn,true,'Actualisation…');try{await refreshMember()}finally{setButtonBusy(btn,false)}});q('#memberExit').addEventListener('click',async()=>{if(LOCAL){currentLocalMemberId='';location.hash='';renderChooser()}else{try{await netApi('/api/logout',{method:'POST'})}catch{}location.href=`${GITHUB_HOME}#logout`}});
 q('#adminExit').addEventListener('click',async()=>{if(LOCAL){location.hash='';renderChooser()}else{try{await netApi('/api/admin/logout',{method:'POST'})}catch{}location.href='/calendar'}});q('#toggleAdminCode').addEventListener('click',()=>{const input=q('#adminCode'),btn=q('#toggleAdminCode'),show=input.type==='password';input.type=show?'text':'password';btn.setAttribute('aria-pressed',show?'true':'false');btn.setAttribute('aria-label',show?'Masquer le code administrateur':'Afficher le code administrateur');btn.title=show?'Masquer le code':'Afficher le code';input.focus()});q('#adminCodeForm').addEventListener('submit',async e=>{e.preventDefault();const code=q('#adminCode').value.trim();if(Array.from(code).length!==6){setNotice(q('#joinError'),'Le code doit contenir exactement 6 caractères.');return}const btn=e.submitter;setButtonBusy(btn,true,'Connexion…');try{await serverAdminCode(code)}finally{setButtonBusy(btn,false)}});
 q('#addMember').addEventListener('submit',async e=>{e.preventDefault();const name=q('#newName').value.trim();if(!name)return;await createMember(name,e.submitter);q('#newName').value=''});q('#copyNewLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(latestPersonalUrl);toast('Lien copié')}catch{prompt('Copiez ce lien :',latestPersonalUrl)}});
