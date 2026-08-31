@@ -3920,6 +3920,60 @@ body{
   cursor:not-allowed;
 }
 
+.member-link-actions{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  flex:0 0 auto;
+}
+.member-link-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 26px;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #d1dbd5;
+  border-radius:8px;
+  background:#fff;
+  color:#34483e;
+  font:700 15px/1 system-ui,sans-serif;
+  cursor:pointer;
+  transition:background .12s ease,border-color .12s ease,transform .08s ease,opacity .12s ease;
+}
+.member-link-action:hover:not(:disabled){
+  background:#f1f7f3;
+  border-color:#b9cac0;
+}
+.member-link-action:active:not(:disabled){
+  transform:scale(.94);
+}
+.member-link-action:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+.member-link-action.is-busy{
+  position:relative;
+  pointer-events:none;
+  opacity:.78;
+  color:transparent!important;
+}
+.member-link-action.is-busy:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:12px;
+  height:12px;
+  border:2px solid #34483e;
+  border-right-color:transparent;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:calas-busy-stable .65s linear infinite;
+}
+
+
 @media(max-width:720px){
   .members-title-line{
     align-items:flex-start;
@@ -6727,6 +6781,75 @@ function coverage(days){let open=0,covered=0;for(let i=0;i<days;i++){const d=add
 function renderAdmin(){if(!adminData)return;setNotice(q('#adminError'));q('#adminToMember')?.classList.toggle('hidden',!(adminSessionContext?.fromMember&&adminSessionContext?.memberId));q('#memberCount').textContent=`${adminData.membersAdmin.length} membres`;renderAdminCalendar();renderMembers();renderDayEditorMembers();renderAudit();showAdminPage(currentAdminPage,{push:false,scroll:false})}
 function renderCoverage(){for(const[n,id,detail]of [[30,'coverage30','coverage30Detail'],[90,'coverage90','coverage90Detail']]){const c=coverage(n);q('#'+id).textContent=`${c.pct}% couvert`;q('#'+detail).textContent=`${c.covered}/${c.open} journées · ${c.missing} à pourvoir`}let next=null;for(let i=0;i<=365;i++){const d=addDays(parisToday(),i),c=assignmentCoverage(adminData,d);if(adminIsOpen(d)&&!c.covered){next={d,c};break}}q('#nextUncovered').textContent=next?dayLabel(next.d):'Aucune';q('#nextUncoveredDetail').textContent=next?`${next.c.filled}/${CORE_ROLE_KEYS.length} postes pourvus · manque${next.c.missing.length>1?'nt':''} : ${next.c.missing.map(r=>ROLE_LABELS[r]).join(', ')}`:'Toutes les dates sont couvertes.'}
 function renderUncovered(){const box=q('#uncoveredList');box.innerHTML='';const rows=[];for(let i=0;i<=120;i++){const d=addDays(parisToday(),i);if(adminIsOpen(d))rows.push(d)}const coveredCount=rows.filter(d=>assignmentCoverage(adminData,d).covered).length,missingCount=rows.length-coveredCount;q('#uncoveredCount').textContent=`${coveredCount} couverte${coveredCount>1?'s':''} · ${missingCount} à pourvoir`;const byId=Object.fromEntries(adminData.members.map(m=>[m.id,m.name]));for(const d of rows.slice(0,18)){const coverageState=assignmentCoverage(adminData,d),missing=coverageState.missing.length,el=document.createElement('div');el.className='uncovered-item'+(coverageState.covered?' covered':'');const s=document.createElement('strong');s.textContent=dayLabel(d);el.append(s);const status=document.createElement('div');status.className='coverage-state '+(coverageState.covered?'ok':'bad');status.textContent=coverageState.covered?'Complet ✓':`${missing} poste${missing>1?'s':''} manquant${missing>1?'s':''}`;el.append(status);const count=document.createElement('div');count.className='muted small';count.textContent=`${coverageState.filled}/${CORE_ROLE_KEYS.length} postes pourvus`;el.append(count);const assignments=adminData.assignments?.[d]||{};for(const role of CORE_ROLE_KEYS){const ids=assignments[role]||[],line=document.createElement('div');line.className='small'+(ids.length?'':' muted');const names=sortNamesAlpha(ids.map(id=>byId[id]).filter(Boolean));line.textContent=`${ROLE_LABELS[role]} : ${names.length?names.join(', '):'à pourvoir'}`;el.append(line)}const present=assignments.present||adminData.attendance[d]||[];if(present.length){const line=document.createElement('div');line.className='small muted';const names=sortNamesAlpha(present.map(id=>byId[id]).filter(Boolean));line.textContent=`Disponible : ${names.length?names.join(', '):'—'}`;el.append(line)}const b=document.createElement('button');b.className='btn manage-date-btn';b.textContent='Gérer cette date';b.addEventListener('click',()=>{q('#attendanceDate').value=d;q('#attendanceCorrection').scrollIntoView({behavior:'smooth',block:'start'})});el.append(b);box.append(el)}if(!rows.length){const e=document.createElement('div');e.className='notice ok';e.textContent='Aucune permanence ouverte dans les 120 prochains jours.';box.append(e)}}
+
+async function copyTextToClipboard(text){
+  const value=String(text||'');
+  if(!value)throw new Error('Aucun lien à copier.');
+  if(navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(value);
+    return
+  }
+  const ta=document.createElement('textarea');
+  ta.value=value;
+  ta.setAttribute('readonly','');
+  ta.style.position='fixed';
+  ta.style.opacity='0';
+  document.body.append(ta);
+  ta.select();
+  const ok=document.execCommand('copy');
+  ta.remove();
+  if(!ok)throw new Error('Copie impossible sur ce navigateur.')
+}
+
+async function copyMemberLink(url,memberName='',btn=null){
+  try{
+    await copyTextToClipboard(url);
+    const old=btn?.textContent;
+    if(btn){
+      btn.textContent='✓';
+      btn.title=`Lien de ${memberName||'ce membre'} copié`;
+      setTimeout(()=>{
+        btn.textContent=old||'⧉';
+        btn.title=`Copier le lien de ${memberName||'ce membre'}`
+      },1100)
+    }
+    toast('Lien copié')
+  }catch(e){
+    setNotice(q('#adminError'),e.message)
+  }
+}
+
+async function sendMemberLinkEmail(memberId,memberName='',btn=null){
+  if(LOCAL){
+    toast('Envoi préparé · service email non configuré');
+    return
+  }
+
+  setButtonBusy(btn,true,'Envoi…');
+  beginAdminSave();
+  let saveOk=false;
+  try{
+    const j=await netApi(`/api/admin/members/${encodeURIComponent(memberId)}/send-link`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:'{}'
+    });
+    saveOk=true;
+
+    if(j.sent===true){
+      toast(`Lien envoyé à ${memberName||'ce membre'}`)
+    }else{
+      toast('Envoi préparé · service email non configuré')
+    }
+  }catch(e){
+    setNotice(q('#adminError'),e.message);
+    toast('Échec : '+e.message)
+  }finally{
+    endAdminSave(saveOk);
+    setButtonBusy(btn,false)
+  }
+}
+
 function renderMembers(){
   const body=q('#membersTable');
   body.innerHTML='';
@@ -6830,15 +6953,16 @@ function renderMembers(){
     if(m.active)refreshLink.addEventListener('click',()=>rotateMember(m.id,m.name,refreshLink,{showResult:false,scrollResult:false}));
     linkRow.append(refreshLink);
 
+    let currentMemberUrl='';
     if(LOCAL&&m.active){
-      const url=localPersonalUrl(m.id);
+      currentMemberUrl=localPersonalUrl(m.id);
       const a=document.createElement('a');
-      a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
+      a.className='member-current-link';a.href=currentMemberUrl;a.textContent=currentMemberUrl;a.title=currentMemberUrl;
       linkRow.append(a)
     }else if(m.currentShortToken){
-      const url=shortPersonalUrl(m.currentShortToken);
+      currentMemberUrl=shortPersonalUrl(m.currentShortToken);
       const a=document.createElement('a');
-      a.className='member-current-link';a.href=url;a.textContent=url;a.title=url;
+      a.className='member-current-link';a.href=currentMemberUrl;a.textContent=currentMemberUrl;a.title=currentMemberUrl;
       linkRow.append(a)
     }else{
       const span=document.createElement('span');
@@ -6846,6 +6970,30 @@ function renderMembers(){
       span.textContent=m.hasActiveLink?'Lien indisponible':'Aucun lien';
       linkRow.append(span)
     }
+
+    const linkActions=document.createElement('div');
+    linkActions.className='member-link-actions';
+
+    const copyLink=document.createElement('button');
+    copyLink.type='button';
+    copyLink.className='member-link-action member-link-copy';
+    copyLink.textContent='⧉';
+    copyLink.title=currentMemberUrl?`Copier le lien de ${m.name}`:'Aucun lien disponible à copier';
+    copyLink.setAttribute('aria-label',copyLink.title);
+    copyLink.disabled=!currentMemberUrl;
+    if(currentMemberUrl)copyLink.addEventListener('click',()=>copyMemberLink(currentMemberUrl,m.name,copyLink));
+
+    const sendLink=document.createElement('button');
+    sendLink.type='button';
+    sendLink.className='member-link-action member-link-send';
+    sendLink.textContent='✉';
+    sendLink.title=currentMemberUrl&&m.email?`Envoyer le lien à ${m.name}`:(!m.email?'Aucune adresse email renseignée':'Aucun lien disponible à envoyer');
+    sendLink.setAttribute('aria-label',sendLink.title);
+    sendLink.disabled=!currentMemberUrl||!m.email;
+    if(!sendLink.disabled)sendLink.addEventListener('click',()=>sendMemberLinkEmail(m.id,m.name,sendLink));
+
+    linkActions.append(copyLink,sendLink);
+    linkRow.append(linkActions);
     linkTd.append(linkRow)
 
     tr.append(nameTd,emailTd,stateTd,devicesTd,linkTd);

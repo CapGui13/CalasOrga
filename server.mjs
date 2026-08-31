@@ -501,6 +501,55 @@ function formatRoleAssignmentDateFr(date) {
  * Plus tard, il suffira de remplacer la section TODO par l'appel au
  * fournisseur choisi (Resend, Brevo, SMTP, etc.).
  */
+
+const MEMBER_LINK_PUBLIC_HOME = String(
+  process.env.MEMBER_LINK_PUBLIC_HOME || 'https://capgui13.github.io/CalasOrga/'
+).replace(/\/?$/, '/');
+
+function memberShortPublicUrl(shortToken) {
+  return `${MEMBER_LINK_PUBLIC_HOME}#${String(shortToken || '').normalize('NFC')}`;
+}
+
+/**
+ * Futur envoi du lien personnel d'un membre.
+ *
+ * V15.42.5 :
+ * - le destinataire, le lien, le sujet et le corps sont réellement préparés ;
+ * - aucun fournisseur d'email n'est encore appelé ;
+ * - la route admin peut donc déjà être utilisée par l'interface.
+ */
+async function sendMemberPersonalLinkEmail({
+  memberId,
+  memberName,
+  email,
+  personalUrl
+} = {}) {
+  const message = {
+    kind: 'member_personal_link',
+    memberId: String(memberId || ''),
+    memberName: String(memberName || ''),
+    email: String(email || ''),
+    personalUrl: String(personalUrl || ''),
+    subject: 'CalasOrga — Votre lien personnel',
+    text: `Bonjour ${String(memberName || '').trim()},\n\nVoici votre lien personnel CalasOrga :\n${String(personalUrl || '')}\n\nConservez ce lien pour accéder à votre planning.`
+  };
+
+  // TODO MAIL :
+  // await mailProvider.send({
+  //   to: message.email,
+  //   subject: message.subject,
+  //   text: message.text
+  // });
+
+  return {
+    ok: true,
+    sent: false,
+    prepared: true,
+    reason: 'mail_provider_not_configured',
+    message
+  };
+}
+
 async function notifyMemberRoleAssignment({
   memberId,
   memberName,
@@ -2874,6 +2923,29 @@ class FileStore {
     }, { useCurrentRemote: true });
   }
 
+  memberPersonalLinkPayload(memberId) {
+    const member = this.state.members.find((m) => m.id === memberId);
+    if (!member) return { ok: false, status: 404, error: 'Membre introuvable.' };
+    if (!member.active) return { ok: false, status: 409, error: 'Ce membre est inactif.' };
+    if (!String(member.email || '').trim()) {
+      return { ok: false, status: 409, error: 'Aucune adresse email renseignée pour ce membre.' };
+    }
+
+    const token = this.state.memberTokens.find((t) => t.memberId === memberId && t.active) || null;
+    const shortToken = token?.shortTokenEnc ? decryptMemberShortToken(token.shortTokenEnc) : null;
+    if (!shortToken) {
+      return { ok: false, status: 409, error: 'Le lien personnel actuel est indisponible.' };
+    }
+
+    return {
+      ok: true,
+      memberId: member.id,
+      memberName: member.displayName,
+      email: member.email,
+      personalUrl: memberShortPublicUrl(shortToken)
+    };
+  }
+
   async rotateToken(memberId) {
     const raw = randomToken();
     return this.mutate((s) => {
@@ -2900,7 +2972,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.42.4-role-assignment-notification-hook-vercel';
+const APP_VERSION = '0.15.42.5-member-link-actions-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3474,6 +3546,37 @@ export async function requestHandler(req, res) {
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
+    const memberSendLinkMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)\/send-link$/);
+    if (memberSendLinkMatch && req.method === 'POST') {
+      const a = adminOk(req);
+      if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
+      if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) {
+        return json(res, 403, { error: 'Protection de session invalide.' });
+      }
+      if (limited(`admin-write:${tokenHash(a.rawSession).slice(0, 24)}`, 120)) {
+        return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
+      }
+
+      const memberId = decodeURIComponent(memberSendLinkMatch[1]);
+      const payload = store.memberPersonalLinkPayload(memberId);
+      if (!payload.ok) return json(res, payload.status || 400, { error: payload.error });
+
+      let delivery;
+      try {
+        delivery = await sendMemberPersonalLinkEmail(payload);
+      } catch (err) {
+        return json(res, 502, { error: `Envoi du lien impossible : ${err?.message || err}` });
+      }
+
+      return json(res, 200, {
+        ok: true,
+        sent: delivery.sent === true,
+        prepared: delivery.prepared === true,
+        reason: delivery.reason || null,
+        recipient: payload.email
+      });
+    }
+
     const memberMatch = pathname.match(/^\/api\/admin\/members\/([^/]+)(?:\/(rotate))?$/);
     if (memberMatch && req.method === 'POST') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
