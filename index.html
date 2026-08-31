@@ -3728,11 +3728,68 @@ body{
   letter-spacing:.03em;
 }
 
+
+/* =========================================================
+   V15.36.2 — HEADER ADMIN ALIGNÉ + ACTIONS EMPILÉES
+   ========================================================= */
+
+/* Le header reprend exactement la largeur du Planning. */
+#adminRoot > .topbar{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Les actions sont empilées à droite sans déplacer le titre. */
+#adminRoot > .topbar .top-actions{
+  position:relative;
+  flex-direction:column;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+}
+
+/* Quitter au-dessus, Vue membre juste en dessous. */
+#adminRoot #adminExit{
+  order:1;
+}
+#adminRoot #adminToMember{
+  order:2;
+}
+
+/* Le statut d'enregistrement ne s'intercale jamais entre les deux boutons. */
+#adminRoot #adminSaveState{
+  order:3;
+}
+
+/* Même bord droit pour les deux actions. */
+#adminRoot #adminExit,
+#adminRoot #adminToMember{
+  align-self:flex-end;
+}
+
+/* Sur mobile on conserve l'empilement propre. */
+@media(max-width:820px){
+  #adminRoot > .topbar{
+    width:100%;
+  }
+  #adminRoot > .topbar .top-actions{
+    width:100%;
+    align-items:stretch;
+  }
+  #adminRoot #adminExit,
+  #adminRoot #adminToMember{
+    align-self:stretch;
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36 · membres administrateurs · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.36.2 · header admin aligné et empilé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
