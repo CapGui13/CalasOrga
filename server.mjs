@@ -288,6 +288,7 @@ function applyCurrentRoster(state, nowIso = new Date().toISOString()) {
     displayName: m.displayName,
     email: m.email,
     active: true,
+    adminPrivilege: false,
     createdAt: nowIso
   }));
   state.memberTokens = [];
@@ -428,6 +429,7 @@ function makeDemoSeed(now = new Date('2026-08-27T15:00:00Z')) {
     displayName: m.displayName,
     email: m.email,
     active: true,
+    adminPrivilege: false,
     createdAt: now.toISOString()
   }));
   const memberTokens = members.map((m, i) => {
@@ -499,7 +501,7 @@ function defaultState() {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     rosterVersion: CURRENT_ROSTER_VERSION,
     settings: { minRequired: 1 },
-    members: CURRENT_ROSTER.map((m) => ({ id: m.id, displayName: m.displayName, email: m.email, active: true, createdAt })),
+    members: CURRENT_ROSTER.map((m) => ({ id: m.id, displayName: m.displayName, email: m.email, active: true, adminPrivilege: false, createdAt })),
     memberTokens: [],
     sessions: [],
     attendance: {},
@@ -744,6 +746,7 @@ class FileStore {
       for (const m of this.state.members) {
         const email = sanitizeEmail(m?.email);
         if (email) m.email = email;
+        m.adminPrivilege = m?.adminPrivilege === true;
       }
     }
 
@@ -975,8 +978,26 @@ class FileStore {
     return this.state.members.find((m) => m.id === session.memberId && m.active) || null;
   }
 
+  adminSessionInfo(rawToken, credentialTag = null) {
+    const rec = this.#findSession(rawToken, 'admin', credentialTag);
+    if (!rec) return null;
+    if (rec.sourceMemberId) {
+      const member = this.state.members.find((m) => m.id === rec.sourceMemberId && m.active && m.adminPrivilege === true);
+      if (!member) return null;
+    }
+    return rec;
+  }
+
   adminSessionOk(rawToken, credentialTag = null) {
-    return !!this.#findSession(rawToken, 'admin', credentialTag);
+    return !!this.adminSessionInfo(rawToken, credentialTag);
+  }
+
+  adminSessionContext(rawToken, credentialTag = null) {
+    const rec = this.adminSessionInfo(rawToken, credentialTag);
+    if (!rec) return null;
+    if (!rec.sourceMemberId) return { fromMember: false, memberId: null, name: null };
+    const member = this.state.members.find((m) => m.id === rec.sourceMemberId && m.active && m.adminPrivilege === true);
+    return member ? { fromMember: true, memberId: member.id, name: member.displayName } : null;
   }
 
   #appendMemberSession(s, memberId, raw, expiresAt, now, deviceInfo = null) {
@@ -1052,18 +1073,36 @@ class FileStore {
     }, { snapshots: false });
   }
 
-  async createAdminSession(ttlSeconds = 60 * 60 * 8, credentialTag = null) {
+  async createAdminSession(ttlSeconds = 60 * 60 * 8, credentialTag = null, sourceMemberId = null) {
     const raw = randomToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
     return this.mutate((s) => {
       this.#cleanupSessions(s);
+      let source = null;
+      if (sourceMemberId) {
+        source = s.members.find((m) => m.id === sourceMemberId && m.active && m.adminPrivilege === true);
+        if (!source) return { ok: false, status: 403, error: 'Privilèges administrateur requis.' };
+        for (const rec of s.sessions) {
+          if (rec.kind === 'admin' && rec.sourceMemberId === sourceMemberId && rec.active) {
+            rec.active = false;
+            rec.revokedAt = now.toISOString();
+          }
+        }
+      }
       s.sessions.push({
-        id: `s_${randomToken(10)}`, kind: 'admin', memberId: null, credentialTag: credentialTag ? String(credentialTag).slice(0, 128) : null,
+        id: `s_${randomToken(10)}`, kind: 'admin', memberId: null,
+        sourceMemberId: source?.id || null,
+        credentialTag: credentialTag ? String(credentialTag).slice(0, 128) : null,
         tokenHash: tokenHash(raw), active: true,
         createdAt: now.toISOString(), expiresAt, revokedAt: null
       });
-      return { ok: true, rawToken: raw, expiresAt };
+      return {
+        ok: true,
+        rawToken: raw,
+        expiresAt,
+        sourceMember: source ? { id: source.id, name: source.displayName } : null
+      };
     }, { snapshots: false });
   }
 
@@ -1134,7 +1173,10 @@ class FileStore {
   #revokeMemberSessions(s, memberId) {
     let revoked = 0;
     for (const rec of s.sessions) {
-      if (rec.kind === 'member' && rec.memberId === memberId && rec.active) {
+      const belongsToMember =
+        (rec.kind === 'member' && rec.memberId === memberId) ||
+        (rec.kind === 'admin' && rec.sourceMemberId === memberId);
+      if (belongsToMember && rec.active) {
         rec.active = false;
         rec.revokedAt = this.now().toISOString();
         revoked += 1;
@@ -1210,6 +1252,7 @@ class FileStore {
       else memberIds.add(m.id);
       if (!sanitizeName(m?.displayName)) issues.push(`member_name_invalid:${m?.id || '?'}`);
       if (!sanitizeEmail(m?.email)) issues.push(`member_email_invalid:${m?.id || '?'}`);
+      if (typeof m?.adminPrivilege !== 'boolean') issues.push(`member_admin_privilege_invalid:${m?.id || '?'}`);
       if (typeof m?.active !== 'boolean') issues.push(`member_active_invalid:${m?.id || '?'}`);
       if (!safeIsoInstant(m?.createdAt)) issues.push(`member_created_at_invalid:${m?.id || '?'}`);
     }
@@ -1247,6 +1290,7 @@ class FileStore {
       else sessionHashes.add(rec.tokenHash);
       if (rec?.kind === 'member' && !memberIds.has(rec?.memberId)) issues.push(`session_orphan:${rec?.id || '?'}`);
       if (rec?.kind === 'admin' && rec?.memberId != null) issues.push(`admin_session_member_invalid:${rec?.id || '?'}`);
+      if (rec?.kind === 'admin' && rec?.sourceMemberId != null && !memberIds.has(rec.sourceMemberId)) issues.push(`admin_session_source_member_invalid:${rec?.id || '?'}`);
       if (rec?.kind === 'admin' && rec?.credentialTag != null && (typeof rec.credentialTag !== 'string' || rec.credentialTag.length < 8 || rec.credentialTag.length > 128)) issues.push(`admin_session_credential_tag_invalid:${rec?.id || '?'}`);
       if (!safeIsoInstant(rec?.createdAt) || !safeIsoInstant(rec?.expiresAt)) issues.push(`session_time_invalid:${rec?.id || '?'}`);
       if (rec?.revokedAt && !safeIsoInstant(rec.revokedAt)) issues.push(`session_revoked_at_invalid:${rec?.id || '?'}`);
@@ -1370,7 +1414,7 @@ class FileStore {
       if (typeof m?.active !== 'boolean') return { ok: false, status: 400, error: 'État actif/inactif invalide pour un membre.' };
       if (!id || id.length > 120 || ids.has(id) || !displayName || !email) return { ok: false, status: 400, error: 'Membre invalide dans la sauvegarde.' };
       ids.add(id);
-      members.push({ id, displayName, email, active: !!m.active, createdAt: safeIsoInstant(m?.createdAt) || this.now().toISOString() });
+      members.push({ id, displayName, email, active: !!m.active, adminPrivilege: m?.adminPrivilege === true, createdAt: safeIsoInstant(m?.createdAt) || this.now().toISOString() });
     }
     if (!Array.isArray(src.memberTokens) || src.memberTokens.length > 1500) return { ok: false, status: 400, error: 'Liens personnels invalides dans la sauvegarde.' };
     const memberTokens = []; const hashes = new Set(); const shortHashes = new Set(); const activeTokenMembers = new Set();
@@ -1520,6 +1564,8 @@ class FileStore {
     for (const day of Object.values(snap.assignments)) for (const ids of Object.values(day)) for (const id of ids) visibleIds.add(id);
     snap.members = snap.members.filter((m) => visibleIds.has(m.id));
     snap.settings.memberWindow = { from, to };
+    const self = this.state.members.find((m) => m.id === memberId && m.active);
+    if (snap.me) snap.me.adminPrivilege = !!self?.adminPrivilege;
     return snap;
   }
   auditEntries(limit = 5000) {
@@ -1562,6 +1608,7 @@ class FileStore {
           name: m.displayName,
           email: m.email,
           active: !!m.active,
+          adminPrivilege: !!m.adminPrivilege,
           createdAt: m.createdAt,
           hasActiveLink: !!activeToken,
           currentShortToken: currentShortToken || null,
@@ -2078,7 +2125,7 @@ class FileStore {
     const id = `m_${randomToken(12)}`;
     return this.mutate((s) => {
       if (s.members.length >= 500) return { ok: false, status: 409, error: 'Limite de membres atteinte.' };
-      const member = { id, displayName: clean, email: cleanEmail, active: true, createdAt: this.now().toISOString() };
+      const member = { id, displayName: clean, email: cleanEmail, active: true, adminPrivilege: false, createdAt: this.now().toISOString() };
       s.members.push(member);
       const short = this.#newShortPersonalToken(s, clean);
       s.memberTokens.push({ id: `t_${randomToken(10)}`, memberId: id, tokenHash: tokenHash(raw), shortTokenHash: short.hash, shortTokenEnc: encryptMemberShortToken(short.raw), active: true, createdAt: this.now().toISOString(), revokedAt: null });
@@ -2110,6 +2157,36 @@ class FileStore {
       m.email = clean;
       if (before !== clean) this.#log(s, 'Administrateur', 'email_membre_modifie', null, { memberId, name: m.displayName });
       return { ok: true };
+    });
+  }
+
+  async setMemberAdminPrivilege(memberId, enabled) {
+    const requested = enabled === true;
+    return this.mutate((s) => {
+      const m = s.members.find((x) => x.id === memberId);
+      if (!m) return { ok: false, status: 404, error: 'Membre introuvable.' };
+      const before = m.adminPrivilege === true;
+      if (before === requested) return { ok: true, changed: false };
+      m.adminPrivilege = requested;
+      let revokedAdminSessions = 0;
+      if (!requested) {
+        const nowIso = this.now().toISOString();
+        for (const rec of s.sessions) {
+          if (rec.kind === 'admin' && rec.sourceMemberId === memberId && rec.active) {
+            rec.active = false;
+            rec.revokedAt = nowIso;
+            revokedAdminSessions += 1;
+          }
+        }
+      }
+      this.#log(
+        s,
+        'Administrateur',
+        requested ? 'privilege_admin_accorde' : 'privilege_admin_retire',
+        null,
+        { memberId, name: m.displayName, revokedAdminSessions }
+      );
+      return { ok: true, changed: true, adminPrivilege: requested, revokedAdminSessions };
     });
   }
 
@@ -2281,7 +2358,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.34.0-device-info-labels-vercel';
+const APP_VERSION = '0.15.36.0-member-admins-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2449,7 +2526,9 @@ function sessionMember(req) {
 function adminOk(req) {
   const cookies = parseCookies(req.headers.cookie || '');
   const rawSession = cookies.club_admin || '';
-  return { cookies, rawSession, ok: rawSession ? store.adminSessionOk(rawSession, adminCredentialTag) : false };
+  const session = rawSession ? store.adminSessionInfo(rawSession, adminCredentialTag) : null;
+  const context = rawSession ? store.adminSessionContext(rawSession, adminCredentialTag) : null;
+  return { cookies, rawSession, ok: !!session, session, context };
 }
 function csrfCookie(name, secure, maxAge) { const token = randomToken(18); return { token, header: cookie(name, token, { httpOnly: false, secure, maxAge }) }; }
 
@@ -2560,6 +2639,22 @@ export async function requestHandler(req, res) {
     if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
 
 
+    if (pathname === '/api/session/admin-from-member' && req.method === 'POST') {
+      const m = sessionMember(req);
+      if (!m.member) return json(res, 401, { error: 'Session membre invalide.' });
+      if (!sameOriginCsrfOk(req, m.cookies, 'club_member_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
+      if (limited(`member-admin-switch:${m.member.id}`, 20, 60_000)) return json(res, 429, { error: 'Trop de bascules en peu de temps.' });
+      const session = await store.createAdminSession(60 * 60 * 8, adminCredentialTag, m.member.id);
+      if (!session.ok) return json(res, session.status || 403, { error: session.error || 'Privilèges administrateur requis.' });
+      const csrf = csrfCookie('club_admin_csrf', secure, 60 * 60 * 8);
+      return json(
+        res,
+        200,
+        { ok: true, sourceMember: session.sourceMember },
+        { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] }
+      );
+    }
+
     if (pathname === '/api/me' && req.method === 'GET') {
       const { member } = sessionMember(req); if (!member) return json(res, 401, { error: 'Lien personnel invalide ou expiré.' });
       return json(res, 200, store.memberSnapshot(member.id));
@@ -2605,7 +2700,7 @@ export async function requestHandler(req, res) {
 
     if (pathname === '/api/admin' && req.method === 'GET') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
-      return json(res, 200, store.adminSnapshot());
+      return json(res, 200, { ...store.adminSnapshot(), adminContext: a.context || { fromMember: false, memberId: null, name: null } });
     }
     if (pathname === '/api/admin/backup' && req.method === 'GET') {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
@@ -2753,6 +2848,7 @@ export async function requestHandler(req, res) {
       const b = await bodyJson(req); let r;
       if (Object.hasOwn(b, 'name')) r = await store.renameMember(memberId, b.name);
       else if (Object.hasOwn(b, 'email')) r = await store.setMemberEmail(memberId, b.email);
+      else if (Object.hasOwn(b, 'adminPrivilege')) r = await store.setMemberAdminPrivilege(memberId, b.adminPrivilege === true);
       else if (Object.hasOwn(b, 'active')) r = await store.setMemberActive(memberId, !!b.active);
       else return json(res, 400, { error: 'Modification inconnue.' });
       if (!r.ok) return json(res, r.status, { error: r.error });
