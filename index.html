@@ -2745,11 +2745,63 @@ body{
   border-color:#c9d3ce !important;
 }
 
+
+/* =========================================================
+   V15.26.8 — PASTILLES PLUS LISIBLES + FONDU 500ms
+   ========================================================= */
+
+/* Pastilles plus présentes sur les fonds colorés du planning. */
+.role-chip,
+.role-chip.me,
+.admin-schedule .role-chip,
+.admin-schedule tr.day-complete .role-chip{
+  background:#ffffff !important;
+  color:#17251e !important;
+  border:1px solid #bfcac4 !important;
+  box-shadow:0 1px 2px rgba(24,39,31,.10) !important;
+  font-weight:800 !important;
+}
+
+/* Disponible reste légèrement distinct, mais lisible. */
+.admin-schedule td[data-role="present"] .role-chip{
+  background:#f4f8fb !important;
+  border-color:#c8d5de !important;
+}
+
+/* Sur ligne validée, pastilles légèrement verdies mais nettement détachées. */
+.admin-schedule tr.day-complete .role-chip{
+  background:#f8fffa !important;
+  border-color:#b8d1c1 !important;
+}
+
+/* Fondu plus lent et plus doux. */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeInSoft500 .50s ease-in-out both !important;
+}
+@keyframes adminPageFadeInSoft500{
+  from{opacity:.25}
+  to{opacity:1}
+}
+.calendar-fade-in{
+  animation:calendarSurfaceFadeSoft500 .50s ease-in-out both !important;
+}
+@keyframes calendarSurfaceFadeSoft500{
+  from{opacity:.25}
+  to{opacity:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in,
+  .calendar-fade-in{
+    animation:none !important;
+  }
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.7 · quadrillage planning renforcé · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.26.8 · pastilles renforcées + fondu 500ms · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="confirmOverlay" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
