@@ -469,6 +469,150 @@ const BACKUP_FORMAT_VERSION = 2;
 const ROLE_KEYS = ['accueil', 'tpe', 'mep', 'arbitrage'];
 const ALL_ROLE_KEYS = [...ROLE_KEYS, 'present'];
 
+const ROLE_NOTIFICATION_LABELS = Object.freeze({
+  accueil: 'Accueil',
+  tpe: 'TPE',
+  mep: 'MEP',
+  arbitrage: 'Arbitrage'
+});
+
+function formatRoleAssignmentDateFr(date) {
+  const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return String(date || '');
+  const [, y, m, d] = match;
+  return new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).format(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))));
+}
+
+/**
+ * Hook prêt pour le futur service d'email.
+ *
+ * IMPORTANT V15.42.4 :
+ * - aucune requête réseau ;
+ * - aucun email envoyé ;
+ * - aucune clé/API nécessaire ;
+ * - l'enregistrement du planning ne dépend jamais de ce hook.
+ *
+ * Plus tard, il suffira de remplacer la section TODO par l'appel au
+ * fournisseur choisi (Resend, Brevo, SMTP, etc.).
+ */
+async function notifyMemberRoleAssignment({
+  memberId,
+  memberName,
+  email,
+  date,
+  role
+} = {}) {
+  const roleLabel = ROLE_NOTIFICATION_LABELS[role] || String(role || '');
+  const dateLabel = formatRoleAssignmentDateFr(date);
+
+  const message = {
+    kind: 'availability_to_active_role',
+    memberId: String(memberId || ''),
+    memberName: String(memberName || ''),
+    email: String(email || ''),
+    date: String(date || ''),
+    role: String(role || ''),
+    roleLabel,
+    subject: 'CalasOrga — Nouvelle affectation',
+    text: `Bonjour ${String(memberName || '').trim()},\n\nVous avez été affecté à ${roleLabel} le ${dateLabel}.\n\nCette modification a été effectuée par un administrateur.`
+  };
+
+  // TODO MAIL :
+  // await mailProvider.send({
+  //   to: message.email,
+  //   subject: message.subject,
+  //   text: message.text
+  // });
+
+  return {
+    ok: true,
+    sent: false,
+    prepared: true,
+    reason: 'mail_provider_not_configured',
+    message
+  };
+}
+
+function collectAvailabilityToRoleNotifications(beforeState, afterState) {
+  const notifications = [];
+  const members = new Map(
+    (afterState?.members || beforeState?.members || [])
+      .map((m) => [String(m.id), m])
+  );
+
+  const dates = new Set([
+    ...Object.keys(beforeState?.attendance || {}),
+    ...Object.keys(afterState?.roleAssignments || {})
+  ]);
+
+  for (const date of dates) {
+    const availableBefore = new Set(
+      Array.isArray(beforeState?.attendance?.[date])
+        ? beforeState.attendance[date].map(String)
+        : []
+    );
+    if (!availableBefore.size) continue;
+
+    const rolesAfter = afterState?.roleAssignments?.[date] || {};
+    for (const role of ROLE_KEYS) {
+      const idsAfter = Array.isArray(rolesAfter[role])
+        ? rolesAfter[role].map(String)
+        : [];
+
+      for (const memberId of idsAfter) {
+        if (!availableBefore.has(memberId)) continue;
+        const member = members.get(memberId);
+        if (!member) continue;
+
+        notifications.push({
+          memberId,
+          memberName: member.displayName || '',
+          email: member.email || '',
+          date,
+          role
+        });
+      }
+    }
+  }
+
+  return notifications;
+}
+
+async function runAdminPlanningMutationWithNotifications(store, mutation) {
+  const beforeState = clone(store.state);
+  const result = await mutation();
+
+  if (!result?.ok) return result;
+
+  const notifications = collectAvailabilityToRoleNotifications(
+    beforeState,
+    store.state
+  );
+
+  for (const notification of notifications) {
+    try {
+      await notifyMemberRoleAssignment(notification);
+    } catch (err) {
+      // Le planning est déjà enregistré : une future panne mail ne doit
+      // jamais transformer cette modification en échec utilisateur.
+      console.warn(
+        `Notification d'affectation non envoyée (${notification.memberId}, ${notification.date}, ${notification.role}) : ${err?.message || err}`
+      );
+    }
+  }
+
+  return {
+    ...result,
+    notificationCandidates: notifications.length
+  };
+}
+
 function canonicalJson(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -2756,7 +2900,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.41.2-fast-admin-switch-vercel';
+const APP_VERSION = '0.15.42.4-role-assignment-notification-hook-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3202,7 +3346,7 @@ export async function requestHandler(req, res) {
         return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       }
       const body = await bodyJson(req, 65_536);
-      const r = await store.setPlanningCellsAsAdmin(body.cells);
+      const r = await runAdminPlanningMutationWithNotifications(store, () => store.setPlanningCellsAsAdmin(body.cells));
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
@@ -3212,7 +3356,7 @@ export async function requestHandler(req, res) {
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req);
-      const r = await store.setDayAssignmentsAsAdmin(b.date, b.assignments);
+      const r = await runAdminPlanningMutationWithNotifications(store, () => store.setDayAssignmentsAsAdmin(b.date, b.assignments));
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, r);
     }
@@ -3221,7 +3365,7 @@ export async function requestHandler(req, res) {
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req);
-      const r = await store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId, b.memberIds);
+      const r = await runAdminPlanningMutationWithNotifications(store, () => store.setCellAssignmentAsAdmin(b.date, b.role, b.memberId, b.memberIds));
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, r);
     }    if (pathname === '/api/admin/move-assignment' && req.method === 'POST') {
@@ -3229,7 +3373,7 @@ export async function requestHandler(req, res) {
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
       const b = await bodyJson(req);
-      const r = await store.moveAssignmentAsAdmin(b);
+      const r = await runAdminPlanningMutationWithNotifications(store, () => store.moveAssignmentAsAdmin(b));
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, r);
     }
@@ -3239,7 +3383,7 @@ export async function requestHandler(req, res) {
       const a = adminOk(req); if (!a.ok) return json(res, 401, { error: 'Session administrateur invalide.' });
       if (!sameOriginCsrfOk(req, a.cookies, 'club_admin_csrf')) return json(res, 403, { error: 'Protection de session invalide.' });
       if (limited(`admin-write:${getIp(req)}`, 120)) return json(res, 429, { error: 'Trop de modifications en peu de temps.' });
-      const b = await bodyJson(req); const r = await store.setRoleAssignmentAsAdmin(String(b.memberId || ''), b.date, b.role, !!b.present);
+      const b = await bodyJson(req); const r = await runAdminPlanningMutationWithNotifications(store, () => store.setRoleAssignmentAsAdmin(String(b.memberId || ''), b.date, b.role, !!b.present));
       if (!r.ok) return json(res, r.status, { error: r.error });
       return json(res, 200, { ...r, snapshot: store.adminSnapshot() });
     }
