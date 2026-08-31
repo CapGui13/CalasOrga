@@ -4941,7 +4941,7 @@ body{
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.8 · journée complète verte en direct · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.42.9 · titre membre bonjour dynamique · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -5067,8 +5067,7 @@ body{
   <section id="memberRoot" class="view-root hidden">
     <header class="topbar">
       <div>
-        <div class="brand">Présences du club</div>
-        <div class="muted" id="welcome">Chargement…</div>
+        <div class="brand" id="memberHeaderTitle">Bonjour</div>
       </div>
       <div class="top-actions">
         <span class="admin-save-state hidden" id="lastRefresh" role="status" aria-live="polite"></span>
@@ -6087,7 +6086,7 @@ function renderMember(){
   if(!memberData)return;
   showMemberError();
   q('#memberToAdmin')?.classList.toggle('hidden',!memberData.me?.adminPrivilege);
-  q('#welcome').textContent=`Bonjour ${memberData.me.name}`;
+  q('#memberHeaderTitle').textContent=`Bonjour ${memberData.me.name}`;
   setMemberPlanningVisualState(false);
 
   const today=parisToday();
