@@ -4583,6 +4583,136 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.42.3 — MODIFIER : PARITÉ EXACTE AVEC LE TABLEAU DE BASE
+   ========================================================= */
+
+/* Même géométrie de colonnes : 178px pour la première, puis 5 cases égales. */
+#adminCorrectionOverlay .day-editor-columns{
+  grid-template-columns:178px repeat(5,minmax(0,1fr)) !important;
+  border-color:#c5d0ca !important;
+  border-radius:15px !important;
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-column{
+  border-right-color:#c7d0cb !important;
+}
+#adminCorrectionOverlay .day-column-head{
+  height:44px !important;
+  min-height:44px !important;
+  padding:10px 8px !important;
+  background:#f5f8f6 !important;
+  color:#33423a !important;
+  border-bottom:2px solid #b9c5bf !important;
+}
+#adminCorrectionOverlay .day-editor-panel-title,
+#adminCorrectionOverlay .day-role-card-title{
+  font-size:12px !important;
+  font-weight:850 !important;
+  color:#33423a !important;
+}
+
+/* Le corps de toutes les cases reprend la couleur exacte de la ligne source. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-column,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-column,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* Même quadrillage que le planning principal. */
+#adminCorrectionOverlay .day-member-source-item{
+  border-bottom-color:#c7d0cb !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item{
+  border-color:#c1d0c6 !important;
+}
+
+/* Même contenu visuel dans les cases vides. */
+#adminCorrectionOverlay .day-role-dropzone{
+  padding:14px 10px !important;
+}
+#adminCorrectionOverlay .day-drop-placeholder{
+  color:#89938d !important;
+  font-size:13px !important;
+  font-style:italic !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-a .day-drop-placeholder{
+  color:#83796f !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-drop-placeholder{
+  color:#80909c !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-drop-placeholder{
+  color:#6f8a79 !important;
+}
+
+/* Même modulation au survol que la ligne du planning. */
+@media(hover:hover){
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:focus-visible{
+    background:#eee7de !important;
+  }
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:focus-visible{
+    background:#dfe8ee !important;
+  }
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:focus-visible{
+    background:#cde7d8 !important;
+  }
+}
+
+/* Les pastilles gardent exactement la famille graphique du planning principal. */
+#adminCorrectionOverlay .day-assignment-chip,
+#adminCorrectionOverlay .day-available-chip{
+  background:#fff !important;
+  color:#17251e !important;
+  border:1px solid #bfcac4 !important;
+  box-shadow:0 1px 2px rgba(24,39,31,.10) !important;
+  font-weight:800 !important;
+}
+#adminCorrectionOverlay .day-available-chip{
+  background:#f4f8fb !important;
+  border-color:#c8d5de !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-assignment-chip,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-available-chip{
+  background:#f8fffa !important;
+  border-color:#b8d1c1 !important;
+}
+
+/* Responsive : on garde la logique existante sans changer le desktop demandé. */
+@media(max-width:1180px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:178px repeat(3,minmax(122px,1fr)) !important;
+  }
+}
+@media(max-width:900px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
+@media(max-width:560px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:1fr !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -4842,8 +4972,7 @@ body{
       <div class="confirm-dialog admin-correction-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCorrectionTitle">
         <div class="section-head">
           <div>
-            <h2 id="adminCorrectionTitle">Modifier la journée</h2>
-            <div class="muted small">Glissez les membres vers les positions souhaitées, puis enregistrez une seule fois.</div>
+            <h2 id="adminCorrectionTitle">Modifier</h2>
           </div>
           <button class="btn" type="button" id="adminCorrectionClose">Fermer</button>
         </div>
@@ -4878,7 +5007,7 @@ body{
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
           <div class="actions day-editor-actions">
-            <button class="btn primary" type="submit">Enregistrer la journée</button>
+            <button class="btn primary" type="submit">Enregistrer</button>
           </div>
         </form>
       </div>
@@ -6130,7 +6259,7 @@ function renderDayEditorDraft(){
     if(!id){
       const empty=document.createElement('div');
       empty.className='day-drop-placeholder';
-      empty.textContent='Glissez un membre ici';
+      empty.textContent='À pourvoir';
       zone.append(empty);
       continue
     }
@@ -6157,7 +6286,7 @@ function renderDayEditorDraft(){
   if(!available.length){
     const empty=document.createElement('div');
     empty.className='day-drop-placeholder';
-    empty.textContent='Glissez ici les personnes disponibles';
+    empty.textContent='Personne disponible';
     availableZone.append(empty)
   }else{
     const wrap=document.createElement('div');
@@ -6193,6 +6322,19 @@ function populateDayEditor(date){
   dayEditorDraft={date,roles,present:cleanedPresent};
   q('#dayEditorDate').value=date;
   q('#dayEditorDateLabel').textContent=dayLabel(date);
+
+  /* Le panneau Modifier reprend exactement la couleur de la ligne
+     actuellement affichée dans le planning principal. */
+  const workspace=q('.day-editor-columns');
+  if(workspace){
+    workspace.classList.remove('week-a','week-b','day-complete');
+    const sourceCell=[...document.querySelectorAll('#adminScheduleBody td[data-date]')]
+      .find(td=>td.dataset.date===date);
+    const sourceRow=sourceCell?.closest('tr');
+    workspace.classList.add(sourceRow?.classList.contains('week-b')?'week-b':'week-a');
+    if(sourceRow?.classList.contains('day-complete'))workspace.classList.add('day-complete')
+  }
+
   renderDayEditorDraft();
 
   if(removed.length){
