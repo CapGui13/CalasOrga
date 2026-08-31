@@ -6298,6 +6298,7 @@ async function saveAdminCell(btn=null){
 
 
 let adminDragPayload=null;
+let adminDragDropHandled=false;
 function currentAdminRoleIds(date,role){
   const a=adminData?.assignments?.[date]||{};
   return (Array.isArray(a[role])?a[role]:[]).map(String)
@@ -6396,17 +6397,42 @@ async function moveAdminAssignment(payload,targetDate,targetRole){
   queueAdminPlanningChanges(changes)
 }
 
+
+function removeAdminDraggedAssignment(payload){
+  if(!payload)return;
+  const memberId=String(payload.memberId||'');
+  const sourceDate=String(payload.sourceDate||'');
+  const sourceRole=String(payload.sourceRole||'');
+  if(!memberId||!sourceDate||!ROLE_KEYS.includes(sourceRole))return;
+
+  const sourceIds=currentAdminRoleIds(sourceDate,sourceRole);
+  if(!sourceIds.includes(memberId)){
+    setNotice(q('#adminError'),'Cette affectation a déjà changé.');
+    return
+  }
+
+  /* Un drop hors tableau équivaut à retirer uniquement ce nom de sa
+     case d'origine. Pour Disponible, les autres membres restent présents. */
+  queueAdminPlanningChanges([{
+    date:sourceDate,
+    role:sourceRole,
+    ids:sourceIds.filter(id=>id!==memberId)
+  }])
+}
+
 function makeAdminChipDraggable(chip,date,role,memberId){
   chip.draggable=true;
   chip.dataset.memberId=memberId;
   chip.addEventListener('dragstart',e=>{
     adminDragPayload={memberId:String(memberId),sourceDate:date,sourceRole:role};
+    adminDragDropHandled=false;
     chip.classList.add('dragging');
     e.dataTransfer.effectAllowed='copyMove';
     e.dataTransfer.setData('text/plain',JSON.stringify(adminDragPayload))
   });
   chip.addEventListener('dragend',()=>{
     adminDragPayload=null;
+    adminDragDropHandled=false;
     chip.classList.remove('dragging');
     for(const cell of document.querySelectorAll('.admin-drop-target,.admin-drop-invalid,.admin-drop-swap,.admin-drop-copy'))cell.classList.remove('admin-drop-target','admin-drop-invalid','admin-drop-swap','admin-drop-copy')
   })
@@ -6491,7 +6517,13 @@ function renderAdminCalendar(){
           td.classList.toggle('admin-drop-target',!copy&&!swap)
         });
         td.addEventListener('dragleave',e=>{if(!td.contains(e.relatedTarget))td.classList.remove('admin-drop-target')});
-        td.addEventListener('drop',e=>{e.preventDefault();td.classList.remove('admin-drop-target','admin-drop-swap','admin-drop-copy');const payload=adminDragPayload||(()=>{try{return JSON.parse(e.dataTransfer.getData('text/plain'))}catch{return null}})();moveAdminAssignment(payload,date,role)})
+        td.addEventListener('drop',e=>{
+          e.preventDefault();
+          adminDragDropHandled=true;
+          td.classList.remove('admin-drop-target','admin-drop-swap','admin-drop-copy');
+          const payload=adminDragPayload||(()=>{try{return JSON.parse(e.dataTransfer.getData('text/plain'))}catch{return null}})();
+          moveAdminAssignment(payload,date,role)
+        })
       }
       if(!open){
         display.classList.add('closed');display.textContent='—'
@@ -7435,6 +7467,26 @@ async function queueAdminMonthDelta(delta){
     if(adminMonthDeltaPending!==0)queueMicrotask(()=>queueAdminMonthDelta(0))
   }
 }
+
+
+/* Drag admin : lâcher une affectation hors du tableau la retire.
+   On ne transforme pas les en-têtes / dates du tableau en corbeille :
+   ils restent des zones neutres. */
+document.addEventListener('dragover',e=>{
+  if(!adminDragPayload)return;
+  const target=e.target instanceof Element?e.target:null;
+  if(target?.closest('.admin-schedule-wrap'))return;
+  e.preventDefault();
+  if(e.dataTransfer)e.dataTransfer.dropEffect='move'
+});
+document.addEventListener('drop',e=>{
+  if(!adminDragPayload||adminDragDropHandled)return;
+  const target=e.target instanceof Element?e.target:null;
+  if(target?.closest('.admin-schedule-wrap'))return;
+  e.preventDefault();
+  adminDragDropHandled=true;
+  removeAdminDraggedAssignment(adminDragPayload)
+});
 
 // --- Listeners ---
 q('#prevMonth').addEventListener('click',()=>queueMemberMonthDelta(-1));
