@@ -4060,11 +4060,202 @@ body{
   }
 }
 
+
+/* =========================================================
+   V15.40 — EXCLUSIVITÉ DISPONIBLE / RÔLES + ÉDITEUR DRAG&DROP
+   ========================================================= */
+
+.available-check.is-disabled{
+  opacity:.42 !important;
+  background:#f2f4f3 !important;
+  border-color:transparent !important;
+  color:#7c8781 !important;
+  cursor:not-allowed !important;
+}
+.available-check.is-disabled:hover{
+  background:#f2f4f3 !important;
+  border-color:transparent !important;
+}
+.available-check.is-disabled input{cursor:not-allowed!important}
+
+#adminCorrectionOverlay .admin-correction-dialog{
+  width:min(1180px,calc(100vw - 24px)) !important;
+  max-height:calc(100vh - 18px) !important;
+  padding:20px 22px 18px !important;
+}
+#adminCorrectionOverlay .day-editor-date{margin:0 0 14px}
+
+.day-editor-workspace{
+  display:grid;
+  grid-template-columns:250px minmax(0,1fr);
+  gap:14px;
+  min-height:430px;
+}
+.day-member-pool-panel,
+.day-role-card{
+  border:1px solid var(--admin-grid-line,var(--line));
+  border-radius:14px;
+  background:#fbfcfb;
+}
+.day-member-pool-panel{padding:12px}
+.day-editor-panel-title,
+.day-role-card-title{
+  font-size:13px;
+  font-weight:850;
+  color:#27372e;
+}
+.day-editor-pool-help{margin:3px 0 10px}
+.day-member-pool{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.day-member-source-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  padding:5px 8px;
+  border:1px solid #d9e1dc;
+  border-radius:9px;
+  background:#fff;
+  cursor:grab;
+  user-select:none;
+  transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease,opacity .12s ease;
+}
+.day-member-source-item:hover,
+.day-member-source-item:focus-visible{
+  border-color:#bfcfc6;
+  box-shadow:0 3px 10px rgba(25,48,35,.06);
+  outline:none;
+}
+.day-member-source-item:active{cursor:grabbing}
+.day-member-source-item.is-dragging{opacity:.45;transform:scale(.985)}
+.day-member-grip{
+  flex:0 0 auto;
+  color:#89958e;
+  font-weight:900;
+  letter-spacing:-3px;
+}
+.day-member-source-text{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+.day-member-source-text strong{font-size:13px;line-height:1.2}
+.day-member-source-status{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#7a8780;
+  font-size:10px;
+  line-height:1.2;
+}
+
+.day-role-board{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.day-role-card{
+  min-width:0;
+  padding:11px;
+}
+.day-role-card-title{margin-bottom:8px;text-align:left}
+.day-role-card-available{grid-column:1/-1}
+.day-role-dropzone{
+  min-height:128px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  border:1.5px dashed #c7d3cc;
+  border-radius:11px;
+  background:#fff;
+  transition:background .13s ease,border-color .13s ease,box-shadow .13s ease;
+}
+.day-role-dropzone.drag-over{
+  border-color:#63a77d;
+  background:#f0f8f3;
+  box-shadow:inset 0 0 0 1px rgba(24,130,71,.08);
+}
+.day-role-dropzone.drop-denied{
+  border-color:#d7a5a5;
+  background:#fff5f5;
+}
+.day-drop-placeholder{
+  color:#89958e;
+  font-size:12px;
+  font-style:italic;
+  text-align:center;
+  pointer-events:none;
+}
+.day-assignment-chip,
+.day-available-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  max-width:100%;
+  min-height:36px;
+  padding:6px 7px 6px 13px;
+  border:1px solid #bdd9c8;
+  border-radius:999px;
+  background:#e9f5ed;
+  color:#15231b;
+  font-size:14px;
+  font-weight:850;
+}
+.day-assignment-remove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:23px;
+  height:23px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.72);
+  color:#526158;
+  font:800 17px/1 system-ui,sans-serif;
+  cursor:pointer;
+}
+.day-assignment-remove:hover{background:#fff;color:#a03535}
+.day-available-dropzone{
+  min-height:118px;
+  align-items:flex-start;
+  justify-content:flex-start;
+}
+.day-available-chip-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  align-content:flex-start;
+  gap:7px;
+  width:100%;
+}
+.day-available-chip{
+  border-color:#cbdce5;
+  background:#f0f6f9;
+}
+.day-editor-warning{margin-top:10px!important}
+.day-editor-actions{margin-top:12px!important}
+
+@media(max-width:820px){
+  #adminCorrectionOverlay .admin-correction-dialog{width:calc(100vw - 14px)!important}
+  .day-editor-workspace{grid-template-columns:1fr;min-height:0}
+  .day-member-pool{display:grid;grid-template-columns:1fr 1fr}
+  .day-role-board{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .day-member-pool,.day-role-board{grid-template-columns:1fr}
+  .day-role-card-available{grid-column:auto}
+}
+
 </style>
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.39 · audit final unité graphique admin · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>Version complète V15.40 · éditeur journée drag & drop + exclusivité Disponible · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Pour les tests partagés entre téléphones, déployez aussi <code>server.mjs</code> sur un hébergement Node avec stockage persistant.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -4319,19 +4510,41 @@ body{
         <div class="section-head">
           <div>
             <h2 id="adminCorrectionTitle">Modifier la journée</h2>
-            <div class="muted small">Choisissez le membre affecté à chaque position, puis enregistrez une seule fois.</div>
+            <div class="muted small">Glissez les membres vers les positions souhaitées, puis enregistrez une seule fois.</div>
           </div>
           <button class="btn" type="button" id="adminCorrectionClose">Fermer</button>
         </div>
         <form id="adminDayForm">
           <input type="hidden" id="dayEditorDate">
           <div class="day-editor-date" id="dayEditorDateLabel"></div>
-          <div class="day-editor-grid" role="group" aria-label="Affectations de la journée">
-            <div class="day-editor-position"><label>Accueil</label><div id="dayAccueilChoices" class="single-choice-list day-role-choices" data-day-role="accueil" aria-label="Membres pour Accueil"></div></div>
-            <div class="day-editor-position"><label>TPE</label><div id="dayTpeChoices" class="single-choice-list day-role-choices" data-day-role="tpe" aria-label="Membres pour TPE"></div></div>
-            <div class="day-editor-position"><label>MEP</label><div id="dayMepChoices" class="single-choice-list day-role-choices" data-day-role="mep" aria-label="Membres pour MEP"></div></div>
-            <div class="day-editor-position"><label>Arbitrage</label><div id="dayArbitrageChoices" class="single-choice-list day-role-choices" data-day-role="arbitrage" aria-label="Membres pour Arbitrage"></div></div>
-            <div class="day-editor-position"><label>Disponible</label><div id="dayPresentChoices" class="available-checklist day-available-choices" data-day-role="present" aria-label="Membres disponibles"></div></div>
+          <div class="day-editor-workspace" role="group" aria-label="Affectations de la journée">
+            <aside class="day-member-pool-panel" aria-label="Liste des membres">
+              <div class="day-editor-panel-title">Membres</div>
+              <div class="muted small day-editor-pool-help">Glissez un membre vers une case.</div>
+              <div id="dayMemberPool" class="day-member-pool"></div>
+            </aside>
+            <div class="day-role-board">
+              <div class="day-role-card">
+                <div class="day-role-card-title">Accueil</div>
+                <div id="dayAccueilChoices" class="day-role-dropzone" data-day-role="accueil" aria-label="Accueil"></div>
+              </div>
+              <div class="day-role-card">
+                <div class="day-role-card-title">TPE</div>
+                <div id="dayTpeChoices" class="day-role-dropzone" data-day-role="tpe" aria-label="TPE"></div>
+              </div>
+              <div class="day-role-card">
+                <div class="day-role-card-title">MEP</div>
+                <div id="dayMepChoices" class="day-role-dropzone" data-day-role="mep" aria-label="MEP"></div>
+              </div>
+              <div class="day-role-card">
+                <div class="day-role-card-title">Arbitrage</div>
+                <div id="dayArbitrageChoices" class="day-role-dropzone" data-day-role="arbitrage" aria-label="Arbitrage"></div>
+              </div>
+              <div class="day-role-card day-role-card-available">
+                <div class="day-role-card-title">Disponible</div>
+                <div id="dayPresentChoices" class="day-role-dropzone day-available-dropzone" data-day-role="present" aria-label="Disponible"></div>
+              </div>
+            </div>
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
           <div class="actions day-editor-actions">
@@ -4761,6 +4974,23 @@ function normalizedAdminCellChanges(changes){
     if(!date||!ROLE_KEYS.includes(role))continue;
     map.set(planningCellKey(date,role),{date,role,ids:adminIds(raw.ids)})
   }
+
+  const dates=[...new Set([...map.values()].map(c=>c.date))];
+  for(const date of dates){
+    const coreIds=new Set();
+    for(const role of CORE_ROLE_KEYS){
+      const pending=map.get(planningCellKey(date,role));
+      const ids=pending?pending.ids:currentAdminRoleIds(date,role);
+      for(const id of ids)coreIds.add(String(id))
+    }
+    const pKey=planningCellKey(date,'present');
+    const pPending=map.get(pKey);
+    const requested=pPending?pPending.ids:currentAdminRoleIds(date,'present');
+    const filtered=requested.filter(id=>!coreIds.has(String(id)));
+    if(pPending||!sameAdminIds(filtered,currentAdminRoleIds(date,'present'))){
+      map.set(pKey,{date,role:'present',ids:filtered})
+    }
+  }
   return [...map.values()]
 }
 
@@ -4902,6 +5132,14 @@ function setMemberPlanningVisualState(saved=false){
 function queueMemberPlanningChange(date,role,present){
   markMemberActivity();
 
+  const myId=String(memberData?.me?.id||currentLocalMemberId||'');
+  const currentDay=memberData?.assignments?.[date]||{};
+  const hasCoreRole=CORE_ROLE_KEYS.some(r=>(currentDay[r]||[]).map(String).includes(myId));
+  if(role==='present'&&present&&hasCoreRole){
+    setNotice(q('#memberError'),'Vous avez déjà un rôle pour cette journée : vous ne pouvez pas être également disponible.');
+    return
+  }
+
   if(LOCAL){
     try{
       if(role==='present'){
@@ -4913,8 +5151,12 @@ function queueMemberPlanningChange(date,role,present){
         }
       }else{
         const day=localState.roleAssignments[date]||{},ids=day[role]||[];
-        if(present)day[role]=[...new Set([...ids,currentLocalMemberId])];
-        else{
+        if(present){
+          day[role]=[...new Set([...ids,currentLocalMemberId])];
+          const available=localState.attendance[date]||[];
+          localState.attendance[date]=available.filter(x=>x!==currentLocalMemberId);
+          if(!localState.attendance[date].length)delete localState.attendance[date]
+        }else{
           day[role]=ids.filter(x=>x!==currentLocalMemberId);
           if(!day[role].length)delete day[role]
         }
@@ -4928,6 +5170,15 @@ function queueMemberPlanningChange(date,role,present){
       renderMember()
     }catch(e){setNotice(q('#memberError'),e.message)}
     return
+  }
+
+  if(role!=='present'&&present&&(memberData?.assignments?.[date]?.present||[]).map(String).includes(String(memberData.me.id))){
+    const pKey=planningCellKey(date,'present');
+    const pExisting=memberPlanningPending.get(pKey);
+    const pIds=memberData?.assignments?.[date]?.present||[];
+    const pBefore=pExisting?.before??pIds.includes(memberData.me.id);
+    memberData=optimisticAssignment(memberData,date,'present',false);
+    memberPlanningPending.set(pKey,{date,role:'present',present:false,before:pBefore})
   }
 
   const key=planningCellKey(date,role);
@@ -5106,12 +5357,19 @@ function getDaySingleChoiceValue(container){
 function dayRoleChoiceContainer(role){
   return q(role==='accueil'?'#dayAccueilChoices':role==='tpe'?'#dayTpeChoices':role==='mep'?'#dayMepChoices':'#dayArbitrageChoices')
 }
-function fillAvailableChecklist(container,currentIds,members,prefix){
+function fillAvailableChecklist(container,currentIds,members,prefix,{disabledIds=[]}={}){
   const current=new Set((currentIds||[]).map(String));
+  const disabled=new Set((disabledIds||[]).map(String));
   container.innerHTML='';
   for(const m of sortMembersAlpha(members)){
-    const label=document.createElement('label');label.className='available-check';
-    const box=document.createElement('input');box.type='checkbox';box.value=m.id;box.name=`${prefix}-${m.id}`;box.checked=current.has(String(m.id));
+    const id=String(m.id),unavailable=disabled.has(id);
+    const label=document.createElement('label');
+    label.className=`available-check${unavailable?' is-disabled':''}`;
+    if(unavailable)label.title='Déjà affecté à un rôle pour cette journée';
+    const box=document.createElement('input');
+    box.type='checkbox';box.value=id;box.name=`${prefix}-${id}`;
+    box.disabled=unavailable;
+    box.checked=!unavailable&&current.has(id);
     const span=document.createElement('span');span.textContent=m.name;
     label.append(box,span);container.append(label)
   }
@@ -5135,25 +5393,210 @@ function fillSingleChoiceList(container,currentIds,members,onChoose){
   for(const m of sortMembersAlpha(members))makeButton(String(m.id),m.name)
 }
 
+let dayEditorDraft=null;
+
+function dayEditorActiveMembers(){
+  return sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active))
+}
+function dayEditorMemberName(id){
+  return dayEditorActiveMembers().find(m=>String(m.id)===String(id))?.name||String(id||'')
+}
+function dayEditorCoreIds(){
+  return new Set(CORE_ROLE_KEYS.map(r=>String(dayEditorDraft?.roles?.[r]||'')).filter(Boolean))
+}
+function dayEditorSetWarning(text=''){
+  const warning=q('#dayEditorWarning');
+  warning.textContent=text;
+  warning.classList.toggle('hidden',!text)
+}
+function dayEditorMemberStatus(id){
+  const labels=[];
+  for(const role of CORE_ROLE_KEYS){
+    if(String(dayEditorDraft?.roles?.[role]||'')===String(id))labels.push(ROLE_LABELS[role])
+  }
+  if((dayEditorDraft?.present||[]).map(String).includes(String(id)))labels.push('Disponible');
+  return labels.join(' · ')
+}
+function makeDayMemberDraggable(el,id){
+  el.draggable=true;
+  el.dataset.memberId=String(id);
+  el.tabIndex=0;
+  el.addEventListener('dragstart',e=>{
+    e.dataTransfer.effectAllowed='copy';
+    e.dataTransfer.setData('text/plain',String(id));
+    document.body.classList.add('day-dragging');
+    requestAnimationFrame(()=>el.classList.add('is-dragging'))
+  });
+  el.addEventListener('dragend',()=>{
+    el.classList.remove('is-dragging');
+    document.body.classList.remove('day-dragging');
+    for(const z of document.querySelectorAll('.day-role-dropzone'))z.classList.remove('drag-over','drop-denied')
+  })
+}
+function dayEditorAssign(memberId,role){
+  if(!dayEditorDraft)return false;
+  const id=String(memberId||'');
+  if(!id)return false;
+
+  if(role==='present'){
+    if(dayEditorCoreIds().has(id)){
+      const roles=CORE_ROLE_KEYS
+        .filter(r=>String(dayEditorDraft.roles[r]||'')===id)
+        .map(r=>ROLE_LABELS[r]).join(', ');
+      dayEditorSetWarning(`${dayEditorMemberName(id)} est déjà affecté${roles?` à ${roles}`:''} et ne peut pas être également disponible.`);
+      return false
+    }
+    dayEditorDraft.present=[...new Set([...(dayEditorDraft.present||[]).map(String),id])]
+  }else{
+    dayEditorDraft.roles[role]=id;
+    dayEditorDraft.present=(dayEditorDraft.present||[]).map(String).filter(x=>x!==id)
+  }
+
+  dayEditorSetWarning('');
+  renderDayEditorDraft();
+  return true
+}
+function dayEditorRemove(role,memberId=''){
+  if(!dayEditorDraft)return;
+  if(role==='present'){
+    dayEditorDraft.present=(dayEditorDraft.present||[]).map(String).filter(id=>id!==String(memberId))
+  }else{
+    dayEditorDraft.roles[role]=''
+  }
+  dayEditorSetWarning('');
+  renderDayEditorDraft()
+}
+function dayEditorWireDropzone(zone,role){
+  zone.ondragenter=e=>{e.preventDefault();zone.classList.add('drag-over')};
+  zone.ondragover=e=>{
+    e.preventDefault();
+    const id=e.dataTransfer.getData('text/plain');
+    const denied=role==='present'&&id&&dayEditorCoreIds().has(String(id));
+    e.dataTransfer.dropEffect=denied?'none':'copy';
+    zone.classList.toggle('drop-denied',!!denied);
+    zone.classList.toggle('drag-over',!denied)
+  };
+  zone.ondragleave=e=>{
+    if(!zone.contains(e.relatedTarget))zone.classList.remove('drag-over','drop-denied')
+  };
+  zone.ondrop=e=>{
+    e.preventDefault();
+    zone.classList.remove('drag-over','drop-denied');
+    const id=e.dataTransfer.getData('text/plain');
+    if(id)dayEditorAssign(id,role)
+  }
+}
+function renderDayEditorDraft(){
+  if(!dayEditorDraft)return;
+  const members=dayEditorActiveMembers();
+  const pool=q('#dayMemberPool');
+  pool.innerHTML='';
+
+  for(const m of members){
+    const item=document.createElement('div');
+    item.className='day-member-source-item';
+
+    const grip=document.createElement('span');
+    grip.className='day-member-grip';
+    grip.textContent='⋮⋮';
+    grip.setAttribute('aria-hidden','true');
+
+    const text=document.createElement('div');
+    text.className='day-member-source-text';
+    const name=document.createElement('strong');
+    name.textContent=m.name;
+    const status=document.createElement('span');
+    status.className='day-member-source-status';
+    const statusText=dayEditorMemberStatus(m.id);
+    status.textContent=statusText||'Non affecté';
+
+    text.append(name,status);
+    item.append(grip,text);
+    item.title=statusText?`${m.name} · ${statusText}`:`Glisser ${m.name}`;
+    makeDayMemberDraggable(item,m.id);
+    pool.append(item)
+  }
+
+  for(const role of CORE_ROLE_KEYS){
+    const zone=dayRoleChoiceContainer(role);
+    zone.innerHTML='';
+    zone.dataset.selectedId=String(dayEditorDraft.roles[role]||'');
+    dayEditorWireDropzone(zone,role);
+    const id=String(dayEditorDraft.roles[role]||'');
+
+    if(!id){
+      const empty=document.createElement('div');
+      empty.className='day-drop-placeholder';
+      empty.textContent='Glissez un membre ici';
+      zone.append(empty);
+      continue
+    }
+
+    const chip=document.createElement('div');
+    chip.className='day-assignment-chip';
+    const name=document.createElement('span');
+    name.textContent=dayEditorMemberName(id);
+    const remove=document.createElement('button');
+    remove.type='button';
+    remove.className='day-assignment-remove';
+    remove.textContent='×';
+    remove.title=`Retirer ${dayEditorMemberName(id)} de ${ROLE_LABELS[role]}`;
+    remove.addEventListener('click',()=>dayEditorRemove(role,id));
+    chip.append(name,remove);
+    zone.append(chip)
+  }
+
+  const availableZone=q('#dayPresentChoices');
+  availableZone.innerHTML='';
+  dayEditorWireDropzone(availableZone,'present');
+  const available=(dayEditorDraft.present||[]).map(String);
+
+  if(!available.length){
+    const empty=document.createElement('div');
+    empty.className='day-drop-placeholder';
+    empty.textContent='Glissez ici les personnes disponibles';
+    availableZone.append(empty)
+  }else{
+    const wrap=document.createElement('div');
+    wrap.className='day-available-chip-wrap';
+    for(const id of available){
+      const chip=document.createElement('div');
+      chip.className='day-available-chip';
+      const name=document.createElement('span');
+      name.textContent=dayEditorMemberName(id);
+      const remove=document.createElement('button');
+      remove.type='button';
+      remove.className='day-assignment-remove';
+      remove.textContent='×';
+      remove.title=`Retirer ${dayEditorMemberName(id)} de Disponible`;
+      remove.addEventListener('click',()=>dayEditorRemove('present',id));
+      chip.append(name,remove);
+      wrap.append(chip)
+    }
+    availableZone.append(wrap)
+  }
+}
 function populateDayEditor(date){
-  const active=(adminData.membersAdmin||[]).filter(m=>m.active);
-  updateDayEditorListHeight(active.length);
   const assignments=adminData.assignments?.[date]||{};
+  const roles=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[
+    role,
+    String((Array.isArray(assignments[role])?assignments[role]:[])[0]||'')
+  ]));
+  const coreIds=new Set(Object.values(roles).filter(Boolean));
+  const rawPresent=[...new Set((assignments.present||[]).map(String))];
+  const cleanedPresent=rawPresent.filter(id=>!coreIds.has(id));
+  const removed=rawPresent.filter(id=>coreIds.has(id));
+
+  dayEditorDraft={date,roles,present:cleanedPresent};
   q('#dayEditorDate').value=date;
   q('#dayEditorDateLabel').textContent=dayLabel(date);
-  const warnings=[];
-  for(const role of CORE_ROLE_KEYS){
-    const ids=Array.isArray(assignments[role])?assignments[role]:[];
-    const container=dayRoleChoiceContainer(role);
-    fillDaySingleChoiceList(container,ids,active);
-    if(ids.length>1)warnings.push(`${ROLE_LABELS[role]} : ${ids.length} membres actuellement affectés`)
+  renderDayEditorDraft();
+
+  if(removed.length){
+    dayEditorSetWarning(`${removed.map(dayEditorMemberName).join(', ')} ${removed.length>1?'ont été retirés':'a été retiré'} de Disponible dans ce brouillon car ${removed.length>1?'ils ont':'il a'} déjà un rôle.`)
+  }else{
+    dayEditorSetWarning('')
   }
-  fillAvailableChecklist(q('#dayPresentChoices'),assignments.present||[],active,'day-available');
-  const warning=q('#dayEditorWarning');
-  if(warnings.length){
-    warning.textContent=`Attention : ${warnings.join(' · ')}. L’enregistrement conservera uniquement le membre sélectionné pour ces postes.`;
-    warning.classList.remove('hidden')
-  }else{warning.textContent='';warning.classList.add('hidden')}
 }
 function openAdminCorrection(date){
   populateDayEditor(date);
@@ -5161,7 +5604,7 @@ function openAdminCorrection(date){
   overlay.classList.remove('hidden');
   overlay.setAttribute('aria-hidden','false');
   document.body.classList.add('modal-open');
-  setTimeout(()=>q('#dayAccueilChoices .single-choice-item.selected, #dayAccueilChoices .single-choice-item')?.focus(),0)
+  setTimeout(()=>q('#dayMemberPool .day-member-source-item')?.focus(),0)
 }
 function closeAdminCorrection(){
   const overlay=q('#adminCorrectionOverlay');
@@ -5186,7 +5629,14 @@ function populateAdminCellEditor(date,role){
     roleField.classList.add('hidden');
     availableField.classList.remove('hidden');
     actions.classList.remove('hidden');
-    fillAvailableChecklist(q('#adminCellAvailableChoices'),ids,active,'cell-available')
+    const assignedCoreIds=[...new Set(CORE_ROLE_KEYS.flatMap(r=>Array.isArray(assignments[r])?assignments[r].map(String):[]))];
+    fillAvailableChecklist(
+      q('#adminCellAvailableChoices'),
+      ids.filter(id=>!assignedCoreIds.includes(String(id))),
+      active,
+      'cell-available',
+      {disabledIds:assignedCoreIds}
+    )
   }else{
     availableField.classList.add('hidden');
     roleField.classList.remove('hidden');
@@ -6140,19 +6590,18 @@ function setLocalDayAssignments(date,selections){
   saveLocal();adminData=localAdminSnapshot()
 }
 function saveAdminDay(btn=null){
-  const date=q('#dayEditorDate').value;
-  const assignments=Object.fromEntries(
-    CORE_ROLE_KEYS.map(role=>[role,getDaySingleChoiceValue(dayRoleChoiceContainer(role))])
-  );
-  assignments.present=checkedAvailableIds(q('#dayPresentChoices'));
-
+  if(!dayEditorDraft)return;
+  const date=dayEditorDraft.date;
   const changes=CORE_ROLE_KEYS.map(role=>({
     date,
     role,
-    ids:assignments[role]?[assignments[role]]:[]
+    ids:dayEditorDraft.roles[role]?[String(dayEditorDraft.roles[role])]:[]
   }));
-  changes.push({date,role:'present',ids:assignments.present});
-
+  changes.push({
+    date,
+    role:'present',
+    ids:(dayEditorDraft.present||[]).map(String).filter(id=>!dayEditorCoreIds().has(id))
+  });
   queueAdminPlanningChanges(changes);
   closeAdminCorrection()
 }

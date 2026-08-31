@@ -1327,6 +1327,13 @@ class FileStore {
       }
       if (validDate && date >= today && any && !effectiveIsOpen(this.state, date)) issues.push(`future_role_assignment_on_closed_date:${date}`);
     }
+    for (const [date, ids] of Object.entries(this.state.attendance || {})) {
+      const roles = this.state.roleAssignments?.[date] || {};
+      const coreIds = new Set(ROLE_KEYS.flatMap((role) => Array.isArray(roles[role]) ? roles[role].map(String) : []));
+      for (const id of Array.isArray(ids) ? ids.map(String) : []) {
+        if (coreIds.has(id)) issues.push(`availability_role_conflict:${date}:${id}`);
+      }
+    }
     for (const [date, ex] of Object.entries(this.state.scheduleExceptions || {})) {
       if (!isIsoDate(date)) issues.push(`exception_date_invalid:${date}`);
       if (typeof ex?.isOpen !== 'boolean') issues.push(`exception_state_invalid:${date}`);
@@ -1707,6 +1714,24 @@ class FileStore {
     if (!Object.hasOwn(s.roleAssignments, date) && present && Object.keys(s.roleAssignments).length >= 5000) {
       return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
     }
+
+    let availabilityRemoved = false;
+    if (present) {
+      const available = new Set(Array.isArray(s.attendance[date]) ? s.attendance[date].map(String) : []);
+      if (available.delete(member.id)) {
+        availabilityRemoved = true;
+        if (available.size) s.attendance[date] = [...available];
+        else delete s.attendance[date];
+        this.#log(
+          s,
+          actor,
+          actor === 'Administrateur' ? 'admin_retrait' : 'retrait',
+          date,
+          { memberId: member.id, name: member.displayName, automatic: true, reason: 'role_assignment' }
+        );
+      }
+    }
+
     const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object' ? clone(s.roleAssignments[date]) : {};
     const set = new Set(Array.isArray(roles[role]) ? roles[role] : []);
     const had = set.has(member.id);
@@ -1714,7 +1739,7 @@ class FileStore {
     if (set.size) roles[role] = [...set]; else delete roles[role];
     if (Object.keys(roles).length) s.roleAssignments[date] = roles; else delete s.roleAssignments[date];
     if (had !== !!present) this.#log(s, actor, action, date, { memberId: member.id, name: member.displayName, role });
-    return { ok: true, changed: had !== !!present, present: !!present, role };
+    return { ok: true, changed: had !== !!present || availabilityRemoved, present: !!present, role, availabilityRemoved };
   }
 
 
@@ -1748,6 +1773,11 @@ class FileStore {
         const next = [...new Set((ids || []).map(String).filter(Boolean))];
         const old = readIds(date, role);
         if (role === 'present') {
+          const roles = s.roleAssignments?.[date] || {};
+          const coreIds = new Set(ROLE_KEYS.flatMap((r) => Array.isArray(roles[r]) ? roles[r].map(String) : []));
+          for (let i = next.length - 1; i >= 0; i--) {
+            if (coreIds.has(String(next[i]))) next.splice(i, 1);
+          }
           for (const oldId of old) {
             if (next.includes(oldId)) continue;
             const m = s.members.find((x) => x.id === oldId);
@@ -1760,6 +1790,15 @@ class FileStore {
           }
           if (next.length) s.attendance[date] = next; else delete s.attendance[date];
           return
+        }
+        if (next.length) {
+          const available = new Set(Array.isArray(s.attendance[date]) ? s.attendance[date].map(String) : []);
+          let removed = false;
+          for (const id of next) removed = available.delete(String(id)) || removed;
+          if (removed) {
+            if (available.size) s.attendance[date] = [...available];
+            else delete s.attendance[date];
+          }
         }
         const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object' ? clone(s.roleAssignments[date]) : {};
         for (const oldId of old) {
@@ -1901,6 +1940,28 @@ class FileStore {
           : [];
       };
 
+      const desiredMap = new Map(desired.map((cell) => [`${cell.date}|${cell.role}`, cell]));
+      const touchedDates = [...new Set(desired.map((cell) => cell.date))];
+      for (const date of touchedDates) {
+        const projectedCore = new Set();
+        for (const role of ROLE_KEYS) {
+          const pending = desiredMap.get(`${date}|${role}`);
+          const ids = pending ? pending.memberIds : readIds(date, role);
+          for (const id of ids) projectedCore.add(String(id));
+        }
+        const presentCell = desiredMap.get(`${date}|present`);
+        if (presentCell) {
+          const conflict = presentCell.memberIds.find((id) => projectedCore.has(String(id)));
+          if (conflict) {
+            return {
+              ok: false,
+              status: 409,
+              error: `${active.get(conflict)?.displayName || 'Ce membre'} possède déjà un rôle pour cette journée et ne peut pas être également disponible.`
+            };
+          }
+        }
+      }
+
       const writeIds = (date, role, nextIds) => {
         const next = [...new Set((nextIds || []).map(String).filter(Boolean))];
         const old = readIds(date, role);
@@ -1930,6 +1991,25 @@ class FileStore {
 
         if (next.length && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
           return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte.' };
+        }
+
+        if (next.length) {
+          const available = readIds(date, 'present');
+          const filteredAvailable = available.filter((id) => !next.includes(String(id)));
+          if (filteredAvailable.length !== available.length) {
+            for (const removedId of available.filter((id) => !filteredAvailable.includes(id))) {
+              const m = s.members.find((x) => x.id === removedId);
+              this.#log(s, 'Administrateur', 'admin_retrait', date, {
+                memberId: removedId,
+                name: m?.displayName || '',
+                batched: true,
+                automatic: true,
+                reason: 'role_assignment'
+              });
+            }
+            if (filteredAvailable.length) s.attendance[date] = filteredAvailable;
+            else delete s.attendance[date];
+          }
         }
 
         const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object'
@@ -2002,6 +2082,19 @@ class FileStore {
         return { ok: false, status: 404, error: 'Membre actif introuvable.' };
       }
 
+      if (role === 'present') {
+        const roles = s.roleAssignments?.[date] || {};
+        const coreIds = new Set(ROLE_KEYS.flatMap((r) => Array.isArray(roles[r]) ? roles[r].map(String) : []));
+        const conflict = requestedAvailable.find((id) => coreIds.has(String(id)));
+        if (conflict) {
+          return {
+            ok: false,
+            status: 409,
+            error: `${active.get(conflict)?.displayName || 'Ce membre'} possède déjà un rôle pour cette journée et ne peut pas être également disponible.`
+          };
+        }
+      }
+
       const nextIds = role === 'present' ? requestedAvailable : (memberId ? [memberId] : []);
       let changed = false;
 
@@ -2029,6 +2122,22 @@ class FileStore {
 
       if (memberId && !Object.hasOwn(s.roleAssignments, date) && Object.keys(s.roleAssignments).length >= 5000) {
         return { ok: false, status: 409, error: 'Limite de dates de rôles atteinte. Archivez ou nettoyez les anciennes données.' };
+      }
+
+      if (memberId) {
+        const available = new Set(Array.isArray(s.attendance[date]) ? s.attendance[date].map(String) : []);
+        if (available.delete(memberId)) {
+          if (available.size) s.attendance[date] = [...available];
+          else delete s.attendance[date];
+          const member = active.get(memberId);
+          this.#log(s, 'Administrateur', 'admin_retrait', date, {
+            memberId,
+            name: member?.displayName || '',
+            automatic: true,
+            reason: 'role_assignment'
+          });
+          changed = true;
+        }
       }
 
       const roles = s.roleAssignments[date] && typeof s.roleAssignments[date] === 'object'
@@ -2080,6 +2189,16 @@ class FileStore {
       }
       for (const id of desired.present) {
         if (!active.has(id)) return { ok: false, status: 404, error: 'Membre actif introuvable pour Disponible.' };
+      }
+
+      const desiredCoreIds = new Set(ROLE_KEYS.map((role) => desired[role]).filter(Boolean));
+      const availabilityConflict = desired.present.find((id) => desiredCoreIds.has(String(id)));
+      if (availabilityConflict) {
+        return {
+          ok: false,
+          status: 409,
+          error: `${active.get(availabilityConflict)?.displayName || 'Ce membre'} possède déjà un rôle pour cette journée et ne peut pas être également disponible.`
+        };
       }
 
       const wantsRoles = ROLE_KEYS.some((role) => desired[role]);
@@ -2163,6 +2282,19 @@ class FileStore {
   }
 
   #setAttendanceInState(s, member, date, present, actor, action) {
+    if (present) {
+      const roles = s.roleAssignments?.[date] || {};
+      const assignedRole = ROLE_KEYS.find((role) =>
+        Array.isArray(roles[role]) && roles[role].map(String).includes(String(member.id))
+      );
+      if (assignedRole) {
+        return {
+          ok: false,
+          status: 409,
+          error: `${member.displayName} possède déjà un rôle pour cette journée et ne peut pas être également disponible.`
+        };
+      }
+    }
     if (present && !Object.hasOwn(s.attendance, date) && Object.keys(s.attendance).length >= 5000) {
       return { ok: false, status: 409, error: 'Limite de dates de présence atteinte. Archivez ou nettoyez les anciennes données.' };
     }
@@ -2611,7 +2743,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.38.0-member-link-controls-vercel';
+const APP_VERSION = '0.15.40.0-day-drag-exclusivity-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
