@@ -187,7 +187,7 @@
     <nav class="admin-tabs" aria-label="Pages de l’administration">
       <a href="/admin" data-admin-page="calendar">Calendrier</a>
       <a href="/admin/membres" data-admin-page="members"><span class="nav-label-desktop">Gestion des membres</span><span class="nav-label-mobile" aria-hidden="true">Membres</span></a>
-      <a href="/admin/historique" data-admin-page="history">Historique</a>
+      <a href="/admin/historique" data-admin-page="history" class="hidden" hidden aria-hidden="true" tabindex="-1">Historique</a>
     </nav>
 
     
@@ -257,7 +257,7 @@
     </div>
 
     
-    <div class="admin-page hidden" data-admin-view="history">
+    <div class="admin-page hidden" data-admin-view="history" aria-hidden="true">
       <div class="admin-history-page"><section class="card spaced" id="adminHistory"><div class="section-head"><div><h2>Historique récent</h2><div class="muted small">Les dernières modifications enregistrées.</div></div><button class="btn" type="button" id="downloadAudit">Historique CSV</button></div><div class="audit-tools spaced"><div class="field"><label for="auditSearch">Rechercher</label><input id="auditSearch" type="search" autocomplete="off" placeholder="Nom, action ou date"></div><div class="field"><label for="auditAction">Type d’action</label><select id="auditAction"><option value="">Toutes les actions</option></select></div><button class="btn" type="button" id="auditClear">Effacer les filtres</button><span class="muted small" id="auditShown"></span></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Quand</th><th>Acteur</th><th>Action</th><th>Date</th></tr></thead><tbody id="logsTable"></tbody></table></div></section></div>
     </div>
 
@@ -354,4 +354,5 @@
 
 </main>
 <script src="client.js?v=1547-supabase"></script>
+<script src="admin-desktop-enhancements.js?v=1548-desktop-admin"></script>
 </body></html>
