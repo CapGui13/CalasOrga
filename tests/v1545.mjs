@@ -128,8 +128,8 @@ try{
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
-  assert.match(indexText,/<link rel="stylesheet" href="styles\.css">/);
-  assert.match(indexText,/<script src="client\.js"><\/script>/);
+  assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
+  assert.match(indexText,/<script src="client\.js(?:\?v=[^"]+)?"><\/script>/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);

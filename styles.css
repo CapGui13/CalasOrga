@@ -5222,7 +5222,7 @@ body{
    680–980px : conserver les tableaux desktop, en version compacte.
    Le vrai mode cartes reste réservé aux téléphones (<680px).
    ========================================================= */
-@media (min-width:680px) and (max-width:980px){
+@media (min-width:600px) and (max-width:980px){
   html,body{overflow-x:auto!important}
 
   .shell{
