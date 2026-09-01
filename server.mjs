@@ -2956,7 +2956,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.45.0-cleanup-multidevice-vercel';
+const APP_VERSION = '0.15.45.2-cleanup-vercel-hotfix';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3130,8 +3130,11 @@ function adminOk(req) {
 }
 function csrfCookie(name, secure, maxAge) { const token = randomToken(18); return { token, header: cookie(name, token, { httpOnly: false, secure, maxAge }) }; }
 
-const indexHtml = await fs.readFile(path.join(__dirname, 'index.html'));
-// Les assets externes ne doivent pas être lus à l'import de la fonction Vercel :
+// Aucun fichier frontend ne doit être lu à l'import de la fonction Vercel.
+ // Les pages et assets sont servis statiquement par Vercel ; Node/Docker les charge
+ // uniquement à la demande, avec mise en cache après la première lecture.
+ // Cela rend le bundle API autonome par rapport à index.html/styles.css/app.js.
+ // Les assets externes ne doivent pas être lus à l'import de la fonction Vercel :
 // ils sont servis statiquement par Vercel. En Node/Docker, on les charge à la demande
 // et on les met en cache après la première lecture.
 const staticAssetCache = new Map();
@@ -3147,7 +3150,9 @@ function serveStatic(res, body, contentType) {
   res.setHeader('Content-Type', contentType);
   res.end(body);
 }
-function serveIndex(res) { return serveStatic(res, indexHtml, 'text/html; charset=utf-8'); }
+async function serveIndex(res) {
+  return serveStatic(res, await localStaticAsset('index.html'), 'text/html; charset=utf-8');
+}
 async function serveLocalStaticFile(res, filename, contentType) {
   return serveStatic(res, await localStaticAsset(filename), contentType);
 }

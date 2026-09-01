@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.45.0-cleanup-multidevice-vercel');
+  assert.equal(health.appVersion,'0.15.45.2-cleanup-vercel-hotfix');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -137,12 +137,11 @@ try{
   const nestedCssRes=await fetch(`${origin}/admin/styles.css`); assert.equal(nestedCssRes.status,200);
   const nestedJsRes=await fetch(`${origin}/admin/app.js`); assert.equal(nestedJsRes.status,200);
 
-  // Hotfix Vercel : l'import/démarrage backend ne doit plus dépendre de styles.css/app.js.
-  // Ce mini-bundle reproduit une fonction qui contient server.mjs + index.html seulement.
+  // Hotfix Vercel 2 : l'import/démarrage backend ne doit dépendre d'AUCUN fichier frontend.
+  // Ce mini-bundle reproduit une fonction ne contenant que server.mjs.
   const bundleTmp=await fs.mkdtemp(path.join(os.tmpdir(),'calasorga-v1545-function-bundle-'));
   const bundlePort=42000+Math.floor(Math.random()*5000);
   await fs.copyFile(path.join(root,'server.mjs'),path.join(bundleTmp,'server.mjs'));
-  await fs.copyFile(path.join(root,'index.html'),path.join(bundleTmp,'index.html'));
   const bundleChild=spawn(process.execPath,['server.mjs'],{
     cwd:bundleTmp,
     env:{
@@ -165,7 +164,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.45.0-cleanup-multidevice-vercel');
+    assert.equal(bundleHealth.appVersion,'0.15.45.2-cleanup-vercel-hotfix');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));
