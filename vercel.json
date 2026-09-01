@@ -7,6 +7,14 @@
   },
   "rewrites": [
     {
+      "source": "/admin/styles.css",
+      "destination": "/styles.css"
+    },
+    {
+      "source": "/admin/app.js",
+      "destination": "/app.js"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/index?__path=api/:path*"
     },
@@ -89,7 +97,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-KehHo535k6eifx6ClJCOuApHHoIjdOZutK4EQG//q9E='; style-src 'self' 'sha256-vycgfnUIDDZG4kniNblksbmxCcxPrS//Vsnm5lX8+RI='; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         }
       ]
     }

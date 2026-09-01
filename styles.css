@@ -1,0 +1,5186 @@
+:root{--bg:#f5f7f6;--card:#fff;--text:#17251e;--muted:#64726b;--line:#dfe5e1;--accent:#216c4a;--accent-bg:#e9f5ee;--danger:#b42318;--danger-bg:#fff0ee;--warn:#8a6100;--warn-bg:#fff8dc;--closed:#58615d;--closed-bg:#eef1ef;--focus:#155eef}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button,a{touch-action:manipulation}a{color:inherit}.shell{max-width:1120px;margin:0 auto;padding:18px 14px 56px}.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.brand{font-size:22px;font-weight:850}.small{font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}.notice{border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--line);background:#fff}.notice.warn{background:var(--warn-bg);border-color:#ead78b;color:var(--warn)}.notice.error{background:var(--danger-bg);border-color:#efb2aa;color:var(--danger)}.notice.ok{background:var(--accent-bg);border-color:#bddfc9;color:var(--accent)}.pill{display:inline-flex;align-items:center;border-radius:999px;background:#edf1ef;padding:5px 9px;font-size:12px;font-weight:750}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--text);font-weight:750;text-decoration:none;gap:7px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.danger{color:var(--danger);border-color:#efb2aa;background:#fff}.btn:disabled{opacity:.55;cursor:not-allowed}.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid color-mix(in srgb,var(--focus) 45%,transparent);outline-offset:2px}.monthnav{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0 18px}.monthlabel{min-width:215px;text-align:center;font-size:21px;font-weight:850;text-transform:capitalize}.icon-btn{width:44px;padding:8px;font-size:24px;line-height:1}.calendar-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.day-card{display:flex;flex-direction:column;gap:12px;min-height:236px}.day-card.past{opacity:.8}.day-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.day-title{font-weight:850;font-size:18px;text-transform:capitalize}.status-badge{border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800;white-space:nowrap}.status-badge.ok{background:var(--accent-bg);color:var(--accent)}.status-badge.alert{background:var(--danger-bg);color:var(--danger)}.status-badge.closed{background:var(--closed-bg);color:var(--closed)}.names{display:flex;flex-direction:column;gap:8px;flex:1}.name-row{display:flex;align-items:center;gap:8px}.avatar{width:30px;height:30px;border-radius:50%;background:#edf1ef;display:grid;place-items:center;font-size:12px;font-weight:850}.me-tag{font-size:11px;background:var(--accent-bg);color:var(--accent);border-radius:999px;padding:3px 6px;font-weight:800}.empty{color:var(--muted);font-style:italic}.actions{display:flex;flex-wrap:wrap;gap:9px}.top-actions{display:flex;flex-wrap:wrap;gap:8px}.admin-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.spaced{margin-top:16px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.section-head h2,.card h2{margin:0 0 12px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.field{display:flex;flex-direction:column;gap:6px}.field label{font-weight:750}.field input,.field select{min-height:44px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--text);font-size:16px}.form-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}.settings-row{display:flex;align-items:end;gap:10px;flex-wrap:wrap}.settings-row .field{min-width:180px}.member-actions{display:flex;gap:6px;flex-wrap:wrap}.member-actions .btn{min-height:36px;padding:6px 9px;font-size:13px}.device-info{margin-top:4px;font-size:12px;color:var(--muted)}.exception-list{display:grid;gap:8px}.exception-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:11px;padding:10px 12px}.secret-box{border:2px solid var(--accent);background:var(--accent-bg);border-radius:12px;padding:12px;margin-top:12px;word-break:break-all}.demo-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.demo-links a{padding:14px;border:1px solid var(--line);background:#fff;border-radius:12px;text-decoration:none;font-weight:800}.hero{max-width:760px;margin:40px auto}.hero h1{margin-top:0;font-size:28px}.sep{height:1px;background:var(--line);margin:14px 0}@media(max-width:820px){.calendar-grid,.admin-grid,.demo-links{grid-template-columns:1fr}.topbar{flex-direction:column}.monthlabel{min-width:160px;font-size:19px}.day-card{min-height:0}.form-row{grid-template-columns:1fr}.exception-item{align-items:flex-start;flex-direction:column}.shell{padding-top:12px}}
+.attention-card{border-color:var(--line)}.uncovered-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.uncovered-item{border:1px solid #efc3bd;background:var(--danger-bg);border-radius:12px;padding:12px}.uncovered-item.covered{border-color:#bddfc9;background:var(--accent-bg)}.uncovered-item strong{display:block;text-transform:capitalize}.uncovered-item .small{margin-top:4px}.permanence-state{display:inline-flex;margin:5px 0 3px;border-radius:999px;padding:3px 7px;font-size:11px;font-weight:800;background:#ffe4df;color:var(--danger)}.uncovered-item.covered .permanence-state{background:#d7f0e1;color:var(--accent)}@media(max-width:820px){.uncovered-grid{grid-template-columns:1fr}}
+.attendance-admin-fields{display:grid;grid-template-columns:1fr 1.4fr 1.4fr;gap:10px}@media(max-width:820px){.attendance-admin-fields{grid-template-columns:1fr}}
+
+/* V8 — raccourcis, état de synchronisation et ergonomie mobile */
+.sync-state.sync-bad{color:var(--danger);font-weight:750}
+.compact-card{padding:14px 16px}
+.upcoming-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.upcoming-chip{min-height:40px;padding:8px 11px;border:1px solid #bddfc9;border-radius:999px;background:var(--accent-bg);color:var(--accent);font:inherit;font-size:13px;font-weight:800;cursor:pointer;text-transform:capitalize}
+.upcoming-chip:focus-visible{outline:3px solid color-mix(in srgb,var(--focus) 45%,transparent);outline-offset:2px}
+.day-card:focus{outline:3px solid color-mix(in srgb,var(--accent) 35%,transparent);outline-offset:3px}
+.empty-month{grid-column:1/-1;text-align:center;color:var(--muted)}
+@media(max-width:620px){
+  .top-actions{width:100%}
+  .top-actions .btn{flex:1 1 auto}
+  .top-actions .pill{width:100%;justify-content:center}
+  .monthnav{display:grid;grid-template-columns:44px 1fr 44px;gap:8px}
+  .monthnav #todayMonth{grid-column:1/-1;grid-row:2}
+  .monthlabel{min-width:0}
+  .compact-card .section-head{align-items:flex-start}
+}
+
+/* V8 — CSP stricte : aucun style inline requis */
+.exception-fields{display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px}
+.bulk-exception-fields{display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:10px}
+.manage-date-btn{margin-top:8px}
+.member-name-input{width:100%;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.audit-tools{display:grid;grid-template-columns:minmax(220px,2fr) minmax(190px,1fr) auto auto;gap:10px;align-items:end}
+@media(max-width:820px){.exception-fields,.bulk-exception-fields,.audit-tools{grid-template-columns:1fr}}
+
+.coverage-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}.metric-card{display:flex;flex-direction:column;gap:5px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}.metric-card strong{font-size:22px}.metric-card.alert{border-color:#efc3bd;background:var(--danger-bg)}@media(max-width:820px){.coverage-summary{grid-template-columns:1fr}.metric-card strong{font-size:20px}}
+
+.hidden{display:none!important}.local-only{display:none}.mode-local .local-only{display:block}.mode-local .server-only{display:none!important}
+.prefinal-banner{background:#fff8dc;border:1px solid #ead78b;color:#6c5200;border-radius:12px;padding:11px 14px;margin-bottom:14px}.chooser-card{max-width:900px;margin:28px auto}.chooser-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:16px}.chooser-grid .btn{min-height:54px}.chooser-grid .admin-entry{grid-column:1/-1;background:#eef5fb;border-color:#bfd4e6;color:#174d76}.view-root{min-width:0}.toolbar-note{margin-top:6px}.toast{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:1000;width:min(760px,calc(100vw - 28px));margin:0;padding:11px 14px;border-radius:10px;background:#17251e;color:#fff;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.18);pointer-events:none}.member-name-input{min-width:160px}.link-line{word-break:break-all}.local-kicker{font-weight:800}.local-mode-badge{background:#fff8dc;color:#6c5200}.danger-note{color:var(--danger)}
+@media(max-width:820px){.chooser-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V14 — tableau complet par date / rôle */
+.schedule-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}.schedule{width:100%;border-collapse:separate;border-spacing:0}.schedule th,.schedule td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top}.schedule th:last-child,.schedule td:last-child{border-right:none}.schedule thead th{position:sticky;top:0;background:#f8faf9;z-index:2;padding:13px 10px;text-align:center;font-weight:850;white-space:nowrap}.date-cell{min-width:155px;padding:12px 9px;text-align:center}.date-main{font-weight:850;font-size:17px;text-transform:capitalize}.date-note{font-size:11px;color:var(--muted);margin-top:5px}.date-status{display:inline-flex;margin-top:6px;border-radius:999px;padding:4px 7px;font-size:11px;font-weight:800;background:var(--accent-bg);color:var(--accent)}.date-status.alert{background:var(--danger-bg);color:var(--danger)}.date-status.closed{background:var(--closed-bg);color:var(--closed)}.role-cell{min-width:165px;padding:0}.role-button{width:100%;min-height:88px;padding:10px;border:0;background:transparent;text-align:left;cursor:pointer}.role-button.mine{background:var(--accent-bg)!important}.role-button:disabled{cursor:not-allowed;opacity:.65}.role-button.empty{color:var(--muted)}.role-stack{display:flex;flex-wrap:wrap;gap:5px}.role-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 7px;background:#edf1ef;font-size:12px;font-weight:750}.role-chip.me{background:#d7f0e1;color:var(--accent)}.week-a .date-cell{background:#fbfcfb}.week-a .role-cell,.week-a .role-button{background:#fff}.week-b .date-cell{background:#f0f6f2}.week-b .role-cell,.week-b .role-button{background:#f7fbf8}.week-separator td{padding:0!important;border-right:0!important;border-bottom:0!important;background:var(--bg)!important}.week-separator-line{height:17px;position:relative}.week-separator-line:before{content:"";position:absolute;left:0;right:0;top:7px;height:3px;border-radius:999px;background:#aebcb4}.role-key{font-size:11px;color:var(--muted);margin-top:6px}.attendance-admin-fields{grid-template-columns:1fr 1.25fr 1fr 1.2fr}@media(max-width:820px){.attendance-admin-fields{grid-template-columns:1fr}.schedule th,.schedule td{min-width:150px}.date-cell{min-width:145px}}
+
+/* =========================================================
+   V15.8 — CALASORGA SOBRE+
+   Refonte purement graphique : aucune logique applicative.
+   ========================================================= */
+:root{
+  --bg:#f4f7f5;
+  --card:#ffffff;
+  --text:#17231d;
+  --muted:#66736c;
+  --line:#dfe7e2;
+  --line-strong:#d2ddd6;
+  --accent:#198a49;
+  --accent-strong:#126f3a;
+  --accent-bg:#edf8f1;
+  --danger:#b9342a;
+  --danger-bg:#fff6f5;
+  --warn:#8a6100;
+  --warn-bg:#fff9e8;
+  --closed:#58615d;
+  --closed-bg:#f0f3f1;
+  --focus:#2471e8;
+  --shadow:0 8px 28px rgba(28,48,38,.055);
+  --shadow-soft:0 4px 16px rgba(28,48,38,.04);
+}
+html{background:var(--bg)}
+body{
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.shell{
+  width:min(1180px,calc(100% - 40px));
+  max-width:none;
+  margin:0 auto;
+  padding:34px 0 70px;
+}
+.card,
+.metric-card,
+.schedule-wrap{
+  border-color:var(--line);
+  box-shadow:var(--shadow-soft);
+}
+.card{
+  border-radius:18px;
+  padding:20px;
+}
+.card h2{
+  letter-spacing:-.015em;
+}
+.brand{
+  font-size:28px;
+  line-height:1.08;
+  letter-spacing:-.035em;
+  font-weight:850;
+}
+.muted{color:var(--muted)}
+.small{line-height:1.45}
+
+/* Top bars: actual title is visually centered, actions remain right aligned. */
+.topbar{
+  display:grid;
+  grid-template-columns:1fr minmax(260px,auto) 1fr;
+  align-items:center;
+  gap:18px;
+  margin:2px 0 24px;
+  min-height:64px;
+}
+.topbar>div:first-child{
+  grid-column:2;
+  text-align:center;
+}
+.topbar .top-actions{
+  grid-column:3;
+  justify-self:end;
+  justify-content:flex-end;
+  align-items:center;
+}
+.topbar .brand + .muted{margin-top:5px}
+.sync-state{margin-top:3px}
+
+/* Buttons */
+.btn{
+  min-height:42px;
+  border-color:var(--line-strong);
+  border-radius:10px;
+  padding:9px 14px;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(18,38,27,.025);
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease,transform .12s ease;
+}
+.btn:hover:not(:disabled){
+  border-color:#bdccc3;
+  background:#fbfcfb;
+}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn.primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(25,138,73,.12);
+}
+.btn.primary:hover:not(:disabled){
+  background:var(--accent-strong);
+  border-color:var(--accent-strong);
+}
+.btn.danger{
+  color:var(--danger);
+  border-color:#efc8c4;
+  background:#fffafa;
+}
+.icon-btn{
+  width:42px;
+  min-width:42px;
+  border-radius:12px;
+}
+
+/* Forms */
+.field{gap:7px}
+.field label{
+  font-size:13px;
+  letter-spacing:.005em;
+  color:#35423b;
+}
+.field input,.field select,.member-name-input{
+  border-color:var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+  box-shadow:inset 0 1px 1px rgba(28,48,38,.02);
+}
+.field input:hover,.field select:hover,.member-name-input:hover{
+  border-color:#bdccc3;
+}
+
+/* Generic pills and notices */
+.pill{
+  background:#f1f5f2;
+  color:#435149;
+  border:1px solid #e5ebe7;
+  padding:5px 9px;
+  font-weight:760;
+}
+.notice{
+  border-radius:13px;
+  box-shadow:var(--shadow-soft);
+}
+.notice.ok{
+  background:#f0faf4;
+  border-color:#cce9d7;
+}
+.notice.error{
+  background:#fff7f6;
+  border-color:#f1ceca;
+}
+
+/* Local chooser / landing */
+.chooser-card{
+  max-width:900px;
+  margin:56px auto;
+  padding:34px;
+  text-align:center;
+  border-radius:22px;
+  box-shadow:var(--shadow);
+}
+.chooser-card h1{
+  margin:0;
+  font-size:36px;
+  letter-spacing:-.04em;
+}
+.chooser-card>p{
+  max-width:650px;
+  margin:10px auto 0;
+  line-height:1.55;
+}
+.chooser-grid{
+  margin-top:26px;
+  gap:12px;
+}
+.chooser-grid .btn{
+  min-height:58px;
+  border-radius:13px;
+  font-size:15px;
+}
+.chooser-grid .admin-entry{
+  margin-top:4px;
+  background:#f4f8f5;
+  border-color:#cfdfd5;
+  color:var(--accent-strong);
+}
+
+/* Join / admin login */
+.hero{
+  max-width:590px;
+  margin:70px auto;
+  padding:34px;
+  border-radius:22px;
+  box-shadow:var(--shadow);
+  text-align:center;
+}
+.hero h1{
+  margin:0 0 7px;
+  font-size:31px;
+  letter-spacing:-.035em;
+}
+.hero .field,
+.hero .field label,
+.hero .actions{
+  text-align:left;
+}
+.hero .form-row{
+  grid-template-columns:1fr 48px;
+  align-items:end;
+}
+.hero #toggleAdminCode{
+  width:48px;
+  padding:0;
+  font-size:19px;
+}
+.hero #adminCodeForm{
+  max-width:430px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.hero #adminCodeForm>.actions{
+  justify-content:center;
+}
+.hero #adminCodeForm>.actions .btn.primary{
+  min-width:150px;
+}
+
+/* Member view */
+#memberRoot{
+  max-width:1160px;
+  margin:0 auto;
+}
+#memberRoot>.card.compact-card{
+  max-width:900px;
+  margin:0 auto 20px;
+  padding:18px 22px;
+}
+#memberRoot>.card.compact-card .section-head{
+  align-items:center;
+}
+#memberRoot>.card.compact-card .section-head>div{
+  flex:1;
+}
+#memberRoot>.card.compact-card h2{
+  margin-bottom:4px;
+}
+.upcoming-list{
+  gap:9px;
+  margin-top:14px;
+}
+.upcoming-chip{
+  background:#f6fbf8;
+  border-color:#d7eadd;
+  color:#246a42;
+  border-radius:999px;
+  min-height:38px;
+}
+.monthnav{
+  margin:20px auto;
+  gap:9px;
+  padding:7px;
+  width:max-content;
+  max-width:100%;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:rgba(255,255,255,.75);
+  box-shadow:var(--shadow-soft);
+}
+.monthlabel{
+  min-width:235px;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+.schedule-wrap{
+  overflow:auto;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+.schedule thead th{
+  background:#f7faf8;
+  color:#425048;
+  padding:14px 11px;
+  font-size:13px;
+  letter-spacing:.015em;
+}
+.schedule td{border-color:#e7ece9}
+.date-cell{
+  min-width:155px;
+  padding:14px 10px;
+}
+.date-main{
+  font-size:16px;
+  letter-spacing:-.015em;
+}
+.role-button{
+  min-height:91px;
+  padding:12px;
+  transition:background .15s ease;
+}
+.role-button:hover:not(:disabled){background:#f8fbf9}
+.role-button.mine{
+  background:#eaf7ef!important;
+  box-shadow:inset 3px 0 0 var(--accent);
+}
+.role-chip{
+  background:#f0f4f1;
+  border:1px solid #e5ebe7;
+}
+.role-chip.me{
+  background:#dff2e6;
+  border-color:#cee8d7;
+}
+.week-a .date-cell{background:#fcfdfc}
+.week-b .date-cell{background:#f3f8f5}
+.week-b .role-cell,.week-b .role-button{background:#f9fbfa}
+.week-separator-line:before{
+  height:2px;
+  background:#ced9d2;
+}
+
+/* Admin summary */
+#adminRoot{
+  max-width:1160px;
+  margin:0 auto;
+}
+.coverage-summary{
+  width:min(980px,100%);
+  margin:0 auto 20px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.metric-card{
+  min-height:150px;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  border-radius:17px;
+  padding:20px 18px;
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+.metric-card .muted.small{
+  text-transform:none;
+  letter-spacing:.01em;
+}
+.metric-card strong{
+  margin:3px 0 2px;
+  font-size:27px;
+  letter-spacing:-.035em;
+}
+.metric-card .small:not(.muted){
+  color:#536158;
+}
+.metric-card.alert{
+  background:#fffafa;
+  border-color:#efcfca;
+}
+
+/* Admin upcoming permanences */
+.attention-card{
+  width:min(1080px,100%);
+  margin:0 auto;
+  padding:23px;
+  box-shadow:var(--shadow);
+}
+.attention-card>.section-head{
+  justify-content:center;
+  text-align:center;
+  margin-bottom:17px;
+}
+.attention-card>.section-head>div{
+  max-width:800px;
+}
+.attention-card>.section-head h2{
+  margin-bottom:5px;
+  font-size:22px;
+}
+.attention-card>.section-head>.pill{
+  flex-basis:auto;
+}
+.uncovered-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.uncovered-item{
+  position:relative;
+  min-height:170px;
+  border:1px solid #efd2ce;
+  border-radius:14px;
+  background:#fffafa;
+  padding:15px;
+  box-shadow:none;
+  overflow:hidden;
+}
+.uncovered-item:before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:3px;
+  background:#df8179;
+  opacity:.7;
+}
+.uncovered-item.covered{
+  border-color:#cce6d5;
+  background:#f6fbf8;
+}
+.uncovered-item.covered:before{
+  background:var(--accent);
+}
+.uncovered-item strong{
+  font-size:15px;
+  letter-spacing:-.01em;
+}
+.permanence-state{
+  margin:7px 0 5px;
+  background:#fde8e5;
+  color:#a52e25;
+}
+.uncovered-item.covered .permanence-state{
+  background:#e1f3e7;
+  color:var(--accent-strong);
+}
+.manage-date-btn{
+  margin-top:10px;
+  min-height:36px;
+  padding:7px 11px;
+}
+
+/* Lower admin cards */
+.admin-grid{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+  grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);
+  gap:16px;
+}
+.admin-grid>.card{
+  padding:22px;
+  box-shadow:var(--shadow);
+}
+.admin-grid .section-head{
+  margin-bottom:12px;
+}
+.table{
+  border:1px solid #e7ece9;
+  border-radius:12px;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+}
+.table th{
+  background:#f8faf9;
+  color:#526058;
+  font-size:12px;
+  letter-spacing:.02em;
+}
+.table th,.table td{
+  padding:11px 9px;
+}
+.table tr:last-child td{border-bottom:0}
+.member-actions .btn{
+  border-radius:9px;
+}
+.device-info{
+  margin-top:5px;
+}
+
+/* Remaining admin sections */
+#adminRoot>section.card.spaced{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+  padding:22px;
+  box-shadow:var(--shadow);
+}
+#adminRoot>section.card.spaced>.section-head{
+  margin-bottom:15px;
+}
+.exception-item{
+  background:#fafcfb;
+  border-color:#e4ebe6;
+}
+.secret-box{
+  border-width:1px;
+  border-color:#b9dec8;
+  background:#f2faf5;
+}
+
+/* Secondary headings / separators */
+.sep{
+  background:#e7ece9;
+  margin:18px 0;
+}
+
+/* Toast */
+.toast{
+  border-radius:12px;
+  background:#18251e;
+  box-shadow:0 10px 30px rgba(20,35,27,.22);
+}
+
+/* Mobile */
+@media(max-width:820px){
+  .shell{
+    width:100%;
+    padding:18px 14px 46px;
+  }
+  .card{border-radius:15px}
+  .topbar{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    margin-bottom:18px;
+    text-align:center;
+  }
+  .topbar>div:first-child{text-align:center}
+  .topbar .top-actions{
+    width:100%;
+    justify-content:center;
+  }
+  .topbar .top-actions .btn{flex:1 1 auto}
+  .brand{font-size:25px}
+  .coverage-summary{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .metric-card{
+    min-height:118px;
+    padding:17px;
+  }
+  .metric-card strong{font-size:24px}
+  .attention-card{
+    padding:17px;
+  }
+  .uncovered-grid{
+    grid-template-columns:1fr;
+  }
+  .uncovered-item{
+    min-height:0;
+  }
+  .admin-grid{
+    grid-template-columns:1fr;
+  }
+  .chooser-card{
+    margin:25px auto;
+    padding:24px 17px;
+  }
+  .chooser-card h1{font-size:30px}
+  .chooser-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .hero{
+    margin:28px auto;
+    padding:25px 18px;
+  }
+  .hero h1{font-size:27px}
+  #memberRoot>.card.compact-card{
+    padding:17px;
+  }
+  .monthnav{
+    width:100%;
+    grid-template-columns:44px 1fr 44px;
+    border-radius:14px;
+  }
+  .monthlabel{
+    min-width:0;
+  }
+  .schedule-wrap{
+    margin-left:-2px;
+    margin-right:-2px;
+    border-radius:14px;
+  }
+  #adminRoot>section.card.spaced,
+  .admin-grid,
+  .attention-card{
+    width:100%;
+  }
+}
+@media(max-width:520px){
+  .shell{padding-left:10px;padding-right:10px}
+  .chooser-grid{grid-template-columns:1fr}
+  .top-actions{gap:7px}
+  .top-actions .pill{
+    width:100%;
+    justify-content:center;
+  }
+  .hero .form-row{
+    grid-template-columns:1fr 46px;
+  }
+  .card{padding:15px}
+  .attention-card{padding:15px}
+  .admin-grid>.card{padding:16px}
+  #adminRoot>section.card.spaced{padding:16px}
+}
+
+
+/* =========================================================
+   V15.9 — UX
+   ========================================================= */
+.confirm-overlay{
+  position:fixed;inset:0;z-index:2000;display:grid;place-items:center;
+  padding:20px;background:rgba(18,30,24,.42);backdrop-filter:blur(3px)
+}
+.confirm-dialog{
+  width:min(500px,100%);background:#fff;border:1px solid var(--line);
+  border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(17,31,23,.22)
+}
+.confirm-dialog h2{margin:0 0 10px;font-size:22px;letter-spacing:-.025em}
+.confirm-message{white-space:pre-line;color:#46534c;line-height:1.55}
+.confirm-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
+.confirm-dialog.danger .confirm-actions .primary{
+  background:var(--danger);border-color:var(--danger)
+}
+.confirm-dialog.danger .confirm-actions .primary:hover{background:#9f2c24;border-color:#9f2c24}
+body.modal-open{overflow:hidden}
+
+.admin-jump-nav{
+  position:sticky;top:8px;z-index:20;width:max-content;max-width:100%;
+  margin:0 auto 18px;padding:6px;display:flex;gap:4px;overflow-x:auto;
+  border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.94);
+  box-shadow:var(--shadow-soft);backdrop-filter:blur(10px);scrollbar-width:none
+}
+.admin-jump-nav::-webkit-scrollbar{display:none}
+.admin-jump-nav button{
+  flex:0 0 auto;border:0;background:transparent;color:#516057;cursor:pointer;
+  min-height:34px;padding:7px 10px;border-radius:9px;font:inherit;font-size:12px;font-weight:760
+}
+.admin-jump-nav button:hover{background:var(--accent-bg);color:var(--accent-strong)}
+
+.btn.is-busy{position:relative;pointer-events:none;opacity:.78}
+.btn.is-busy:before{
+  content:"";width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;
+  border-radius:50%;display:inline-block;margin-right:7px;vertical-align:-2px;
+  animation:calas-spin .65s linear infinite
+}
+@keyframes calas-spin{to{transform:rotate(360deg)}}
+
+.coverage-state{
+  display:inline-flex;align-items:center;width:max-content;margin:7px 0 6px;
+  padding:4px 8px;border-radius:999px;font-size:11px;font-weight:850
+}
+.coverage-state.ok{background:#e1f3e7;color:var(--accent-strong)}
+.coverage-state.bad{background:#fde9e6;color:#a52e25}
+
+.member-action-wrap{display:flex;gap:7px;align-items:flex-start;flex-wrap:wrap}
+.member-menu{position:relative}
+.member-menu>summary{list-style:none}
+.member-menu>summary::-webkit-details-marker{display:none}
+.member-menu-panel{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:15;min-width:215px;
+  padding:6px;border:1px solid var(--line);border-radius:11px;background:#fff;
+  box-shadow:0 12px 32px rgba(20,35,27,.14)
+}
+.member-menu-panel .btn{
+  width:100%;justify-content:flex-start;min-height:36px;border:0;box-shadow:none;background:transparent
+}
+.member-menu-panel .btn:hover{background:#f5f8f6}
+.member-menu-panel .danger-option{color:var(--danger)}
+
+
+.schedule-mobile{display:none}
+.mobile-date-card{
+  border:1px solid var(--line);border-radius:15px;background:#fff;padding:14px;
+  box-shadow:var(--shadow-soft)
+}
+.mobile-date-card+.mobile-date-card{margin-top:10px}
+.mobile-date-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:11px}
+.mobile-date-title{font-weight:850;text-transform:capitalize}
+.mobile-date-note{color:var(--muted);font-size:12px;margin-top:3px}
+.mobile-roles{display:grid;gap:7px}
+.mobile-role-button{
+  width:100%;display:grid;grid-template-columns:92px 1fr;align-items:center;gap:10px;
+  min-height:48px;padding:8px 10px;border:1px solid #e5ebe7;border-radius:11px;
+  background:#fafcfb;text-align:left;color:var(--text);font:inherit
+}
+.mobile-role-button:not(:disabled){cursor:pointer}
+.mobile-role-button.mine{background:#eaf7ef;border-color:#cde6d6}
+.mobile-role-button:disabled{opacity:.68}
+.mobile-role-label{font-size:12px;font-weight:850;color:#4b5951}
+.mobile-role-value{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.mobile-role-empty{color:var(--muted);font-size:12px}
+
+.back-top{
+  position:fixed;right:18px;bottom:18px;z-index:40;width:44px;height:44px;padding:0;
+  border:1px solid #cddbd2;border-radius:50%;background:#fff;color:var(--accent-strong);
+  font-size:22px;font-weight:800;box-shadow:0 8px 24px rgba(20,35,27,.13);cursor:pointer
+}
+.back-top:hover{background:var(--accent-bg)}
+
+@media(max-width:820px){
+  .schedule-wrap{display:none}
+  .schedule-mobile{display:block}
+  .admin-jump-nav{top:6px;justify-content:flex-start;width:100%;margin-bottom:14px}
+  .member-menu-panel{right:auto;left:0}
+}
+
+
+/* V15.9.1 — centrer le bouton Administration sur l’écran lien personnel requis */
+#githubAdminLink{justify-content:center}
+
+/* V15.10 — calendrier mensuel dans l'administration */
+.admin-calendar-card{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+  padding:22px;
+  box-shadow:var(--shadow);
+}
+.admin-calendar-head{
+  justify-content:center;
+  text-align:center;
+  margin-bottom:4px;
+}
+.admin-calendar-head>div{max-width:760px}
+.admin-calendar-head h2{margin-bottom:5px}
+.admin-monthnav{margin-top:15px;margin-bottom:16px}
+.admin-role-display{
+  min-height:88px;
+  padding:11px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-start;
+}
+.admin-role-display.empty{
+  color:var(--muted);
+  font-size:12px;
+  font-style:italic;
+}
+.admin-role-display.closed{
+  color:var(--muted);
+  align-items:center;
+}
+.admin-calendar-edit{
+  margin-top:9px;
+  min-height:32px;
+  padding:5px 9px;
+  font-size:11px;
+}
+.admin-mobile-role{
+  cursor:default!important;
+}
+.admin-mobile-role .role-chip{
+  font-size:12px;
+}
+@media(max-width:820px){
+  .admin-calendar-card{padding:16px}
+  .admin-monthnav{width:100%}
+}
+
+
+/* =========================================================
+   V15.11 — ADMINISTRATION SIMPLE, 3 PAGES INSTANTANÉES
+   ========================================================= */
+.admin-tabs{
+  width:max-content;
+  max-width:100%;
+  margin:0 auto 22px;
+  padding:5px;
+  display:flex;
+  gap:4px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.admin-tabs a{
+  min-width:120px;
+  min-height:38px;
+  padding:9px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  color:#536158;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:800;
+  transition:background .15s ease,color .15s ease;
+}
+.admin-tabs a:hover{
+  background:#f4f8f5;
+  color:var(--accent-strong);
+}
+.admin-tabs a.active,
+.admin-tabs a[aria-current="page"]{
+  background:var(--accent-bg);
+  color:var(--accent-strong);
+}
+.admin-page{width:100%}
+.admin-page>.admin-calendar-card,
+.admin-members-page,
+.admin-history-page{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+.admin-members-page>#adminMembers,
+.admin-history-page>#adminHistory{
+  width:100%;
+  margin:0;
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+#adminMembers .table-wrap{overflow:visible}
+.admin-correction-dialog{width:min(720px,100%)}
+.admin-correction-dialog .section-head{margin-bottom:18px}
+.admin-correction-dialog #adminDayForm{margin-top:0}
+.admin-correction-dialog .attendance-admin-fields{
+  grid-template-columns:1fr 1.25fr 1fr 1fr;
+}
+#adminSupport{display:none!important}
+.admin-jump-nav{display:none!important}
+#adminRoot .admin-calendar-card{margin-top:0}
+
+@media(max-width:820px){
+  .admin-tabs{
+    width:100%;
+    margin-bottom:15px;
+  }
+  .admin-tabs a{
+    min-width:0;
+    flex:1 1 0;
+    padding:9px 7px;
+  }
+  .admin-members-page>#adminMembers,
+  .admin-history-page>#adminHistory{
+    padding:16px;
+  }
+  .admin-correction-dialog .attendance-admin-fields{
+    grid-template-columns:1fr;
+  }
+}
+
+
+/* =========================================================
+   V15.12.1 — FINITION DU PLANNING ADMIN
+   ========================================================= */
+.admin-calendar-card{
+  padding:24px 20px 20px;
+}
+.admin-calendar-head{
+  margin-bottom:10px;
+}
+.admin-calendar-head h2{
+  font-size:24px;
+  letter-spacing:-.025em;
+}
+
+/* Navigation très simple : flèche / libellé / flèche */
+.admin-monthnav{
+  width:min(430px,100%);
+  grid-template-columns:46px minmax(0,1fr) 46px;
+  gap:8px;
+  padding:6px;
+  margin:8px auto 18px;
+  background:#f8faf9;
+  border-color:#dbe5df;
+  box-shadow:none;
+}
+.admin-monthnav .monthlabel{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  font-weight:850;
+  letter-spacing:-.02em;
+}
+.admin-monthnav .icon-btn{
+  width:42px;
+  min-width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border-radius:10px;
+  font-size:20px;
+  background:#fff;
+}
+.admin-monthnav .icon-btn:disabled{
+  opacity:.28;
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+
+/* Tableau plus net et légèrement plus compact */
+.admin-schedule-wrap{
+  border:1px solid #dfe7e2;
+  border-radius:15px;
+  overflow:hidden;
+  box-shadow:none;
+}
+.admin-schedule{
+  table-layout:fixed;
+}
+.admin-schedule thead th{
+  height:44px;
+  padding:10px 8px;
+  background:#f5f8f6;
+  color:#33423a;
+  font-size:12px;
+  font-weight:850;
+  text-transform:none;
+  border-bottom:1px solid #dbe4de;
+}
+.admin-schedule thead th:first-child{
+  width:178px;
+}
+.admin-schedule td{
+  vertical-align:top;
+}
+.admin-schedule .date-cell{
+  padding:14px 12px;
+  background:#fcfdfc;
+}
+.admin-schedule .date-main{
+  font-size:15px;
+  font-weight:850;
+  color:#15241c;
+}
+.admin-schedule .date-note{
+  margin-top:4px;
+  color:#7a867f;
+  font-size:11px;
+}
+.admin-schedule .date-status{
+  margin-top:7px;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:850;
+}
+.admin-schedule .date-status.alert{
+  background:#fff0ee;
+  color:#b52e25;
+}
+.admin-schedule .date-status:not(.alert):not(.closed){
+  background:#eaf7ef;
+  color:#126f3a;
+}
+.admin-calendar-edit{
+  margin-top:9px;
+  min-height:32px;
+  border-color:#d7e2db;
+  background:#fff;
+  font-size:11px;
+  font-weight:800;
+}
+.admin-calendar-edit:hover:not(:disabled){
+  border-color:#b8cbbf;
+  background:#f7faf8;
+}
+
+/* Cellules de rôles : meilleur centrage vertical et lecture */
+.admin-role-display{
+  min-height:94px;
+  padding:14px 10px;
+  color:#34433b;
+}
+.admin-role-display.empty{
+  color:#7a867f;
+  font-size:12px;
+  font-style:italic;
+}
+.admin-role-display .role-stack{
+  gap:5px;
+}
+.admin-role-display .role-chip{
+  background:#eef7f1;
+  border-color:#d6eadc;
+  color:#216a40;
+}
+
+/* Séparation des semaines plus marquée */
+.admin-schedule .week-separator td{
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+.admin-schedule .week-separator-line{
+  position:relative;
+  height:26px;
+  background:transparent;
+}
+.admin-schedule .week-separator-line::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  height:2px;
+  border-radius:999px;
+  background:#b8c8bf;
+}
+
+/* Survol d'une date sur desktop */
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell,
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#fbfdfb;
+  }
+}
+
+/* Mobile : en-tête plus compact et cartes plus nettes */
+@media(max-width:820px){
+  .admin-calendar-card{
+    padding:18px 14px;
+  }
+  .admin-calendar-head h2{
+    font-size:22px;
+  }
+  .admin-monthnav{
+    grid-template-columns:44px 1fr 44px;
+    margin-bottom:13px;
+  }
+  .admin-monthnav .monthlabel{
+    font-size:17px;
+  }
+  .admin-schedule-mobile{
+    gap:10px;
+  }
+  .admin-schedule-mobile .mobile-date-card{
+    border-radius:14px;
+    border-color:#dfe7e2;
+    box-shadow:none;
+  }
+}
+
+
+/* =========================================================
+   V15.23 — SÉPARATION ET CONTRASTE DE SEMAINES RENFORCÉS
+   ========================================================= */
+
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  background:#edf5f0;
+}
+.admin-schedule tr.week-b .date-cell{
+  background:#e7f0ea;
+}
+.admin-schedule tr.week-b .role-display.empty{
+  color:#68766f;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell{
+    background:#f8fbf9;
+  }
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#e4efe8;
+  }
+}
+
+/* Mobile : alternance visible aussi sur les cartes dates */
+
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#edf5f0;
+}
+
+
+/* =========================================================
+   V15.13 — ÉDITEUR COMPLET D'UNE JOURNÉE
+   ========================================================= */
+.admin-correction-dialog{width:min(980px,100%)}
+.day-editor-date{
+  margin:2px 0 18px;
+  text-align:center;
+  font-size:18px;
+  font-weight:850;
+  letter-spacing:-.015em;
+}
+.day-editor-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+}
+.day-editor-position{
+  min-width:0;
+  padding:14px 10px 16px;
+  border-right:1px solid var(--line);
+  background:#fbfcfb;
+}
+.day-editor-position:last-child{border-right:0}
+.day-editor-position label{
+  display:block;
+  margin-bottom:10px;
+  text-align:center;
+  font-size:13px;
+  font-weight:850;
+  color:#27372e;
+}
+.day-editor-position .day-role-choices,
+.day-editor-position .day-available-choices{
+  min-height:382px;
+  max-height:382px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+}
+.day-editor-position .day-role-choices{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.day-editor-position .day-role-choices .single-choice-item{
+  width:100%;
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:#1f2923;
+  font:inherit;
+  font-size:14px;
+  font-weight:750;
+  text-align:left;
+  cursor:pointer;
+  transition:background .14s ease,border-color .14s ease,box-shadow .14s ease,color .14s ease;
+}
+.day-editor-position .day-role-choices .single-choice-item:hover,
+.day-editor-position .day-role-choices .single-choice-item:focus-visible,
+.day-editor-position .day-available-choices .available-check:hover,
+.day-editor-position .day-available-choices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d6e2da;
+  outline:none;
+}
+.day-editor-position .day-role-choices .single-choice-item.selected,
+.day-editor-position .day-available-choices .available-check:has(input:checked){
+  background:#e8f3ec;
+  border-color:#c4ddce;
+  color:#117440;
+  box-shadow:inset 0 0 0 1px rgba(17,116,64,.06);
+}
+.day-editor-position .day-role-choices .single-choice-item.empty-choice{
+  color:#62716a;
+  font-weight:700;
+}
+.day-editor-position .day-role-choices .single-choice-item.empty-choice.selected{
+  color:#557165;
+}
+.day-editor-position .day-available-choices{
+  gap:8px;
+}
+.day-editor-position .day-available-choices .available-check{
+  min-height:36px;
+  padding:7px 10px;
+  gap:10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  font-size:14px;
+  font-weight:750;
+}
+.day-editor-position .day-available-choices .available-check input{
+  width:16px;
+  height:16px;
+  margin:0;
+}
+.day-editor-actions{margin-top:18px;justify-content:flex-end}
+.day-editor-actions .btn{min-width:190px}
+.day-editor-warning{
+  margin-top:14px;
+  background:#fff9e8;
+  border-color:#eadba7;
+  color:#6e5710;
+}
+@media(max-width:820px){
+  .admin-correction-dialog{width:min(560px,100%)}
+  .day-editor-grid{grid-template-columns:1fr 1fr;overflow:visible}
+  .day-editor-position{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .day-editor-position:nth-child(2n){border-right:0}
+  .day-editor-position:last-child{grid-column:1/-1;border-right:0;border-bottom:0}
+}
+@media(max-width:520px){
+  .day-editor-grid{grid-template-columns:1fr}
+  .day-editor-position,.day-editor-position:nth-child(2n){border-right:0;border-bottom:1px solid var(--line)}
+  .day-editor-position:last-child{grid-column:auto;border-bottom:0}
+  .day-editor-actions{flex-direction:column-reverse}
+  .day-editor-actions .btn{width:100%}
+}
+@media(max-width:820px){
+  .day-editor-position .day-role-choices,
+  .day-editor-position .day-available-choices{min-height:280px;max-height:280px}
+}
+@media(max-width:520px){
+  .day-editor-position .day-role-choices,
+  .day-editor-position .day-available-choices{min-height:220px;max-height:260px}
+}
+
+
+/* =========================================================
+   V15.14 — ÉDITION RAPIDE PAR DOUBLE-CLIC
+   ========================================================= */
+.admin-role-editable{
+  cursor:pointer;
+  position:relative;
+  transition:background .14s ease,box-shadow .14s ease;
+}
+.admin-role-editable:focus{
+  outline:2px solid rgba(25,138,73,.24);
+  outline-offset:-2px;
+}
+@media(hover:hover){
+  .admin-role-editable:hover{
+    background:#edf7f1!important;
+    box-shadow:inset 0 0 0 1px #bedbc9;
+  }
+}
+.admin-cell-dialog{
+  width:min(460px,100%);
+}
+.admin-cell-dialog .section-head{
+  margin-bottom:18px;
+}
+.admin-cell-dialog select{
+  min-height:44px;
+}
+.admin-cell-dialog .actions{
+  justify-content:flex-end;
+}
+
+
+/* =========================================================
+   V15.15 — DISPONIBLE MULTIPLE + GLISSER-DÉPOSER
+   ========================================================= */
+.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:250px;
+  overflow:auto;
+  padding:8px;
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+}
+.available-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  padding:5px 7px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.available-check:hover{background:#f4f8f5}
+.available-check input{width:16px;height:16px;margin:0}
+.day-editor-position .available-checklist{
+  max-height:220px;
+  padding:6px;
+}
+.day-editor-position .available-check{
+  font-size:12px;
+}
+.admin-role-editable.admin-drop-target{
+  background:#e6f5eb!important;
+  box-shadow:inset 0 0 0 2px #79bb91!important;
+}
+.admin-role-editable.admin-drop-invalid{
+  background:#fff2f0!important;
+}
+.admin-role-display .role-chip[draggable="true"]{
+  cursor:grab;
+  user-select:none;
+}
+.admin-role-display .role-chip[draggable="true"]:active{cursor:grabbing}
+.admin-role-display .role-chip.dragging{
+  opacity:.45;
+}
+.drag-hint{
+  display:block;
+  margin-top:4px;
+  font-size:10px;
+  color:#849088;
+}
+
+
+/* =========================================================
+   V15.16 — PERFORMANCE UX / ENREGISTREMENT OPTIMISTE
+   ========================================================= */
+.admin-save-state{
+  min-height:34px;
+  padding:7px 10px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border-radius:999px;
+  border:1px solid #dbe7df;
+  background:#f7faf8;
+  color:#536158;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.admin-save-state.saving:before{
+  content:"";
+  width:11px;height:11px;border-radius:50%;
+  border:2px solid #b8d7c3;border-top-color:var(--accent);
+  animation:adminSaveSpin .7s linear infinite;
+}
+.admin-save-state.saved{
+  color:var(--accent-strong);
+  background:#eef8f2;
+  border-color:#cde6d6;
+}
+.admin-save-state.error{
+  color:var(--danger);
+  background:#fff4f2;
+  border-color:#efcbc6;
+}
+@keyframes adminSaveSpin{to{transform:rotate(360deg)}}
+@media(max-width:820px){
+  .admin-save-state{order:-1;width:100%;justify-content:center}
+}
+
+
+/* =========================================================
+   V15.16.1 — NOTIFICATION D'ENREGISTREMENT EN SUPERPOSITION
+   ========================================================= */
+.admin-save-state{
+  position:fixed;
+  top:18px;
+  left:50%;
+  z-index:1200;
+  min-height:36px;
+  padding:8px 13px;
+  margin:0;
+  display:inline-flex!important;
+  width:auto!important;
+  max-width:calc(100vw - 28px);
+  justify-content:center;
+  box-sizing:border-box;
+  box-shadow:0 8px 24px rgba(26,45,34,.12);
+  opacity:1;
+  visibility:visible;
+  pointer-events:none;
+  transform:translate(-50%,0);
+  transition:
+    opacity .20s ease,
+    transform .20s ease,
+    visibility 0s linear 0s;
+}
+.admin-save-state.hidden{
+  display:inline-flex!important;
+  opacity:0;
+  visibility:hidden;
+  transform:translate(-50%,-8px);
+  transition:
+    opacity .20s ease,
+    transform .20s ease,
+    visibility 0s linear .20s;
+}
+@media(max-width:820px){
+  .admin-save-state{
+    top:12px;
+    width:auto!important;
+    max-width:calc(100vw - 20px);
+  }
+}
+
+
+/* =========================================================
+   V15.16.2 — NOMS PLUS GROS ET CENTRÉS DANS LE PLANNING ADMIN
+   ========================================================= */
+.admin-role-display{
+  display:flex;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center;
+  min-height:108px;
+  padding:12px 10px;
+}
+.admin-role-display .role-stack{
+  width:100%;
+  min-height:84px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  align-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.admin-role-display .role-chip{
+  font-size:15px;
+  font-weight:800;
+  padding:8px 12px;
+  line-height:1.15;
+}
+.admin-role-display.empty{
+  display:flex;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center;
+  font-size:14px;
+  font-style:italic;
+}
+.admin-role-display.closed{
+  justify-content:center!important;
+}
+@media(max-width:820px){
+  .admin-role-display{
+    min-height:94px;
+  }
+  .admin-role-display .role-chip{
+    font-size:14px;
+    padding:7px 11px;
+  }
+}
+
+
+/* =========================================================
+   V15.16.3 — TABLEAU ADMIN PLUS LISIBLE
+   ========================================================= */
+
+/* Un peu plus d'air sans agrandir exagérément le planning */
+.admin-schedule .date-cell{
+  min-height:118px;
+  vertical-align:middle;
+}
+.admin-role-display{
+  min-height:118px;
+  padding:14px 12px;
+}
+.admin-role-display .role-stack{
+  min-height:92px;
+  gap:9px;
+}
+
+/* Noms plus lisibles et mieux détachés du fond */
+.admin-role-display .role-chip{
+  font-size:16px;
+  font-weight:850;
+  padding:9px 14px;
+  border:1px solid #cfe3d6;
+  background:#edf8f1;
+  color:#176b3a;
+  box-shadow:0 1px 0 rgba(20,80,45,.03);
+}
+
+/* Colonne Disponible : identité visuelle différente, mais sobre */
+.admin-schedule thead th:last-child{
+  background:#f1f5f7;
+  color:#405560;
+}
+.admin-schedule td:last-child .admin-role-display .role-chip{
+  background:#eef4f7;
+  border-color:#d5e1e7;
+  color:#355967;
+}
+.admin-schedule td:last-child .admin-role-display.empty{
+  color:#74838b;
+}
+
+/* Les cellules occupées gagnent légèrement en contraste */
+.admin-role-display:not(.empty){
+  color:#20352a;
+}
+
+/* Les cases vides restent discrètes */
+.admin-role-display.empty{
+  font-size:13px;
+  color:#89938d;
+}
+
+/* Date plus compacte au centre de la ligne */
+.admin-schedule .date-cell{
+  text-align:center;
+}
+.admin-schedule .date-main{
+  font-size:16px;
+}
+.admin-schedule .date-note{
+  font-size:11px;
+}
+
+/* Le bouton de correction reste secondaire */
+.admin-calendar-edit{
+  opacity:.92;
+}
+.admin-calendar-edit:hover{
+  opacity:1;
+}
+
+/* Mobile : garder la hiérarchie sans rendre les cartes trop hautes */
+@media(max-width:820px){
+  .admin-role-display{
+    min-height:100px;
+  }
+  .admin-role-display .role-stack{
+    min-height:76px;
+  }
+  .admin-role-display .role-chip{
+    font-size:15px;
+    padding:8px 12px;
+  }
+}
+
+
+/* =========================================================
+   V15.17 — STABILITÉ GLOBALE DE MISE EN PAGE
+   Le contenu texte peut changer sans déplacer les contrôles voisins.
+   ========================================================= */
+
+.monthlabel,
+.pill,
+.date-note,
+.date-status,
+.status-badge,
+#auditShown,
+.device-info{
+  font-variant-numeric:tabular-nums;
+}
+
+/* Boutons occupés : spinner superposé, largeur inchangée. */
+.btn.is-busy{
+  position:relative;
+  pointer-events:none;
+  opacity:.78;
+  color:transparent!important;
+  text-shadow:none!important;
+}
+.btn.is-busy:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:14px;
+  height:14px;
+  margin:0;
+  border:2px solid var(--text);
+  border-right-color:transparent;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:calas-busy-stable .65s linear infinite;
+}
+.btn.primary.is-busy:before{
+  border-color:#fff;
+  border-right-color:transparent;
+}
+.btn.danger.is-busy:before{
+  border-color:var(--danger);
+  border-right-color:transparent;
+}
+@keyframes calas-busy-stable{
+  from{transform:translate(-50%,-50%) rotate(0)}
+  to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+
+/* Navigation mensuelle membre : zones fixes. */
+#memberRoot .monthnav{
+  display:grid!important;
+  width:min(500px,100%);
+  grid-template-columns:44px 118px minmax(0,1fr) 44px;
+  grid-template-areas:"prev today label next";
+  gap:9px;
+  align-items:center;
+}
+#memberRoot #prevMonth{grid-area:prev}
+#memberRoot #todayMonth{
+  grid-area:today;
+  width:118px;
+  min-width:118px;
+  justify-self:center;
+}
+
+#memberRoot #nextMonth{grid-area:next}
+
+/* Navigation mensuelle admin : vraie grille fixe.
+   Les flèches gardent exactement la même position. */
+.admin-monthnav{
+  display:grid!important;
+  width:min(430px,100%);
+  grid-template-columns:46px minmax(0,1fr) 46px!important;
+  grid-template-areas:"prev label next";
+  align-items:center;
+}
+#adminPrevMonth{
+  grid-area:prev;
+  justify-self:center;
+}
+#adminMonthLabel{
+  grid-area:label;
+  width:100%;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#adminNextMonth{
+  grid-area:next;
+  justify-self:center;
+}
+
+/* Onglets admin : 3 emplacements identiques. */
+.admin-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(3,120px);
+  width:374px;
+  max-width:100%;
+}
+.admin-tabs a{
+  width:120px;
+  min-width:0!important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* En-têtes avec compteurs/actions dynamiques : zone réservée. */
+#memberRoot>.card.compact-card .section-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 88px;
+  align-items:center;
+}
+#myUpcomingCount{
+  width:88px;
+  min-width:88px;
+  justify-content:center;
+  text-align:center;
+}
+#adminMembers>.section-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 88px;
+  align-items:center;
+}
+#memberCount{
+  width:88px;
+  min-width:88px;
+  justify-content:center;
+  text-align:center;
+}
+#adminHistory>.section-head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 150px;
+  align-items:center;
+}
+#downloadAudit{
+  width:150px;
+  justify-self:end;
+}
+
+/* Historique : colonnes de contrôles fixes. */
+.audit-tools{
+  grid-template-columns:minmax(220px,2fr) minmax(190px,1fr) 150px 130px!important;
+}
+#auditClear{width:150px}
+#auditShown{
+  width:130px;
+  min-width:130px;
+  text-align:right;
+  justify-self:end;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Tableaux : le texte ne redimensionne plus les colonnes. */
+.schedule{
+  table-layout:fixed;
+  min-width:980px;
+}
+.schedule th:first-child,
+.schedule td:first-child{
+  width:170px;
+}
+
+#adminMembers .table,
+#adminHistory .table{
+  table-layout:fixed;
+  width:100%;
+}
+#adminMembers .table th:nth-child(1){width:38%}
+#adminMembers .table th:nth-child(2){width:18%}
+#adminMembers .table th:nth-child(3){width:44%}
+#adminHistory .table th:nth-child(1){width:20%}
+#adminHistory .table th:nth-child(2){width:20%}
+#adminHistory .table th:nth-child(3){width:42%}
+#adminHistory .table th:nth-child(4){width:18%}
+#adminMembers .table td,
+#adminHistory .table td{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+
+/* Raccourcis membre : largeur indépendante du libellé de date. */
+.upcoming-chip{
+  width:132px;
+  min-width:132px;
+  max-width:132px;
+  justify-content:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Ajout membre : bouton dans une colonne réservée. */
+#addMember.form-row{
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) 120px;
+}
+#addMember.form-row>.btn{width:120px}
+
+/* Dialogues de confirmation : les verbes ne déplacent pas les boutons. */
+.confirm-actions{
+  display:grid;
+  grid-template-columns:132px 132px;
+  justify-content:end;
+}
+.confirm-actions .btn{
+  width:132px;
+  min-width:132px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Les longues identités ne changent pas la géométrie du header. */
+@media(min-width:821px){
+  .topbar>div:first-child{min-width:0}
+  .topbar>div:first-child>.brand,
+  .topbar>div:first-child>#welcome,
+  .topbar>div:first-child>.sync-state{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+}
+
+/* Responsive : même principe, sans largeur forcée inutile. */
+@media(max-width:820px){
+  .admin-tabs{
+    width:100%;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .admin-tabs a{width:100%}
+
+  .audit-tools{grid-template-columns:1fr!important}
+  #auditClear,
+  #auditShown{
+    width:100%;
+    min-width:0;
+    text-align:left;
+    justify-self:stretch;
+  }
+
+  #memberRoot>.card.compact-card .section-head,
+  #adminMembers>.section-head,
+  #adminHistory>.section-head{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  #downloadAudit{
+    width:auto;
+    min-width:132px;
+  }
+
+  #addMember.form-row{grid-template-columns:1fr}
+  #addMember.form-row>.btn{width:100%}
+
+  .confirm-actions{grid-template-columns:1fr 1fr}
+  .confirm-actions .btn{
+    width:100%;
+    min-width:0;
+  }
+}
+
+@media(max-width:620px){
+  #memberRoot .monthnav{
+    grid-template-columns:44px minmax(0,1fr) 44px;
+    grid-template-areas:
+      "prev label next"
+      "today today today";
+  }
+  #memberRoot #todayMonth{
+    width:140px;
+    min-width:140px;
+    justify-self:center;
+  }
+}
+
+
+/* =========================================================
+   V15.18 — DISPONIBLE COMPLET + ÉCHANGE DE POSTES
+   ========================================================= */
+
+/* Le sélecteur Disponible affiche toute la liste sans scroll interne. */
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  max-height:none;
+  overflow:visible;
+  padding:4px;
+}
+#adminCellAvailableChoices .available-check{
+  min-width:0;
+  min-height:24px;
+  padding:2px 6px;
+  line-height:1.2;
+  border-radius:6px;
+}
+
+/* Si la fenêtre devient plus haute que l'écran, c'est l'overlay entier
+   qui peut défiler, jamais la liste des membres elle-même. */
+#adminCellRoleChoices.single-choice-list{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  max-height:none;
+  overflow:visible;
+  padding:4px;
+}
+#adminCellRoleChoices .single-choice-item{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  min-height:24px;
+  padding:4px 8px;
+  border:1px solid transparent;
+  border-radius:6px;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-weight:650;
+  text-align:left;
+  cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+#adminCellRoleChoices .single-choice-item.selected{
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+#adminCellActions.hidden{display:none!important}
+#adminCellOverlay{
+  overflow-y:auto;
+}
+#adminCellOverlay .admin-cell-dialog{
+  margin:auto 0;
+}
+
+/* Actions simplifiées : un seul bouton Enregistrer en bas. */
+#adminCellForm>.actions,
+#adminDayForm>.day-editor-actions{
+  justify-content:flex-end;
+}
+
+/* Feedback glisser-déposer : distinguer un échange d'un simple déplacement. */
+.admin-role-editable.admin-drop-swap{
+  background:#eaf3fb!important;
+  box-shadow:inset 0 0 0 2px #7aa9cf!important;
+}
+
+
+
+/* =========================================================
+   V15.20 — DND : SWAP SANS CONFIRMATION + COPIE ENTRE DATES
+   ========================================================= */
+.admin-role-editable.admin-drop-copy{
+  background:#eef8f1!important;
+  box-shadow:inset 0 0 0 2px #73b68a!important;
+}
+
+
+/* =========================================================
+   V15.22.4 — HARMONISATION DES PANNEAUX DE CHANGEMENT
+   ========================================================= */
+
+#adminCellOverlay .admin-cell-dialog .section-head{
+  margin-bottom:12px;
+}
+#adminCellOverlay .admin-cell-dialog .section-head h2{
+  margin-bottom:5px;
+}
+#adminCellForm .field{
+  gap:0;
+}
+
+/* Même cadre et même densité pour rôle et Disponible. */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+  padding:4px;
+  gap:1px;
+}
+
+/* Même hauteur, typographie et rythme visuel. */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  min-height:30px;
+  padding:4px 8px;
+  border:1px solid transparent;
+  border-radius:7px;
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  transition:background .14s ease,border-color .14s ease,color .14s ease;
+}
+
+/* Même survol. */
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible,
+#adminCellAvailableChoices .available-check:hover{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+}
+
+/* Même mise en évidence du choix courant. */
+
+
+/* Checkbox Disponible plus discrète et alignée. */
+#adminCellAvailableChoices .available-check{
+  gap:9px;
+}
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+}
+#adminCellAvailableChoices .available-check span{
+  min-width:0;
+}
+
+/* Bouton Disponible aligné avec le reste du panneau. */
+
+#adminCellActions .btn{
+  min-width:104px;
+}
+
+@media(max-width:620px){
+  #adminCellOverlay .admin-cell-dialog{
+    width:min(390px,calc(100vw - 20px));
+    padding:16px;
+  }
+}
+
+
+/* =========================================================
+   V15.22.6 — ENCORE UN TOUT PETIT PEU PLUS AÉRÉ
+   ========================================================= */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  gap:5px;
+  padding:6px;
+}
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  min-height:31px;
+  padding-top:5px;
+  padding-bottom:5px;
+}
+
+
+/* =========================================================
+   V15.22.7 — PANNEAU DISPONIBLE ALIGNÉ SUR LE PANNEAU RÔLE
+   ========================================================= */
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:none;
+  overflow:visible;
+  padding:6px;
+}
+#adminCellAvailableChoices .available-check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:34px;
+  padding:6px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  cursor:pointer;
+}
+#adminCellAvailableChoices .available-check:hover,
+#adminCellAvailableChoices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+}
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+
+
+
+/* =========================================================
+   V15.22.8 — PANNEAUX RÔLE / DISPONIBLE JUMEAUX
+   ========================================================= */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:none;
+  overflow:visible;
+  padding:6px;
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* Même géométrie de ligne dans les deux panneaux */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  width:100%;
+  min-height:34px;
+  padding:6px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  box-sizing:border-box;
+  transition:background .14s ease,border-color .14s ease,color .14s ease;
+}
+
+/* Même alignement du texte */
+
+#adminCellAvailableChoices .available-check{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+}
+
+/* Même état survol / focus */
+
+
+/* Même état sélectionné */
+
+
+/* "À pourvoir" reste légèrement secondaire */
+#adminCellRoleChoices .single-choice-item.empty-choice{
+  color:var(--muted);
+}
+
+/* Checkbox alignée sans modifier la hauteur de ligne */
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+  margin:0;
+}
+#adminCellAvailableChoices .available-check span{
+  flex:1 1 auto;
+  min-width:0;
+}
+
+/* Même largeur / padding du panneau pour tous les rôles */
+#adminCellOverlay .admin-cell-dialog{
+  width:min(410px,calc(100vw - 28px));
+  padding:18px;
+}
+
+
+/* =========================================================
+   V15.22.9 — GÉOMÉTRIE STRICTEMENT IDENTIQUE DES LIGNES
+   ========================================================= */
+
+/* Les deux listes ont exactement le même rythme. */
+#adminCellRoleChoices.single-choice-list,
+#adminCellAvailableChoices.available-checklist{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:6px;
+  max-height:none;
+  overflow:visible;
+  border:1px solid #dbe4de;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* Hauteur FIXE identique : aucun label/checkbox ne peut étirer la ligne. */
+#adminCellRoleChoices .single-choice-item,
+#adminCellAvailableChoices .available-check{
+  width:100%;
+  height:31px;
+  min-height:31px;
+  max-height:31px;
+  flex:0 0 31px;
+  margin:0;
+  padding:0 10px;
+  box-sizing:border-box;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  font-size:14px;
+  font-weight:650;
+  line-height:1;
+}
+
+/* Rôle */
+#adminCellRoleChoices .single-choice-item{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  text-align:left;
+}
+
+/* Disponible : même ligne, avec une colonne fixe de 15px pour la checkbox. */
+#adminCellAvailableChoices .available-check{
+  display:grid;
+  grid-template-columns:15px minmax(0,1fr);
+  align-items:center;
+  column-gap:10px;
+}
+#adminCellAvailableChoices .available-check input{
+  width:15px;
+  height:15px;
+  min-width:15px;
+  min-height:15px;
+  margin:0;
+  padding:0;
+  align-self:center;
+}
+#adminCellAvailableChoices .available-check span{
+  min-width:0;
+  line-height:1;
+}
+
+/* États visuels strictement communs. */
+#adminCellRoleChoices .single-choice-item:hover,
+#adminCellRoleChoices .single-choice-item:focus-visible,
+#adminCellAvailableChoices .available-check:hover,
+#adminCellAvailableChoices .available-check:focus-within{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+#adminCellRoleChoices .single-choice-item.selected,
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+/* Le bouton d'enregistrement reste la seule hauteur supplémentaire
+   spécifique à Disponible. */
+#adminCellActions{
+  margin-top:12px;
+}
+
+
+/* =========================================================
+   V15.23.1 — SÉPARATION DE SEMAINES ENCORE PLUS MARQUÉE
+   ========================================================= */
+.admin-schedule .week-separator-line{
+  height:36px;
+}
+.admin-schedule .week-separator-line::before{
+  height:4px;
+  background:#8fa49a;
+  box-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+
+/* Contraste plus net entre les blocs de semaines */
+.admin-schedule tr.week-a .date-cell,
+.admin-schedule tr.week-a .role-cell{
+  background:#ffffff;
+}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  background:#e4efe8;
+}
+.admin-schedule tr.week-b .date-cell{
+  background:#dbe9e0;
+}
+
+/* Première ligne de chaque nouvelle semaine légèrement soulignée */
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{
+  border-top-color:#c6d7cc;
+}
+
+/* Mobile : même contraste */
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#ffffff;
+}
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#e4efe8;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell,
+  .admin-schedule tr.week-a:hover .role-cell{
+    background:#f8fbf9;
+  }
+  .admin-schedule tr.week-b:hover .date-cell,
+  .admin-schedule tr.week-b:hover .role-cell{
+    background:#dbe9e0;
+  }
+}
+
+
+/* =========================================================
+   V15.23.2 — FOCUS DISPONIBLE SANS FAUX SURLIGNAGE
+   ========================================================= */
+
+/* Le focus clavier/programmatique seul ne ressemble jamais à une sélection. */
+#adminCellAvailableChoices .available-check:focus-within:not(:hover):not(:has(input:checked)){
+  background:transparent !important;
+  border-color:transparent !important;
+}
+
+/* La vraie sélection reste verte. */
+#adminCellAvailableChoices .available-check:has(input:checked){
+  background:#edf7f0 !important;
+  border-color:#cfe2d6 !important;
+  color:var(--accent) !important;
+}
+
+/* Le survol souris reste gris léger. */
+#adminCellAvailableChoices .available-check:hover:not(:has(input:checked)){
+  background:#f3f7f4 !important;
+  border-color:#d9e4dd !important;
+}
+
+/* Si on navigue au clavier, seul le petit carré reçoit un indicateur de focus. */
+#adminCellAvailableChoices .available-check input:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--focus) 55%,transparent);
+  outline-offset:2px;
+}
+
+
+/* =========================================================
+   V15.24 — DATE COMPLÈTE SIGNALÉE PAR LA COULEUR
+   ========================================================= */
+
+/* Dans le planning admin, on épure la colonne Date :
+   plus de ligne "x/x postes pourvus" ni de badge "Complet / manquants". */
+.admin-schedule .date-cell{
+  padding-top:14px;
+  padding-bottom:14px;
+}
+.admin-schedule .date-main{
+  margin-bottom:10px;
+}
+.admin-schedule .date-note,
+.admin-schedule .date-status,
+.admin-schedule-mobile .mobile-date-note,
+.admin-schedule-mobile .mobile-date-head .date-status{
+  display:none !important;
+}
+
+/* Une journée complète se repère uniquement par la couleur. */
+
+
+.admin-schedule tr.day-complete .admin-role-display.empty{
+  color:#6f8a79;
+}
+.admin-schedule tr.day-complete .role-chip{
+  background:#dff0e5;
+  border-color:#bdd9c7;
+}
+
+@media(hover:hover){
+  .admin-schedule tr.day-complete:hover .date-cell{
+    background:#cde7d8 !important;
+  }
+  .admin-schedule tr.day-complete:hover .role-cell{
+    background:#e6f4eb !important;
+  }
+}
+
+/* Mobile admin : même logique visuelle. */
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#edf8f1 !important;
+  border-color:#c7dece;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete .mobile-date-title{
+  color:#1d6e43;
+}
+
+
+/* =========================================================
+   V15.26 — TRANSITION DOUCE ENTRE LES PAGES ADMIN
+   ========================================================= */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeIn .18s ease-out both;
+}
+@keyframes adminPageFadeIn{
+  from{
+    opacity:0;
+    transform:translateY(4px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in{
+    animation:none;
+  }
+}
+
+
+/* =========================================================
+   V15.26.1 — FONDU NAVIGATION MOIS + ÉDITEUR JOURNÉE SANS SCROLL
+   ========================================================= */
+.calendar-fade-in{
+  animation:calendarSurfaceFade .18s ease-out both;
+}
+@keyframes calendarSurfaceFade{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .calendar-fade-in{animation:none}
+}
+
+.admin-correction-dialog{
+  width:min(1240px, calc(100vw - 28px));
+  max-height:calc(100vh - 24px);
+  display:flex;
+  flex-direction:column;
+}
+#adminDayForm{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+.day-editor-grid{align-items:stretch}
+.day-editor-position{padding:12px 8px 14px}
+.day-editor-position label{margin-bottom:8px}
+.day-editor-position .day-role-choices,
+.day-editor-position .day-available-choices{
+  min-height:var(--day-editor-list-height, 430px);
+  max-height:var(--day-editor-list-height, 430px);
+  padding:6px;
+  scrollbar-gutter:stable;
+}
+.day-editor-position .day-role-choices{gap:4px}
+.day-editor-position .day-role-choices .single-choice-item{
+  min-height:31px;
+  padding:5px 9px;
+  font-size:13px;
+}
+.day-editor-position .day-available-choices{gap:4px}
+.day-editor-position .day-available-choices .available-check{
+  min-height:31px;
+  padding:5px 9px;
+  gap:8px;
+  font-size:13px;
+}
+.day-editor-position .day-available-choices .available-check input{
+  width:15px;
+  height:15px;
+}
+@media(max-width:820px){
+  .admin-correction-dialog{
+    width:min(720px, calc(100vw - 20px));
+    max-height:calc(100vh - 16px);
+  }
+}
+
+
+/* =========================================================
+   V15.26.3 — FENÊTRE "MODIFIER LA JOURNÉE" PLUS GRANDE
+   Base visuelle : V15.26.1
+   ========================================================= */
+#adminCorrectionOverlay{
+  padding:6px;
+}
+#adminCorrectionOverlay .admin-correction-dialog{
+  width:min(1460px,calc(100vw - 12px));
+  max-height:calc(100vh - 10px);
+  padding:20px 22px 18px;
+}
+@media(max-width:1500px){
+  #adminCorrectionOverlay .admin-correction-dialog{
+    width:calc(100vw - 12px);
+  }
+}
+
+
+
+/* =========================================================
+   V15.26.4 — COULEUR SEMAINE 2 DISTINGUÉE DES LIGNES COMPLÈTES
+   ========================================================= */
+/* Semaine 2 : palette gris-bleu très légère pour éviter la confusion
+   avec le vert de validation des journées complètes. */
+.week-b .date-cell{background:#eef3f6 !important}
+.week-b .role-cell,.week-b .role-button{background:#f7fafc !important}
+
+.admin-schedule tr.week-b .date-cell{background:#e6edf2 !important}
+.admin-schedule tr.week-b .role-cell,.admin-schedule tr.week-b .role-button{background:#f3f7fa !important}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell{border-top-color:#ccd8e1 !important}
+.admin-schedule tr.week-b .role-display.empty{color:#80909c !important}
+
+.admin-schedule-mobile .mobile-date-card.week-b{background:#eef4f7 !important; border-color:#d4dee6 !important}
+.mobile-date-card.week-b{background:#f3f7fa !important}
+
+@media(hover:hover){
+  .admin-schedule tr.week-b:hover .date-cell{background:#dde7ee !important}
+  .admin-schedule tr.week-b:hover .role-cell,.admin-schedule tr.week-b:hover .role-button{background:#edf3f7 !important}
+}
+
+
+/* =========================================================
+   V15.26.5 — FOND BLANC + COULEUR DISTINCTE POUR SEMAINE A
+   ========================================================= */
+
+/* Fond général de l'application */
+:root{
+  --bg:#ffffff;
+}
+html,
+body{
+  background:#ffffff !important;
+}
+
+/* Semaine A : beige/gris chaud très léger */
+.week-a .date-cell{
+  background:#f3eee7 !important;
+}
+.week-a .role-cell,
+.week-a .role-button{
+  background:#faf7f2 !important;
+}
+
+/* Admin : semaine A */
+.admin-schedule tr.week-a .date-cell{
+  background:#f1ebe3 !important;
+}
+.admin-schedule tr.week-a .role-cell,
+.admin-schedule tr.week-a .role-button{
+  background:#faf7f2 !important;
+}
+.admin-schedule tr.week-a .role-display.empty{
+  color:#83796f !important;
+}
+
+/* Mobile : semaine A */
+.mobile-date-card.week-a{
+  background:#faf7f2 !important;
+}
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#f7f2eb !important;
+  border-color:#e2d8cc !important;
+}
+
+/* Survol semaine A */
+@media(hover:hover){
+  .admin-schedule tr.week-a:hover .date-cell{
+    background:#ebe3d9 !important;
+  }
+  .admin-schedule tr.week-a:hover .role-cell,
+  .admin-schedule tr.week-a:hover .role-button{
+    background:#f5f0e9 !important;
+  }
+}
+
+/* La validation d'une journée reste prioritaire et verte */
+.admin-schedule tr.day-complete .date-cell{
+  background:#d7eee0 !important;
+}
+.admin-schedule tr.day-complete .role-cell{
+  background:#edf8f1 !important;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#edf8f1 !important;
+  border-color:#c7dece !important;
+}
+
+
+/* =========================================================
+   V15.26.6 — LIGNES UNIFORMES + PASTILLES SOMBRES + FONDU PLUS DOUX
+   ========================================================= */
+
+/* Une seule couleur par ligne : on étend la couleur du bloc Date
+   à toutes les cellules de la semaine concernée. */
+.week-a .date-cell,
+.week-a .role-cell,
+.week-a .role-button{
+  background:#f3eee7 !important;
+}
+.admin-schedule tr.week-a .date-cell,
+.admin-schedule tr.week-a .role-cell,
+.admin-schedule tr.week-a .role-button{
+  background:#f1ebe3 !important;
+}
+
+.week-b .date-cell,
+.week-b .role-cell,
+.week-b .role-button{
+  background:#eef3f6 !important;
+}
+.admin-schedule tr.week-b .date-cell,
+.admin-schedule tr.week-b .role-cell,
+.admin-schedule tr.week-b .role-button{
+  background:#e6edf2 !important;
+}
+
+/* Mobile : même logique, une teinte homogène par semaine. */
+.mobile-date-card.week-a,
+.admin-schedule-mobile .mobile-date-card.week-a{
+  background:#f3eee7 !important;
+}
+.mobile-date-card.week-b,
+.admin-schedule-mobile .mobile-date-card.week-b{
+  background:#eef3f6 !important;
+}
+
+/* Une journée validée reste entièrement verte. */
+.admin-schedule tr.day-complete .date-cell,
+.admin-schedule tr.day-complete .role-cell,
+.admin-schedule tr.day-complete .role-button{
+  background:#d7eee0 !important;
+}
+.admin-schedule-mobile .mobile-date-card.day-complete{
+  background:#d7eee0 !important;
+  border-color:#c7dece !important;
+}
+
+/* Les noms dans toutes les pastilles restent bien sombres. */
+.role-chip,
+.role-chip.me,
+.admin-schedule .role-chip,
+.admin-schedule tr.day-complete .role-chip{
+  color:#17251e !important;
+}
+
+/* Fondu plus doux : plus long, pure opacité, sans déplacement brutal. */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeInSoft .30s ease-in-out both !important;
+}
+@keyframes adminPageFadeInSoft{
+  from{opacity:.35}
+  to{opacity:1}
+}
+
+.calendar-fade-in{
+  animation:calendarSurfaceFadeSoft .30s ease-in-out both !important;
+}
+@keyframes calendarSurfaceFadeSoft{
+  from{opacity:.35}
+  to{opacity:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in,
+  .calendar-fade-in{
+    animation:none !important;
+  }
+}
+
+/* Hover : garde la couleur de semaine, seulement très légèrement modulée. */
+@media(hover:hover){
+  .admin-schedule tr.week-a:not(.day-complete):hover .date-cell,
+  .admin-schedule tr.week-a:not(.day-complete):hover .role-cell,
+  .admin-schedule tr.week-a:not(.day-complete):hover .role-button{
+    background:#eee7de !important;
+  }
+  .admin-schedule tr.week-b:not(.day-complete):hover .date-cell,
+  .admin-schedule tr.week-b:not(.day-complete):hover .role-cell,
+  .admin-schedule tr.week-b:not(.day-complete):hover .role-button{
+    background:#dfe8ee !important;
+  }
+  .admin-schedule tr.day-complete:hover .date-cell,
+  .admin-schedule tr.day-complete:hover .role-cell,
+  .admin-schedule tr.day-complete:hover .role-button{
+    background:#cde7d8 !important;
+  }
+}
+
+
+/* =========================================================
+   V15.26.7 — QUADRILLAGE DU PLANNING PLUS LISIBLE
+   ========================================================= */
+
+/* Bordures de cellules plus présentes sans devenir lourdes. */
+.schedule th,
+.schedule td{
+  border-bottom-color:#cbd4cf !important;
+  border-right-color:#cbd4cf !important;
+}
+
+/* En-tête plus nettement séparé du contenu. */
+.schedule thead th{
+  border-bottom:2px solid #b9c5bf !important;
+}
+
+/* Bord extérieur du tableau légèrement renforcé. */
+.schedule-wrap{
+  border-color:#c5d0ca !important;
+}
+
+/* Sur l'admin, même quadrillage avec un contraste stable
+   quelle que soit la couleur de semaine. */
+.admin-schedule th,
+.admin-schedule td{
+  border-bottom-color:#c7d0cb !important;
+  border-right-color:#c7d0cb !important;
+}
+
+/* Les séparations verticales restent visibles sur les lignes validées. */
+.admin-schedule tr.day-complete td{
+  border-right-color:#c1d0c6 !important;
+  border-bottom-color:#c1d0c6 !important;
+}
+
+/* Mobile : contours de cartes légèrement renforcés. */
+.admin-schedule-mobile .mobile-date-card,
+.schedule-mobile .mobile-date-card{
+  border-color:#c9d3ce !important;
+}
+
+
+/* =========================================================
+   V15.26.8 — PASTILLES PLUS LISIBLES + FONDU 500ms
+   ========================================================= */
+
+/* Pastilles plus présentes sur les fonds colorés du planning. */
+.role-chip,
+.role-chip.me,
+.admin-schedule .role-chip,
+.admin-schedule tr.day-complete .role-chip{
+  background:#ffffff !important;
+  color:#17251e !important;
+  border:1px solid #bfcac4 !important;
+  box-shadow:0 1px 2px rgba(24,39,31,.10) !important;
+  font-weight:800 !important;
+}
+
+/* Disponible reste légèrement distinct, mais lisible. */
+.admin-schedule td[data-role="present"] .role-chip{
+  background:#f4f8fb !important;
+  border-color:#c8d5de !important;
+}
+
+/* Sur ligne validée, pastilles légèrement verdies mais nettement détachées. */
+.admin-schedule tr.day-complete .role-chip{
+  background:#f8fffa !important;
+  border-color:#b8d1c1 !important;
+}
+
+/* Fondu plus lent et plus doux. */
+.admin-page.admin-page-fade-in{
+  animation:adminPageFadeInSoft500 .50s ease-in-out both !important;
+}
+@keyframes adminPageFadeInSoft500{
+  from{opacity:.25}
+  to{opacity:1}
+}
+.calendar-fade-in{
+  animation:calendarSurfaceFadeSoft500 .50s ease-in-out both !important;
+}
+@keyframes calendarSurfaceFadeSoft500{
+  from{opacity:.25}
+  to{opacity:1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .admin-page.admin-page-fade-in,
+  .calendar-fade-in{
+    animation:none !important;
+  }
+}
+
+
+/* =========================================================
+   V15.26.9 — CROSSFADE PROPRE
+   Les anciennes animations "fade-in après remplacement" sont neutralisées.
+   La transition est maintenant pilotée en JS : 150ms out + 350ms in.
+   ========================================================= */
+
+
+/* Évite les artefacts de composition pendant le crossfade. */
+#adminCalendar,
+.member-calendar-surface,
+.admin-page{
+  backface-visibility:hidden;
+  transform:translateZ(0);
+}
+
+
+/* =========================================================
+   V15.27 — MICRO-FONDUS CIBLÉS
+   Aucun fondu global : seules les données qui changent sont animées.
+   ========================================================= */
+#adminCalendar,
+.member-calendar-surface,
+.admin-page{
+  backface-visibility:visible !important;
+  transform:none !important;
+}
+.admin-page.admin-page-fade-in,
+.calendar-fade-in{
+  animation:none !important;
+}
+
+
+.member-email-input{
+  width:100%;
+  min-width:210px;
+  box-sizing:border-box;
+}
+
+
+/* =========================================================
+   V15.29 — REFONTE PAGE MEMBRES
+   ========================================================= */
+
+.members-card{
+  padding:20px;
+  overflow:visible;
+}
+.members-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:16px;
+}
+.members-head h2{
+  margin:0 0 4px;
+}
+#memberCount{
+  width:auto !important;
+  min-width:98px !important;
+  padding:6px 11px;
+  justify-content:center;
+  background:#eef3f0;
+  color:#33483d;
+}
+
+.member-add-panel{
+  display:grid;
+  grid-template-columns:150px minmax(0,1fr);
+  gap:16px;
+  align-items:end;
+  padding:14px 16px;
+  margin-bottom:16px;
+  border:1px solid #dfe6e2;
+  border-radius:13px;
+  background:#f8faf9;
+}
+.member-add-title{
+  align-self:center;
+  font-size:14px;
+  font-weight:850;
+}
+.member-add-form{
+  display:grid;
+  grid-template-columns:minmax(190px,.75fr) minmax(290px,1.25fr) 104px;
+  gap:10px;
+  align-items:end;
+}
+.member-add-form .field{
+  gap:5px;
+}
+.member-add-form label{
+  font-size:12px;
+}
+.member-add-form input{
+  min-height:40px;
+  font-size:14px;
+}
+.member-add-form .btn{
+  width:104px;
+  min-height:40px;
+  padding:8px 12px;
+}
+
+.members-table-wrap{
+  border:1px solid #dce4df;
+  border-radius:13px;
+  overflow:visible;
+  background:#fff;
+}
+.members-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+}
+.members-table th{
+  padding:10px 12px;
+  background:#f5f8f6;
+  color:#53645b;
+  border-bottom:1px solid #dce4df;
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  text-align:left;
+}
+.members-table th:first-child{border-radius:12px 0 0 0}
+.members-table th:last-child{border-radius:0 12px 0 0}
+.members-table td{
+  height:66px;
+  padding:10px 12px;
+  border-bottom:1px solid #e4e9e6;
+  vertical-align:middle;
+  overflow:hidden;
+}
+.members-table tr:last-child td{
+  border-bottom:0;
+}
+.members-table tbody tr{
+  transition:background .14s ease;
+}
+.members-table tbody tr:hover{
+  background:#fafcfb;
+}
+
+.members-table th:nth-child(1){width:18%}
+.members-table th:nth-child(2){width:28%}
+.members-table th:nth-child(3){width:13%}
+.members-table th:nth-child(4){width:20%}
+.members-table th:nth-child(5){width:21%}
+
+.member-display-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#17251e;
+  font-size:14px;
+  font-weight:850;
+}
+.member-display-email{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#405149;
+  font-size:13px;
+  text-decoration:none;
+}
+.member-display-email:hover{
+  color:var(--accent);
+  text-decoration:underline;
+}
+
+.member-state-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.member-state-pill.active{
+  background:#e6f3ea;
+  color:#17633d;
+}
+.member-state-pill.inactive{
+  background:#eef1ef;
+  color:#65716b;
+}
+
+.member-device-cell{
+  min-width:0;
+}
+.member-device-primary{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#34483e;
+  font-size:12px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.member-device-dot{
+  width:7px;
+  height:7px;
+  flex:0 0 7px;
+  border-radius:50%;
+  background:#b8c4bd;
+}
+.member-device-dot.connected{
+  background:#2b9960;
+}
+.member-device-secondary{
+  margin-top:3px;
+  color:#758179;
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.member-action-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:nowrap;
+}
+.member-action-wrap .btn{
+  min-height:34px;
+  padding:6px 9px;
+  border-radius:9px;
+  font-size:11px;
+  white-space:nowrap;
+}
+.member-action-wrap .member-link-btn{
+  min-width:92px;
+}
+.member-action-wrap .member-edit-btn{
+  min-width:66px;
+}
+.member-menu>summary{
+  width:38px;
+  min-width:38px;
+  padding:6px;
+}
+
+#adminMembers .member-menu-panel{
+  right:0;
+  left:auto;
+  min-width:220px;
+}
+#adminMembers .member-menu-panel .btn{
+  font-size:12px;
+}
+
+.member-edit-dialog{
+  width:min(450px,calc(100vw - 24px));
+}
+.member-edit-form{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.member-edit-actions{
+  justify-content:flex-end;
+  margin-top:4px;
+}
+.member-edit-actions .btn{
+  min-width:116px;
+}
+
+@media(max-width:900px){
+  .member-add-panel{
+    grid-template-columns:1fr;
+    gap:8px;
+  }
+  .member-add-form{
+    grid-template-columns:1fr 1.35fr 100px;
+  }
+  .members-table th:nth-child(1){width:19%}
+  .members-table th:nth-child(2){width:27%}
+  .members-table th:nth-child(3){width:12%}
+  .members-table th:nth-child(4){width:19%}
+  .members-table th:nth-child(5){width:23%}
+}
+
+@media(max-width:720px){
+  .members-card{padding:14px}
+  .members-head{align-items:center}
+  .member-add-form{
+    grid-template-columns:1fr;
+  }
+  .member-add-form .btn{width:100%}
+
+  .members-table-wrap{
+    border:0;
+    background:transparent;
+  }
+  .members-table,
+  .members-table tbody{
+    display:block;
+  }
+  .members-table thead{
+    display:none;
+  }
+  .members-table tr{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px 12px;
+    padding:13px;
+    margin-bottom:10px;
+    border:1px solid #dce4df;
+    border-radius:12px;
+    background:#fff;
+  }
+  .members-table td{
+    display:block;
+    height:auto;
+    padding:0;
+    border:0;
+    overflow:visible;
+  }
+  .members-table td:nth-child(1),
+  .members-table td:nth-child(2){
+    grid-column:1;
+  }
+  .members-table td:nth-child(3){
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+  }
+  .members-table td:nth-child(4){
+    grid-column:1 / -1;
+  }
+  .members-table td:nth-child(5){
+    grid-column:1 / -1;
+  }
+  .member-action-wrap{
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+  #adminMembers .member-menu-panel{
+    left:0;
+    right:auto;
+  }
+}
+
+
+/* =========================================================
+   V15.29.1 — MENU "..." MEMBRES NON CLIPPÉ
+   ========================================================= */
+
+/* Les cellules ordinaires gardent leur clipping pour les textes longs,
+   mais la colonne Actions doit pouvoir laisser dépasser son menu. */
+.members-table td:last-child{
+  overflow:visible !important;
+  position:relative;
+}
+
+/* Le menu passe au-dessus des lignes voisines. */
+.members-table .member-menu{
+  position:relative;
+  z-index:20;
+}
+.members-table .member-menu[open]{
+  z-index:120;
+}
+.members-table tbody tr:has(.member-menu[open]){
+  position:relative;
+  z-index:100;
+}
+#adminMembers .member-menu-panel{
+  z-index:140 !important;
+}
+
+/* La carte et le conteneur du tableau ne coupent pas le menu. */
+#adminMembers,
+.members-card,
+.members-table-wrap{
+  overflow:visible !important;
+}
+
+
+/* =========================================================
+   V15.30 — PAGE MEMBRES ÉPURÉE
+   ========================================================= */
+
+.members-card{
+  max-width:900px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.member-add-panel{
+  grid-template-columns:138px minmax(0,1fr);
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.member-add-form{
+  grid-template-columns:minmax(180px,.8fr) minmax(300px,1.45fr) 96px;
+  gap:8px;
+}
+.member-add-form .btn{
+  width:96px;
+}
+
+.members-table{
+  table-layout:fixed;
+}
+.members-table th:nth-child(1){width:30% !important}
+.members-table th:nth-child(2){width:50% !important}
+.members-table th:nth-child(3){width:20% !important}
+
+.members-table td{
+  height:52px;
+  padding:8px 12px;
+  overflow:hidden;
+}
+.members-table td:last-child{
+  overflow:visible !important;
+  position:static !important;
+}
+
+.member-display-name{
+  font-size:14px;
+}
+.member-display-email{
+  font-size:13px;
+}
+
+.member-state-cell{
+  text-align:left;
+}
+.member-state-pill{
+  min-height:28px;
+  padding:4px 10px;
+  border:1px solid transparent;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+  transition:transform .08s ease,background .15s ease,border-color .15s ease;
+}
+.member-state-pill:hover{
+  border-color:#bdccc3;
+}
+.member-state-pill:active{
+  transform:scale(.97);
+}
+.member-state-pill:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--focus) 55%,transparent);
+  outline-offset:2px;
+}
+
+@media(max-width:720px){
+  .members-card{max-width:none}
+  .member-add-form{grid-template-columns:1fr}
+  .members-table,
+  .members-table tbody{
+    display:table;
+    width:100%;
+  }
+  .members-table thead{display:table-header-group}
+  .members-table tr{display:table-row}
+  .members-table td{
+    display:table-cell;
+    height:52px;
+    padding:8px 9px;
+    border-bottom:1px solid #e4e9e6;
+  }
+  .members-table td:nth-child(1),
+  .members-table td:nth-child(2),
+  .members-table td:nth-child(3){
+    grid-column:auto;
+    grid-row:auto;
+  }
+  .members-table th:nth-child(1){width:28% !important}
+  .members-table th:nth-child(2){width:50% !important}
+  .members-table th:nth-child(3){width:22% !important}
+}
+
+
+/* =========================================================
+   V15.31 — GESTION DES MEMBRES + APPAREILS + LIEN
+   ========================================================= */
+.members-card{
+  max-width:1120px !important;
+}
+.member-management-panel{
+  margin-bottom:14px;
+  border:1px solid #dce4df;
+  border-radius:13px;
+  background:#f8faf9;
+  overflow:hidden;
+}
+.member-management-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:13px 14px;
+}
+.member-management-title{
+  font-size:14px;
+  font-weight:850;
+}
+.member-management-actions{
+  display:flex;
+  gap:8px;
+  flex:0 0 auto;
+}
+.member-management-actions .btn{
+  min-width:88px;
+}
+.member-management-actions .btn.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.member-management-body{
+  padding:13px 14px 14px;
+  border-top:1px solid #dce4df;
+  background:#fff;
+}
+.member-management-body .member-add-form{
+  display:grid;
+  grid-template-columns:minmax(180px,.75fr) minmax(260px,1.2fr) 140px;
+  gap:9px;
+  align-items:end;
+}
+.member-management-body .member-add-form .btn{
+  width:140px;
+}
+.member-picker{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-bottom:12px;
+}
+.member-picker .btn{
+  min-height:32px;
+  padding:5px 9px;
+  font-size:12px;
+}
+.member-picker .btn.selected{
+  background:#e6f3ea;
+  border-color:#bcd7c6;
+  color:#17633d;
+}
+.member-manage-edit-form{
+  display:grid;
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.25fr) auto;
+  gap:9px;
+  align-items:end;
+}
+.member-manage-edit-actions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+  justify-content:flex-end;
+}
+.member-manage-edit-actions .btn{
+  min-height:40px;
+  white-space:nowrap;
+}
+
+.members-table th:nth-child(1){width:16% !important}
+.members-table th:nth-child(2){width:22% !important}
+.members-table th:nth-child(3){width:11% !important}
+.members-table th:nth-child(4){width:18% !important}
+.members-table th:nth-child(5){width:33% !important}
+.members-table td{
+  height:54px !important;
+  padding:8px 10px !important;
+}
+.member-device-primary{
+  font-size:11.5px;
+}
+.member-device-secondary{
+  font-size:9.5px;
+}
+.member-current-link{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#1d5f43;
+  font-size:11.5px;
+  text-decoration:none;
+}
+.member-current-link:hover{text-decoration:underline}
+.member-link-legacy,
+.member-link-empty{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#78847d;
+  font-size:11px;
+  font-style:italic;
+}
+@media(max-width:900px){
+  .member-management-body .member-add-form,
+  .member-manage-edit-form{
+    grid-template-columns:1fr 1.25fr;
+  }
+  .member-management-body .member-add-form .btn,
+  .member-manage-edit-actions{
+    grid-column:1/-1;
+  }
+  .member-manage-edit-actions{justify-content:flex-start}
+}
+@media(max-width:720px){
+  .member-management-head{align-items:flex-start;flex-direction:column}
+  .member-management-body .member-add-form,
+  .member-manage-edit-form{grid-template-columns:1fr}
+  .member-management-body .member-add-form .btn{width:100%}
+  .members-table-wrap{overflow-x:auto !important}
+  .members-table{min-width:820px}
+}
+
+
+/* =========================================================
+   V15.31.2 — GESTION DES MEMBRES EN FENÊTRES MODALES
+   ========================================================= */
+.member-management-panel{
+  overflow:visible !important;
+}
+.member-management-actions .btn.active{
+  background:#fff !important;
+  border-color:var(--line-strong) !important;
+  color:var(--text) !important;
+}
+.member-management-dialog{
+  width:min(560px,calc(100vw - 24px));
+}
+.member-modify-dialog{
+  width:min(760px,calc(100vw - 24px));
+}
+.member-modal-form{
+  display:grid;
+  gap:12px;
+  margin-top:14px;
+}
+.member-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:4px;
+}
+.member-modal-actions .btn{
+  min-width:150px;
+}
+.member-picker-modal{
+  margin:14px 0 16px;
+  padding:10px;
+  border:1px solid #dce4df;
+  border-radius:11px;
+  background:#f8faf9;
+  max-height:210px;
+  overflow:auto;
+}
+.member-picker-modal .btn{
+  min-width:94px;
+}
+.member-manage-edit-modal{
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.25fr) !important;
+  padding-top:14px;
+  border-top:1px solid #e1e7e3;
+}
+.member-manage-edit-modal .member-manage-edit-actions{
+  grid-column:1 / -1;
+  justify-content:flex-end;
+  margin-top:3px;
+}
+@media(max-width:620px){
+  .member-management-dialog,
+  .member-modify-dialog{
+    width:calc(100vw - 16px);
+  }
+  .member-manage-edit-modal{
+    grid-template-columns:1fr !important;
+  }
+  .member-manage-edit-modal .member-manage-edit-actions{
+    grid-column:auto;
+    flex-direction:column;
+  }
+  .member-manage-edit-modal .member-manage-edit-actions .btn{
+    width:100%;
+  }
+}
+
+
+/* =========================================================
+   V15.34 — GESTION DES MEMBRES + INFOS APPAREILS
+   ========================================================= */
+
+/* Le libellé central est plus long : emplacement fixe élargi,
+   sans faire bouger les deux autres onglets. */
+.admin-tabs{
+  grid-template-columns:120px 178px 120px !important;
+  width:432px !important;
+}
+.admin-tabs a[data-admin-page="members"]{
+  width:178px !important;
+}
+
+/* Panneau épuré : uniquement les deux actions. */
+.member-management-head-actions-only{
+  justify-content:flex-end !important;
+}
+.member-management-head-actions-only .member-management-actions{
+  margin-left:auto;
+}
+
+/* Détail appareil compact. */
+.member-device-secondary{
+  line-height:1.25;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+@media(max-width:720px){
+  .admin-tabs{
+    width:100% !important;
+    grid-template-columns:1fr 1.45fr 1fr !important;
+  }
+  .admin-tabs a,
+  .admin-tabs a[data-admin-page="members"]{
+    width:100% !important;
+  }
+}
+
+
+/* =========================================================
+   V15.35 — CONNEXION ADMIN ALIGNÉE SUR LE PANNEAU
+   ========================================================= */
+
+#joinView.admin-login-view{
+  width:min(920px,calc(100vw - 32px));
+  max-width:none;
+  margin:4px auto 0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  text-align:center;
+}
+
+#joinView.admin-login-view h1{
+  margin:4px 0 8px;
+  font-size:30px;
+  line-height:1.08;
+  letter-spacing:-.035em;
+  font-weight:850;
+}
+
+#joinView.admin-login-view>#joinStatus{
+  margin:0 0 30px;
+  font-size:14px;
+}
+
+#joinView.admin-login-view>#joinError{
+  width:min(560px,100%);
+  margin:0 auto 14px;
+}
+
+#joinView.admin-login-view #adminCodeForm{
+  width:min(560px,100%);
+  max-width:none;
+  margin:0 auto;
+  padding:22px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+  text-align:left;
+}
+
+#joinView.admin-login-view #adminCodeForm::before{
+  content:"Connexion administrateur";
+  display:block;
+  margin:0 0 18px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--line);
+  color:var(--text);
+  font-size:16px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+
+#joinView.admin-login-view #adminCodeForm .field{
+  gap:7px;
+}
+
+#joinView.admin-login-view #adminCodeForm label{
+  color:#34443b;
+  font-size:12px;
+  font-weight:850;
+}
+
+#joinView.admin-login-view #adminCodeForm .form-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 48px;
+  gap:8px;
+  align-items:stretch;
+}
+
+#joinView.admin-login-view #adminCode{
+  min-height:46px;
+  padding:9px 12px;
+  border-color:var(--line-strong);
+  background:#fff;
+}
+
+#joinView.admin-login-view #toggleAdminCode{
+  width:48px;
+  min-width:48px;
+  min-height:46px;
+  padding:0;
+  border-color:var(--line-strong);
+  border-radius:10px;
+  background:#fff;
+  font-size:18px;
+}
+
+#joinView.admin-login-view #adminCodeForm>.actions{
+  justify-content:flex-end;
+  margin-top:16px;
+}
+
+#joinView.admin-login-view #adminCodeForm>.actions .btn.primary{
+  min-width:150px;
+  min-height:42px;
+}
+
+#joinView.admin-login-view #adminCodeForm>p{
+  margin:14px 0 0;
+  padding-top:13px;
+  border-top:1px solid #edf1ee;
+  text-align:left;
+  font-size:11px;
+  line-height:1.45;
+}
+
+#joinView.admin-login-view #githubAdminLink{
+  display:none !important;
+}
+
+@media(max-width:620px){
+  #joinView.admin-login-view{
+    width:calc(100vw - 22px);
+    margin-top:0;
+  }
+  #joinView.admin-login-view h1{
+    font-size:27px;
+  }
+  #joinView.admin-login-view>#joinStatus{
+    margin-bottom:22px;
+  }
+  #joinView.admin-login-view #adminCodeForm{
+    padding:17px;
+    border-radius:16px;
+  }
+  #joinView.admin-login-view #adminCodeForm>.actions .btn.primary{
+    width:100%;
+  }
+}
+
+
+/* =========================================================
+   V15.36 — MEMBRES ADMINISTRATEURS
+   ========================================================= */
+.admin-privilege-option{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#f7faf8;
+  cursor:pointer;
+}
+.admin-privilege-option input{
+  width:18px;
+  height:18px;
+  margin:2px 0 0;
+  flex:0 0 18px;
+}
+.admin-privilege-option span{
+  display:grid;
+  gap:2px;
+}
+.admin-privilege-option strong{
+  font-size:13px;
+}
+.admin-privilege-option small{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.35;
+}
+.admin-member-badge{
+  display:inline-flex;
+  align-items:center;
+  margin-left:7px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#edf2ff;
+  border:1px solid #cdd8ff;
+  color:#354b8c;
+  font-size:9px;
+  font-weight:900;
+  vertical-align:middle;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+
+/* =========================================================
+   V15.36.2 — HEADER ADMIN ALIGNÉ + ACTIONS EMPILÉES
+   ========================================================= */
+
+/* Le header reprend exactement la largeur du Planning. */
+#adminRoot > .topbar{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Les actions sont empilées à droite sans déplacer le titre. */
+#adminRoot > .topbar .top-actions{
+  position:relative;
+  flex-direction:column;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+}
+
+/* Quitter au-dessus, Vue membre juste en dessous. */
+#adminRoot #adminExit{
+  order:1;
+}
+#adminRoot #adminToMember{
+  order:2;
+}
+
+/* Le statut d'enregistrement ne s'intercale jamais entre les deux boutons. */
+#adminRoot #adminSaveState{
+  order:3;
+}
+
+/* Même bord droit pour les deux actions. */
+#adminRoot #adminExit,
+#adminRoot #adminToMember{
+  align-self:flex-end;
+}
+
+/* Sur mobile on conserve l'empilement propre. */
+@media(max-width:820px){
+  #adminRoot > .topbar{
+    width:100%;
+  }
+  #adminRoot > .topbar .top-actions{
+    width:100%;
+    align-items:stretch;
+  }
+  #adminRoot #adminExit,
+  #adminRoot #adminToMember{
+    align-self:stretch;
+    width:100%;
+  }
+}
+
+
+/* =========================================================
+   V15.36.3 — NOM/ADMIN + LECTURE APPAREIL
+   ========================================================= */
+
+.member-name-line{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  white-space:nowrap;
+}
+.member-name-line .member-display-name{
+  display:inline-block;
+  min-width:0;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.member-name-line .admin-member-badge{
+  flex:0 0 auto;
+  margin-left:0 !important;
+}
+
+/* Ligne 1 = appareil, ligne 2 = dernière connexion. */
+.member-device-primary{
+  min-width:0;
+}
+.member-device-primary > span:last-child{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.member-device-secondary.member-device-last{
+  display:block;
+  margin-top:4px;
+  color:#6f7c75;
+  font-size:10px;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:visible;
+  text-overflow:clip;
+}
+
+
+/* =========================================================
+   V15.38 — GESTION MEMBRES / LIENS
+   ========================================================= */
+
+.members-head-inline{
+  justify-content:flex-start !important;
+  margin-bottom:10px !important;
+}
+.members-title-line{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.members-title-line h2{
+  margin:0 !important;
+}
+.members-title-line #memberCount{
+  min-width:0 !important;
+  width:auto !important;
+  padding:4px 9px;
+}
+
+/* Les actions appartiennent directement à la page, sans carte secondaire. */
+.member-management-actions-main{
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 14px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.member-management-actions-main .btn{
+  min-width:0 !important;
+}
+
+/* Le vieux conteneur physique n'est plus utilisé dans cette vue. */
+#adminMembers > .member-management-panel{
+  display:none !important;
+}
+
+/* Bouton de renouvellement individuel compact, devant l'URL. */
+.member-link-cell{
+  overflow:visible !important;
+}
+.member-link-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+.member-link-row .member-current-link,
+.member-link-row .member-link-legacy,
+.member-link-row .member-link-empty{
+  flex:1 1 auto;
+  min-width:0;
+}
+.member-link-refresh{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 26px;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #d1dbd5;
+  border-radius:8px;
+  background:#fff;
+  color:#34483e;
+  font:700 17px/1 system-ui,sans-serif;
+  cursor:pointer;
+  transition:background .12s ease,border-color .12s ease,transform .08s ease;
+}
+.member-link-refresh:hover:not(:disabled){
+  background:#f1f7f3;
+  border-color:#b9cac0;
+}
+.member-link-refresh:active:not(:disabled){
+  transform:rotate(-25deg) scale(.96);
+}
+.member-link-refresh:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+
+.member-link-actions{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  flex:0 0 auto;
+}
+.member-link-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 26px;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #d1dbd5;
+  border-radius:8px;
+  background:#fff;
+  color:#34483e;
+  font:700 15px/1 system-ui,sans-serif;
+  cursor:pointer;
+  transition:background .12s ease,border-color .12s ease,transform .08s ease,opacity .12s ease;
+}
+.member-link-action:hover:not(:disabled){
+  background:#f1f7f3;
+  border-color:#b9cac0;
+}
+.member-link-action:active:not(:disabled){
+  transform:scale(.94);
+}
+.member-link-action:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+.member-link-action.is-busy{
+  position:relative;
+  pointer-events:none;
+  opacity:.78;
+  color:transparent!important;
+}
+.member-link-action.is-busy:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:12px;
+  height:12px;
+  border:2px solid #34483e;
+  border-right-color:transparent;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:calas-busy-stable .65s linear infinite;
+}
+
+
+@media(max-width:720px){
+  .members-title-line{
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .member-management-actions-main{
+    width:100%;
+  }
+}
+
+
+/* =========================================================
+   V15.38.1 — RETOUR VISUEL RENOUVELLEMENT DES LIENS
+   ========================================================= */
+
+/* Le petit ↻ utilise le même principe de spinner que les boutons .btn. */
+.member-link-refresh.is-busy{
+  position:relative;
+  pointer-events:none;
+  opacity:.78;
+  color:transparent!important;
+}
+.member-link-refresh.is-busy:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:13px;
+  height:13px;
+  border:2px solid #34483e;
+  border-right-color:transparent;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  animation:calas-busy-stable .65s linear infinite;
+}
+
+
+/* =========================================================
+   V15.39 — AUDIT FINAL / UNITÉ GRAPHIQUE ADMIN
+   Cette couche fixe les invariants visuels des trois pages admin.
+   Les différences fonctionnelles (planning coloré, états, mini-actions)
+   restent volontairement distinctes.
+   ========================================================= */
+
+:root{
+  --admin-content-width:1080px;
+  --admin-radius-card:18px;
+  --admin-radius-table:15px;
+  --admin-radius-panel:13px;
+  --admin-grid-line:#cbd4cf;
+  --admin-head-bg:#f5f8f6;
+  --admin-head-text:#33423a;
+}
+
+/* Une même géométrie de référence sur Calendrier / Membres / Historique. */
+#adminRoot > .topbar,
+.admin-page > .admin-calendar-card,
+.admin-members-page,
+.admin-history-page{
+  width:min(var(--admin-content-width),100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Les trois cartes principales partagent exactement le même contenant. */
+.admin-page > .admin-calendar-card,
+.admin-members-page > #adminMembers,
+.admin-history-page > #adminHistory{
+  padding:22px !important;
+  border-radius:var(--admin-radius-card) !important;
+  border-color:var(--line) !important;
+  box-shadow:var(--shadow) !important;
+  background:#fff;
+}
+
+/* Même niveau typographique pour le titre de chaque page. */
+#adminCalendarTitle,
+#adminMembers h2,
+#adminHistory h2{
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+  font-weight:850;
+}
+
+/* Tableaux : même contour, même rayon, même langage d'en-tête. */
+.admin-schedule-wrap,
+.members-table-wrap{
+  border-radius:var(--admin-radius-table) !important;
+  border-color:var(--admin-grid-line) !important;
+}
+
+#adminHistory .table{
+  border-radius:var(--admin-radius-table) !important;
+  border-color:var(--admin-grid-line) !important;
+  overflow:hidden;
+}
+
+.admin-schedule thead th,
+.members-table th,
+#adminHistory .table th{
+  height:44px;
+  padding:10px 10px;
+  background:var(--admin-head-bg) !important;
+  color:var(--admin-head-text) !important;
+  font-size:12px !important;
+  font-weight:850 !important;
+  letter-spacing:0 !important;
+  text-transform:none !important;
+  vertical-align:middle;
+}
+
+/* Quadrillage commun, sans modifier les couleurs fonctionnelles des lignes. */
+.members-table td,
+#adminHistory .table th,
+#adminHistory .table td{
+  border-bottom-color:var(--admin-grid-line) !important;
+}
+
+/* Les panneaux secondaires suivent le même niveau de rayon. */
+.member-picker-modal,
+.admin-privilege-option,
+.member-management-panel{
+  border-radius:var(--admin-radius-panel) !important;
+}
+
+/* Les modales appartiennent toutes à la même famille visuelle. */
+.confirm-dialog{
+  border-radius:var(--admin-radius-card) !important;
+  border-color:var(--line) !important;
+}
+
+/* Conserver le comportement réduit-motion partout. */
+@media(prefers-reduced-motion:reduce){
+  #adminRoot *,
+  #memberRoot *{
+    scroll-behavior:auto !important;
+  }
+}
+
+
+/* =========================================================
+   V15.40.3 — ÉDITEUR JOURNÉE : TABLEAU STRICT
+   ========================================================= */
+
+.available-check.is-disabled{
+  opacity:.42 !important;
+  background:#f2f4f3 !important;
+  border-color:transparent !important;
+  color:#7c8781 !important;
+  cursor:not-allowed !important;
+}
+.available-check.is-disabled:hover{
+  background:#f2f4f3 !important;
+  border-color:transparent !important;
+}
+.available-check.is-disabled input{cursor:not-allowed!important}
+
+#adminCorrectionOverlay .admin-correction-dialog{
+  width:min(1320px,calc(100vw - 20px)) !important;
+  max-height:calc(100vh - 18px) !important;
+  padding:18px 18px 16px !important;
+}
+#adminCorrectionOverlay .day-editor-date{
+  margin:0 0 14px;
+  text-align:center;
+  font-size:18px;
+  font-weight:850;
+  color:#1f2e25;
+}
+
+/* Un seul vrai tableau : même géométrie que le planning principal. */
+.day-editor-columns{
+  display:grid;
+  grid-template-columns:230px repeat(4,minmax(128px,1fr)) minmax(190px,1.18fr);
+  gap:0;
+  min-height:460px;
+  align-items:stretch;
+  border:1px solid var(--admin-grid-line,#cbd4cf);
+  border-radius:var(--admin-radius-table,15px);
+  overflow:hidden;
+  background:#fff;
+}
+.day-column{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  background:#fff;
+  border-right:1px solid var(--admin-grid-line,#cbd4cf);
+}
+.day-column:last-child{border-right:0}
+
+/* Ligne d'en-tête exactement dans le langage du planning. */
+.day-column-head{
+  height:44px;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+  border-bottom:2px solid #b9c5bf;
+  background:var(--admin-head-bg,#f5f8f6);
+}
+.day-editor-panel-title,
+.day-role-card-title{
+  margin:0;
+  font-size:12px;
+  line-height:1.15;
+  font-weight:850;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--admin-head-text,#33423a);
+  text-align:center;
+}
+.day-editor-pool-help{display:none!important}
+
+.day-member-pool-column,
+.day-role-dropzone-column{
+  flex:1 1 auto;
+  min-height:0;
+}
+.day-member-pool,
+.day-role-dropzone{
+  min-height:0;
+  background:#fff;
+  overflow:auto;
+  scrollbar-gutter:stable;
+}
+
+/* Colonne Membres : des lignes, plus aucune carte individuelle. */
+.day-member-pool{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  padding:0;
+}
+.day-member-source-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:7px 10px;
+  border:0;
+  border-bottom:1px solid var(--admin-grid-line,#cbd4cf);
+  border-radius:0;
+  background:#fff;
+  cursor:grab;
+  user-select:none;
+  box-shadow:none;
+  transition:background .12s ease,opacity .12s ease;
+}
+.day-member-source-item:last-child{border-bottom:0}
+.day-member-source-item:hover,
+.day-member-source-item:focus-visible{
+  background:#f4f8f5;
+  outline:none;
+  box-shadow:none;
+}
+.day-member-source-item:active{cursor:grabbing}
+.day-member-source-item.is-dragging{opacity:.42}
+.day-member-grip{
+  flex:0 0 auto;
+  color:#89958e;
+  font-weight:900;
+  letter-spacing:-3px;
+}
+.day-member-source-text{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+.day-member-source-text strong{
+  font-size:13px;
+  line-height:1.2;
+  color:#17251e;
+}
+.day-member-source-status{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#7a8780;
+  font-size:10px;
+  line-height:1.2;
+}
+
+/* Les rôles sont de vraies cellules de tableau, sans cadre interne. */
+.day-role-dropzone{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 10px;
+  border:0;
+  border-radius:0;
+  margin:0;
+  background:#fff;
+  transition:background .14s ease,box-shadow .14s ease;
+}
+.day-role-dropzone.drag-over{
+  background:#edf7f0;
+  box-shadow:inset 0 0 0 2px rgba(52,143,92,.22);
+}
+.day-role-dropzone.drop-denied{
+  background:#fff3f3;
+  box-shadow:inset 0 0 0 2px rgba(179,91,91,.18);
+}
+.day-drop-placeholder{
+  color:#89958e;
+  font-size:12px;
+  font-style:italic;
+  text-align:center;
+  pointer-events:none;
+}
+
+/* Pastilles identiques au planning principal. */
+.day-assignment-chip,
+.day-available-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  max-width:100%;
+  min-height:34px;
+  padding:5px 7px 5px 12px;
+  border:1px solid #bfcac4;
+  border-radius:999px;
+  background:#fff;
+  color:#17251e;
+  font-size:14px;
+  font-weight:800;
+  box-shadow:0 1px 2px rgba(24,39,31,.10);
+}
+.day-assignment-remove{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#f2f5f3;
+  color:#526158;
+  font:800 16px/1 system-ui,sans-serif;
+  cursor:pointer;
+}
+.day-assignment-remove:hover{background:#fff;color:#a03535}
+
+/* Disponible garde la logique multi-pastilles du planning. */
+.day-available-dropzone{
+  align-items:flex-start;
+  justify-content:center;
+}
+.day-available-chip-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-content:flex-start;
+  gap:7px;
+  width:100%;
+}
+.day-available-chip{
+  background:#f4f8fb;
+  border-color:#c8d5de;
+}
+.day-editor-warning{margin-top:10px!important}
+.day-editor-actions{margin-top:12px!important}
+
+@media(max-width:1180px){
+  .day-editor-columns{
+    grid-template-columns:220px repeat(3,minmax(122px,1fr));
+  }
+  .day-column-available{grid-column:2 / -1}
+}
+@media(max-width:900px){
+  #adminCorrectionOverlay .admin-correction-dialog{width:calc(100vw - 14px)!important}
+  .day-editor-columns{
+    grid-template-columns:1fr 1fr;
+    min-height:0;
+  }
+  .day-column-members,
+  .day-column-available{grid-column:1 / -1}
+}
+@media(max-width:560px){
+  .day-editor-columns{grid-template-columns:1fr}
+  .day-column-members,
+  .day-column-available{grid-column:auto}
+}
+
+
+/* =========================================================
+   V15.40.4 — FORMULAIRES / LISTE MODIFICATION MEMBRES
+   ========================================================= */
+
+/* La création reste sobre : titre puis formulaire directement. */
+#memberCreatePanel .section-head{
+  align-items:center;
+}
+#memberCreatePanel .member-modal-form{
+  margin-top:16px;
+}
+
+/* La sélection d'un membre reprend le langage visuel des listes du calendrier. */
+#memberModifyList.member-picker-modal{
+  display:flex;
+  flex-direction:column;
+  flex-wrap:nowrap;
+  gap:4px;
+  max-height:430px;
+  margin:14px 0 16px;
+  padding:7px;
+  overflow:auto;
+  border:1px solid #dce4df;
+  border-radius:12px;
+  background:#fff;
+}
+#memberModifyList.member-picker-modal .btn{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  width:100%;
+  min-width:0;
+  min-height:36px;
+  padding:7px 10px;
+  border:1px solid transparent;
+  border-radius:8px;
+  background:#fff;
+  color:var(--text);
+  font-size:13px;
+  font-weight:650;
+  text-align:left;
+  box-shadow:none;
+}
+#memberModifyList.member-picker-modal .btn:hover,
+#memberModifyList.member-picker-modal .btn:focus-visible{
+  background:#f3f7f4;
+  border-color:#d9e4dd;
+  outline:none;
+}
+#memberModifyList.member-picker-modal .btn.selected{
+  background:#edf7f0;
+  border-color:#cfe2d6;
+  color:var(--accent);
+}
+
+@media(max-width:620px){
+  #memberModifyList.member-picker-modal{
+    max-height:360px;
+  }
+}
+
+/* =========================================================
+   V15.41 — PARITÉ GRAPHIQUE / UX MEMBRE ↔ ADMIN
+   ========================================================= */
+
+#memberRoot > .topbar{
+  width:min(1080px,100%);
+  margin-left:auto;
+  margin-right:auto;
+}
+#memberRoot > .topbar .top-actions{
+  position:relative;
+  flex-direction:column;
+  flex-wrap:nowrap;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+}
+#memberRoot #memberExit{order:1}
+#memberRoot #memberToAdmin{order:2}
+#memberRoot #lastRefresh{order:3}
+#memberRoot #memberExit,
+#memberRoot #memberToAdmin{align-self:flex-end}
+
+#memberRoot .member-calendar-card{
+  width:min(1080px,100%);
+  margin:0 auto;
+  padding:22px!important;
+  border-radius:18px!important;
+  border-color:var(--line)!important;
+  box-shadow:var(--shadow)!important;
+  background:#fff;
+}
+#memberRoot .admin-calendar-head{
+  justify-content:center;
+  text-align:center;
+}
+#memberRoot #memberCalendarTitle{
+  margin:0!important;
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.025em;
+  font-weight:850;
+}
+#memberRoot .member-monthnav{
+  display:grid!important;
+  width:min(430px,100%);
+  grid-template-columns:46px minmax(0,1fr) 46px!important;
+  grid-template-areas:'prev label next';
+  align-items:center;
+  margin:14px auto 18px;
+}
+#memberRoot #prevMonth{grid-area:prev;justify-self:center}
+#memberRoot #monthLabel{
+  grid-area:label;
+  width:100%;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#memberRoot #nextMonth{grid-area:next;justify-self:center}
+
+#memberRoot .member-schedule-wrap{
+  border-radius:15px!important;
+  border-color:var(--admin-grid-line,#cbd4cf)!important;
+  box-shadow:none!important;
+}
+#memberRoot .member-schedule thead th{
+  height:44px;
+  padding:10px;
+  background:var(--admin-head-bg,#f5f8f6)!important;
+  color:var(--admin-head-text,#33423a)!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+}
+#memberRoot .member-schedule .date-cell{
+  vertical-align:middle;
+}
+#memberRoot .member-schedule .date-main{
+  font-size:15px;
+}
+#memberRoot .member-role-cell{
+  padding:0!important;
+  vertical-align:middle;
+}
+#memberRoot .member-role-button{
+  width:100%;
+  min-height:102px;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  text-align:center;
+}
+#memberRoot .member-role-button:disabled{cursor:not-allowed}
+#memberRoot .member-role-button.mine{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#memberRoot .member-role-display{
+  min-height:102px;
+  width:100%;
+}
+#memberRoot .member-role-display.empty{
+  font-style:italic;
+}
+#memberRoot .member-role-button:hover:not(:disabled) .member-role-display{
+  box-shadow:inset 0 0 0 2px rgba(33,108,74,.10);
+}
+#memberRoot .member-schedule .role-chip.me,
+#memberRoot .member-schedule-mobile .role-chip.me{
+  background:#fff!important;
+  color:#17251e!important;
+  border:2px solid #78ad8d!important;
+  box-shadow:0 1px 3px rgba(24,39,31,.12)!important;
+}
+
+/* Le membre utilise exactement les couleurs de semaine / validation admin. */
+#memberRoot .member-schedule tr.week-a .date-cell,
+#memberRoot .member-schedule tr.week-a .role-cell,
+#memberRoot .member-schedule tr.week-a .role-button{
+  background:#f4eee6!important;
+}
+#memberRoot .member-schedule tr.week-b .date-cell,
+#memberRoot .member-schedule tr.week-b .role-cell,
+#memberRoot .member-schedule tr.week-b .role-button{
+  background:#e7eef3!important;
+}
+#memberRoot .member-schedule tr.day-complete .date-cell,
+#memberRoot .member-schedule tr.day-complete .role-cell,
+#memberRoot .member-schedule tr.day-complete .role-button{
+  background:#d5ecdf!important;
+}
+#memberRoot .member-schedule-mobile .mobile-date-card.week-a{background:#f4eee6!important}
+#memberRoot .member-schedule-mobile .mobile-date-card.week-b{background:#e7eef3!important}
+#memberRoot .member-schedule-mobile .mobile-date-card.day-complete{background:#d5ecdf!important}
+
+#memberRoot .member-schedule-mobile .mobile-date-head{
+  justify-content:flex-start;
+}
+#memberRoot .member-mobile-role{
+  cursor:pointer;
+}
+#memberRoot .member-mobile-role.mine{
+  background:transparent!important;
+}
+
+@media(max-width:820px){
+  #memberRoot > .topbar{width:100%}
+  #memberRoot > .topbar .top-actions{width:100%;align-items:stretch}
+  #memberRoot #memberExit,
+  #memberRoot #memberToAdmin{align-self:stretch;width:100%}
+  #memberRoot .member-calendar-card{padding:16px!important}
+}
+
+
+/* =========================================================
+   V15.41.1 — ERREURS MEMBRE FLOTTANTES / RÔLES OCCUPÉS
+   ========================================================= */
+#memberError{
+  position:fixed;
+  top:18px;
+  left:50%;
+  z-index:1250;
+  min-height:36px;
+  width:auto!important;
+  max-width:min(760px,calc(100vw - 28px));
+  margin:0!important;
+  padding:8px 14px!important;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border:1px solid #efcbc6!important;
+  border-radius:999px!important;
+  background:#fff4f2!important;
+  color:var(--danger)!important;
+  box-shadow:0 8px 24px rgba(74,31,24,.14);
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+  text-align:center;
+  pointer-events:none;
+  opacity:1;
+  visibility:visible;
+  transform:translate(-50%,0);
+  transition:opacity .20s ease,transform .20s ease,visibility 0s linear 0s;
+}
+#memberError.hidden{
+  display:inline-flex!important;
+  opacity:0;
+  visibility:hidden;
+  transform:translate(-50%,-8px);
+  transition:opacity .20s ease,transform .20s ease,visibility 0s linear .20s;
+}
+.member-role-button.role-locked,
+.member-mobile-role.role-locked{
+  cursor:default!important;
+}
+.member-role-button.role-locked:hover,
+.member-mobile-role.role-locked:hover{
+  filter:none!important;
+  transform:none!important;
+}
+@media(max-width:820px){
+  #memberError{
+    top:12px;
+    max-width:calc(100vw - 20px);
+  }
+}
+
+
+/* =========================================================
+   V15.42.3 — MODIFIER : PARITÉ EXACTE AVEC LE TABLEAU DE BASE
+   ========================================================= */
+
+/* Même géométrie de colonnes : 178px pour la première, puis 5 cases égales. */
+#adminCorrectionOverlay .day-editor-columns{
+  grid-template-columns:178px repeat(5,minmax(0,1fr)) !important;
+  border-color:#c5d0ca !important;
+  border-radius:15px !important;
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-column{
+  border-right-color:#c7d0cb !important;
+}
+#adminCorrectionOverlay .day-column-head{
+  height:44px !important;
+  min-height:44px !important;
+  padding:10px 8px !important;
+  background:#f5f8f6 !important;
+  color:#33423a !important;
+  border-bottom:2px solid #b9c5bf !important;
+}
+#adminCorrectionOverlay .day-editor-panel-title,
+#adminCorrectionOverlay .day-role-card-title{
+  font-size:12px !important;
+  font-weight:850 !important;
+  color:#33423a !important;
+}
+
+/* Le corps de toutes les cases reprend la couleur exacte de la ligne source. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-column,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-column,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* Même quadrillage que le planning principal. */
+#adminCorrectionOverlay .day-member-source-item{
+  border-bottom-color:#c7d0cb !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item{
+  border-color:#c1d0c6 !important;
+}
+
+/* Même contenu visuel dans les cases vides. */
+#adminCorrectionOverlay .day-role-dropzone{
+  padding:14px 10px !important;
+}
+#adminCorrectionOverlay .day-drop-placeholder{
+  color:#89938d !important;
+  font-size:13px !important;
+  font-style:italic !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-a .day-drop-placeholder{
+  color:#83796f !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-drop-placeholder{
+  color:#80909c !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-drop-placeholder{
+  color:#6f8a79 !important;
+}
+
+/* Même modulation au survol que la ligne du planning. */
+@media(hover:hover){
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:focus-visible{
+    background:#eee7de !important;
+  }
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:focus-visible{
+    background:#dfe8ee !important;
+  }
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:focus-visible{
+    background:#cde7d8 !important;
+  }
+}
+
+/* Les pastilles gardent exactement la famille graphique du planning principal. */
+#adminCorrectionOverlay .day-assignment-chip,
+#adminCorrectionOverlay .day-available-chip{
+  background:#fff !important;
+  color:#17251e !important;
+  border:1px solid #bfcac4 !important;
+  box-shadow:0 1px 2px rgba(24,39,31,.10) !important;
+  font-weight:800 !important;
+}
+#adminCorrectionOverlay .day-available-chip{
+  background:#f4f8fb !important;
+  border-color:#c8d5de !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-assignment-chip,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-available-chip{
+  background:#f8fffa !important;
+  border-color:#b8d1c1 !important;
+}
+
+/* Responsive : on garde la logique existante sans changer le desktop demandé. */
+@media(max-width:1180px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:178px repeat(3,minmax(122px,1fr)) !important;
+  }
+}
+@media(max-width:900px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
+@media(max-width:560px){
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:1fr !important;
+  }
+}
+
+
+/* =========================================================
+   V15.42.6 — MODIFIER : HAUTEUR DES RÔLES = PLANNING PRINCIPAL
+   ========================================================= */
+
+/* Le planning principal utilise une cellule de rôle de référence à 118 px.
+   Dans Modifier, seule la colonne Membres reste longue. */
+#adminCorrectionOverlay .day-column{
+  background:#fff !important;
+}
+
+/* Les 5 vraies cellules de rôle ont exactement la hauteur du planning. */
+#adminCorrectionOverlay .day-role-dropzone-column{
+  flex:0 0 118px !important;
+  height:118px !important;
+  min-height:118px !important;
+  max-height:118px !important;
+  overflow:auto !important;
+  box-sizing:border-box;
+}
+
+/* On garde les couleurs fonctionnelles uniquement sur la vraie cellule,
+   jamais sur tout le reste de la colonne. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-column{
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-column{
+  background:#fff !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-column{
+  background:#fff !important;
+}
+
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* La liste des membres reste la seule partie qui détermine la hauteur totale. */
+#adminCorrectionOverlay .day-member-pool-column{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+}
+
+
+/* =========================================================
+   V15.42.7 — MODIFIER : SEULE LA COLONNE MEMBRES EST LONGUE
+   ========================================================= */
+
+/* Le wrapper n'est plus un grand rectangle qui fabrique visuellement
+   cinq colonnes vides jusqu'en bas. Chaque vraie colonne porte ses bordures. */
+#adminCorrectionOverlay .day-editor-columns{
+  align-items:start !important;
+  min-height:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
+}
+
+/* Géométrie commune des vraies colonnes. */
+#adminCorrectionOverlay .day-column{
+  align-self:start !important;
+  min-width:0;
+  border-top:1px solid #c5d0ca !important;
+  border-right:1px solid #c7d0cb !important;
+  border-bottom:1px solid #c5d0ca !important;
+  border-left:0 !important;
+  background:transparent !important;
+  overflow:hidden;
+}
+#adminCorrectionOverlay .day-column:first-child{
+  border-left:1px solid #c5d0ca !important;
+}
+
+/* Membres : seule colonne qui descend avec toute la liste. */
+#adminCorrectionOverlay .day-column-members{
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  border-radius:15px 0 0 15px !important;
+}
+#adminCorrectionOverlay .day-member-pool-column{
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+
+/* Rôles : exactement 44px d'en-tête + 118px de cellule, puis FIN. */
+#adminCorrectionOverlay .day-column-role{
+  height:162px !important;
+  min-height:162px !important;
+  max-height:162px !important;
+  align-self:start !important;
+}
+#adminCorrectionOverlay .day-column-role:last-child{
+  border-radius:0 15px 15px 0 !important;
+}
+#adminCorrectionOverlay .day-role-dropzone-column{
+  flex:0 0 118px !important;
+  height:118px !important;
+  min-height:118px !important;
+  max-height:118px !important;
+  overflow:auto !important;
+}
+
+/* La couleur ne couvre que les vraies zones existantes. */
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-role-dropzone{
+  background:#f1ebe3 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-role-dropzone{
+  background:#e6edf2 !important;
+}
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-role-dropzone{
+  background:#d7eee0 !important;
+}
+
+/* Un nom = une seule ligne. Aucun tag / statut sous le prénom. */
+#adminCorrectionOverlay .day-member-source-item{
+  min-height:44px !important;
+  padding:7px 10px !important;
+}
+#adminCorrectionOverlay .day-member-source-text{
+  display:block !important;
+  min-width:0;
+}
+#adminCorrectionOverlay .day-member-source-text strong{
+  display:block;
+  font-size:13px !important;
+  line-height:1.25 !important;
+}
+#adminCorrectionOverlay .day-member-source-status{
+  display:none !important;
+}
+
+/* Le bas de la liste Membres ferme seul sa colonne. */
+#adminCorrectionOverlay .day-member-source-item:last-child{
+  border-bottom:0 !important;
+}
+
+/* Mobile : retour à des blocs pleine largeur ; pas de hauteur forcée
+   qui pourrait tronquer une interaction tactile. */
+@media(max-width:900px){
+  #adminCorrectionOverlay .day-column-role{
+    height:auto !important;
+    min-height:0 !important;
+    max-height:none !important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    min-height:118px !important;
+  }
+  #adminCorrectionOverlay .day-column-members,
+  #adminCorrectionOverlay .day-column-role,
+  #adminCorrectionOverlay .day-column-role:last-child{
+    border-radius:0 !important;
+  }
+}
+
+
+.day-editor-touch-help{
+  margin:-4px auto 12px;
+  width:min(720px,100%);
+  padding:9px 12px;
+  border:1px solid #c9ded1;
+  border-radius:11px;
+  background:#eef8f2;
+  color:#28563d;
+  font-size:13px;
+  font-weight:750;
+  text-align:center;
+}
+
+/* =========================================================
+   V15.45 — CLEANUP MULTI-DEVICE
+   ========================================================= */
+
+@media (hover:none), (pointer:coarse){
+  button,.btn,.icon-btn,.member-state-pill,.member-link-refresh,.member-link-action,.day-assignment-remove{
+    min-width:44px;
+    min-height:44px;
+  }
+  .admin-role-editable{cursor:pointer!important}
+  .admin-mobile-role{cursor:pointer!important}
+  .day-member-grip{display:none!important}
+  .day-member-source-item.touch-selectable{
+    cursor:pointer!important;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  .day-member-source-item.touch-selected{
+    background:#dff1e6!important;
+    box-shadow:inset 0 0 0 2px #4c9368!important;
+    color:#153d27!important;
+  }
+  .day-editor-columns.touch-member-selected .day-role-dropzone{
+    box-shadow:inset 0 0 0 2px rgba(33,108,74,.18);
+    cursor:pointer;
+  }
+  .day-editor-columns.touch-member-selected .day-role-dropzone:active{
+    box-shadow:inset 0 0 0 3px rgba(33,108,74,.32);
+  }
+}
+
+@media(max-width:980px){
+  #memberRoot .member-schedule-wrap,
+  #adminRoot .admin-schedule-wrap{display:none!important}
+  #memberRoot .member-schedule-mobile,
+  #adminRoot .admin-schedule-mobile{display:block!important}
+
+  .shell{
+    width:100%;
+    max-width:none;
+    padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))!important;
+  }
+  #memberRoot > .topbar,
+  #adminRoot > .topbar{
+    width:100%!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    text-align:left!important;
+    gap:14px!important;
+  }
+  #memberRoot > .topbar .top-actions,
+  #adminRoot > .topbar .top-actions{
+    width:auto!important;
+    margin-left:auto!important;
+    align-items:flex-end!important;
+  }
+  #memberRoot #memberExit,
+  #memberRoot #memberToAdmin,
+  #adminRoot #adminExit,
+  #adminRoot #adminToMember{
+    width:auto!important;
+    align-self:auto!important;
+  }
+
+  .member-calendar-card,.admin-calendar-card{
+    width:100%!important;
+    padding:16px!important;
+  }
+  .monthnav,.admin-monthnav{
+    width:min(520px,100%)!important;
+    display:grid!important;
+    grid-template-columns:48px minmax(0,1fr) 48px!important;
+    gap:8px!important;
+  }
+  .monthnav .icon-btn,.admin-monthnav .icon-btn{
+    width:48px!important;height:48px!important;min-height:48px!important;
+  }
+  .monthlabel{min-width:0!important;font-size:18px!important}
+
+  .mobile-date-card{padding:14px!important;border-radius:15px!important}
+  .mobile-date-title{font-size:16px}
+  .mobile-role-button{
+    min-height:56px!important;
+    grid-template-columns:96px minmax(0,1fr)!important;
+    padding:9px 11px!important;
+    border-radius:11px!important;
+    touch-action:manipulation;
+  }
+  .mobile-role-label{font-size:12px!important}
+  .mobile-role-value{min-width:0}
+  .admin-mobile-role:not(:disabled){cursor:pointer!important}
+  .admin-mobile-role:not(:disabled):active,
+  .member-mobile-role:not(:disabled):active{
+    transform:scale(.995);
+    background:rgba(255,255,255,.45)!important;
+  }
+
+  .admin-tabs{
+    width:100%!important;
+    max-width:720px!important;
+    margin-bottom:16px!important;
+  }
+  .admin-tabs a{
+    min-width:0!important;
+    flex:1 1 0!important;
+    min-height:44px!important;
+    padding:10px 8px!important;
+  }
+
+  #adminCorrectionOverlay{
+    padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))!important;
+    align-items:start!important;
+    overflow:auto!important;
+  }
+  #adminCorrectionOverlay .admin-correction-dialog{
+    width:100%!important;
+    max-width:900px!important;
+    max-height:none!important;
+    min-height:0!important;
+    padding:16px!important;
+    margin:auto!important;
+  }
+  #adminCorrectionOverlay .day-editor-columns{
+    grid-template-columns:minmax(170px,.85fr) minmax(180px,1.15fr)!important;
+    align-items:start!important;
+  }
+  #adminCorrectionOverlay .day-column-members{grid-row:span 5}
+  #adminCorrectionOverlay .day-column-role{
+    height:auto!important;min-height:0!important;max-height:none!important;border-radius:0!important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    min-height:88px!important;height:88px!important;max-height:88px!important;flex:0 0 88px!important;
+  }
+  #adminCorrectionOverlay .day-member-source-item{min-height:48px!important;padding:9px 10px!important}
+  #adminCorrectionOverlay .day-assignment-remove{
+    width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;
+  }
+}
+
+@media(max-width:720px){
+  html,body{overflow-x:hidden}
+  .shell{padding:max(10px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important}
+
+  #memberRoot > .topbar,
+  #adminRoot > .topbar{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    justify-items:center!important;
+    text-align:center!important;
+    gap:10px!important;
+    margin-bottom:14px!important;
+  }
+  #memberRoot > .topbar .top-actions,
+  #adminRoot > .topbar .top-actions{
+    width:100%!important;
+    margin:0!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+    align-items:stretch!important;
+  }
+  #memberRoot #memberExit,#memberRoot #memberToAdmin,
+  #adminRoot #adminExit,#adminRoot #adminToMember{
+    width:100%!important;min-height:46px!important;
+  }
+  #adminSaveState,#memberSaveState{grid-column:1/-1;justify-self:center}
+  .brand{font-size:23px!important}
+
+  .member-calendar-card,.admin-calendar-card,
+  .admin-members-page > #adminMembers,.admin-history-page > #adminHistory{
+    padding:12px!important;border-radius:15px!important;
+  }
+  #adminCalendarTitle,#adminMembers h2,#adminHistory h2{font-size:21px!important}
+
+  .monthnav,.admin-monthnav{margin:10px 0 13px!important}
+  .monthlabel{font-size:16px!important}
+  .mobile-date-card{padding:12px!important}
+  .mobile-role-button{
+    grid-template-columns:84px minmax(0,1fr)!important;
+    min-height:58px!important;
+    padding:9px!important;
+  }
+
+  .member-management-actions-main{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  .member-management-actions-main .btn{
+    width:100%!important;padding-left:8px!important;padding-right:8px!important;
+  }
+
+  #adminMembers .members-table-wrap{
+    overflow:visible!important;border:0!important;border-radius:0!important;
+  }
+  #adminMembers .members-table{
+    display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important;
+  }
+  #adminMembers .members-table tbody,
+  #adminMembers .members-table tr,
+  #adminMembers .members-table td{
+    display:block!important;width:100%!important;min-width:0!important;
+  }
+  #adminMembers .members-table thead{display:none!important}
+  #adminMembers .members-table tr{
+    margin:0 0 10px!important;padding:4px 10px!important;
+    border:1px solid var(--admin-grid-line)!important;border-radius:14px!important;
+    background:#fff!important;box-shadow:0 1px 2px rgba(20,35,27,.04);
+  }
+  #adminMembers .members-table td{
+    display:grid!important;
+    grid-template-columns:82px minmax(0,1fr)!important;
+    gap:9px!important;align-items:center!important;
+    padding:9px 0!important;border-right:0!important;
+    border-bottom:1px solid #e4eae6!important;min-width:0!important;
+  }
+  #adminMembers .members-table td:last-child{border-bottom:0!important}
+  #adminMembers .members-table td::before{
+    color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.035em;
+  }
+  #adminMembers .members-table td:nth-child(1)::before{content:"Membre"}
+  #adminMembers .members-table td:nth-child(2)::before{content:"Email"}
+  #adminMembers .members-table td:nth-child(3)::before{content:"Statut"}
+  #adminMembers .members-table td:nth-child(4)::before{content:"Appareils"}
+  #adminMembers .members-table td:nth-child(5)::before{content:"Lien"}
+
+  .member-display-email,.member-current-link{overflow-wrap:anywhere!important;word-break:break-word!important}
+  .member-link-row{
+    display:grid!important;
+    grid-template-columns:44px minmax(0,1fr) auto!important;
+    gap:6px!important;width:100%!important;
+  }
+  .member-link-refresh,.member-link-action{
+    width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:10px!important;
+  }
+  .member-link-actions{gap:5px!important}
+  .member-state-pill{min-height:44px!important;padding:8px 10px!important;justify-self:start!important}
+
+  #adminHistory .table-wrap{overflow:visible!important}
+  #adminHistory .table,#adminHistory .table tbody,#adminHistory .table tr,#adminHistory .table td{
+    display:block!important;width:100%!important;
+  }
+  #adminHistory .table thead{display:none!important}
+  #adminHistory .table tr{
+    margin-bottom:9px;padding:4px 10px;border:1px solid var(--admin-grid-line);border-radius:13px;background:#fff;
+  }
+  #adminHistory .table td{
+    display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:8px;
+    padding:8px 0!important;border-bottom:1px solid #e5ebe7!important;
+  }
+  #adminHistory .table td:last-child{border-bottom:0!important}
+  #adminHistory .table td::before{color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
+  #adminHistory .table td:nth-child(1)::before{content:"Quand"}
+  #adminHistory .table td:nth-child(2)::before{content:"Acteur"}
+  #adminHistory .table td:nth-child(3)::before{content:"Action"}
+  #adminHistory .table td:nth-child(4)::before{content:"Date"}
+
+  .confirm-overlay{
+    padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;align-items:start!important;overflow:auto!important;
+  }
+  .confirm-dialog{
+    width:100%!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;
+    overflow:auto!important;padding:16px!important;border-radius:16px!important;margin:auto!important;
+  }
+  .confirm-actions{position:sticky;bottom:0;padding-top:10px;background:#fff}
+  .confirm-actions .btn{min-height:46px}
+
+  #adminCorrectionOverlay .day-editor-columns{grid-template-columns:1fr!important}
+  #adminCorrectionOverlay .day-column-members{
+    grid-row:auto!important;max-height:255px!important;overflow:hidden!important;border-radius:14px!important;
+  }
+  #adminCorrectionOverlay .day-member-pool-column{
+    max-height:210px!important;overflow:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  #adminCorrectionOverlay .day-column-role,
+  #adminCorrectionOverlay .day-column-role:last-child{
+    border-radius:14px!important;margin-top:8px!important;border-left:1px solid #c5d0ca!important;
+  }
+  #adminCorrectionOverlay .day-role-dropzone-column{
+    height:72px!important;min-height:72px!important;max-height:96px!important;flex-basis:72px!important;
+  }
+  #adminCorrectionOverlay .day-editor-date{font-size:16px!important;margin-bottom:10px!important}
+
+  .single-choice-item,.member-manage-person{min-height:48px!important}
+  #memberError,#adminSaveState,#memberSaveState{max-width:calc(100vw - 18px)!important}
+}
+
+@media(max-width:420px){
+  .admin-tabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}
+  .admin-tabs::-webkit-scrollbar{display:none}
+  .admin-tabs a{flex:0 0 auto!important;min-width:110px!important}
+  .member-management-actions-main{grid-template-columns:1fr!important}
+  #adminMembers .members-table td{grid-template-columns:70px minmax(0,1fr)!important}
+  .member-link-row{grid-template-columns:44px minmax(0,1fr)!important}
+  .member-link-actions{grid-column:1/-1;justify-self:end}
+}

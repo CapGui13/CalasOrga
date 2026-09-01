@@ -1,4 +1,4 @@
-# CalasOrga — V15.44
+# CalasOrga — V15.45
 
 Calendrier partagé du club, qualifié pour un usage **desktop, tablette et mobile**. Production : **Vercel + Vercel Blob privé**. GitHub Pages reste la porte d’entrée stable des membres et de l’administration.
 
@@ -10,7 +10,7 @@ Les liens personnels courts conservent la forme `https://capgui13.github.io/Cala
 
 Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’administration gère membres, appareils, planning, rôles, historique, exports et sauvegardes.
 
-## Multi-device V15.44
+## Multi-device V15.45
 
 - desktop : double-clic conservé sur les deux interactions historiques ; Entrée/Espace fonctionnent au clavier ;
 - tactile : un seul tap produit la même action ;
@@ -20,6 +20,18 @@ Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’ad
 - safe areas iOS/iPadOS prises en compte ;
 - modales scrollables et focus clavier contenu ;
 - éditeur de journée : aide tactile visible « membre puis poste ».
+
+## Architecture frontend V15.45
+
+Le frontend n’est plus monolithique :
+
+- `index.html` contient uniquement la structure HTML ;
+- `styles.css` contient les styles desktop/tablette/mobile ;
+- `app.js` contient la logique navigateur ;
+- la CSP n’utilise plus de hashes de blocs inline : `script-src 'self'` et `style-src 'self'` suffisent ;
+- les routes admin imbriquées servent explicitement `app.js` et `styles.css`, y compris en serveur Node local.
+
+Le nettoyage ne change pas le modèle de données ni les règles métier. Les protections et comportements V15.44 restent qualifiés.
 
 ## Sécurité et confidentialité
 
@@ -52,7 +64,7 @@ Vercel fournit les variables du Blob privé. `MEMBER_SHORT_SECRET` doit rester s
 Réponse attendue :
 
 ```json
-{"ok":true,"appVersion":"0.15.44.0-multidevice-hardening-vercel","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.45.0-cleanup-multidevice-vercel","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests
@@ -62,4 +74,4 @@ npm run check
 npm test
 ```
 
-Le test V15.44 vérifie les parcours serveur historiques ainsi que les invariants de hardening multi-device (confidentialité du source, confirmation de désactivation, clavier/tactile, cibles 44 px, aide tactile, safe areas et versioning).
+Le test V15.45 vérifie les parcours serveur historiques ainsi que les invariants de hardening multi-device (confidentialité du source, confirmation de désactivation, clavier/tactile, cibles 44 px, aide tactile, safe areas et versioning).

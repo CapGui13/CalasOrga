@@ -2956,7 +2956,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.44.0-multidevice-hardening-vercel';
+const APP_VERSION = '0.15.45.0-cleanup-multidevice-vercel';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3036,7 +3036,7 @@ function securityHeaders(res) {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' ${INLINE_SCRIPT_HASH}; style-src 'self' ${INLINE_STYLE_HASH}; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`);
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
   res.setHeader('Cache-Control', 'no-store');
 }
 
@@ -3131,22 +3131,15 @@ function adminOk(req) {
 function csrfCookie(name, secure, maxAge) { const token = randomToken(18); return { token, header: cookie(name, token, { httpOnly: false, secure, maxAge }) }; }
 
 const indexHtml = await fs.readFile(path.join(__dirname, 'index.html'));
-const indexText = indexHtml.toString('utf8');
-function inlineHash(tag) {
-  const lower = indexText.toLowerCase();
-  const openStart = lower.indexOf(`<${tag}`);
-  if (openStart < 0) return '';
-  const contentStart = lower.indexOf('>', openStart) + 1;
-  const contentEnd = lower.indexOf(`</${tag}>`, contentStart);
-  if (!contentStart || contentEnd < 0) return '';
-  const content = indexText.slice(contentStart, contentEnd);
-  return `'sha256-${crypto.createHash('sha256').update(content, 'utf8').digest('base64')}'`;
+const stylesCss = await fs.readFile(path.join(__dirname, 'styles.css'));
+const appJs = await fs.readFile(path.join(__dirname, 'app.js'));
+function serveStatic(res, body, contentType) {
+  securityHeaders(res);
+  res.statusCode = 200;
+  res.setHeader('Content-Type', contentType);
+  res.end(body);
 }
-const INLINE_STYLE_HASH = inlineHash('style');
-const INLINE_SCRIPT_HASH = inlineHash('script');
-function serveIndex(res) {
-  securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(indexHtml);
-}
+function serveIndex(res) { return serveStatic(res, indexHtml, 'text/html; charset=utf-8'); }
 
 export async function requestHandler(req, res) {
   try {
@@ -3161,6 +3154,8 @@ export async function requestHandler(req, res) {
     // Le HTML est statique : inutile de réveiller Blob avant même que le navigateur
     // appelle l'API. Cela accélère l'ouverture du lien et économise des opérations.
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
+    if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveStatic(res, stylesCss, 'text/css; charset=utf-8');
+    if ((pathname === '/app.js' || pathname === '/admin/app.js') && req.method === 'GET') return serveStatic(res, appJs, 'text/javascript; charset=utf-8');
     if (pathname === '/' && req.method === 'GET') {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);
