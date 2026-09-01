@@ -127,6 +127,11 @@ try{
   assert.match(appText,/memberPollDelay\(\)/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
+  // Strict 3 modes — tablet refinement must stay scoped to ui-tablet.
+  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns[\s\S]{0,300}min-width:852px!important/);
+  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-column-members[\s\S]{0,220}position:sticky!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
+
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
   assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
   assert.match(indexText,/<script src="client\.js(?:\?v=[^"]+)?"><\/script>/);
@@ -139,8 +144,8 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1545\.7-strict3/);
-  assert.match(indexText,/client\.js\?v=1545\.7-strict3/);
+  assert.match(indexText,/styles\.css\?v=1545\.8-strict3-tablet/);
+  assert.match(indexText,/client\.js\?v=1545\.8-strict3-tablet/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);

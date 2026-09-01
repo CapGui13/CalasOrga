@@ -6026,3 +6026,120 @@ html.ui-mobile #adminCorrectionOverlay .day-column-role,
 html.ui-mobile #adminCorrectionOverlay .day-column-role:last-child{margin-top:8px!important;border-radius:14px!important}
 html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column{height:72px!important;min-height:72px!important;max-height:96px!important}
 html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{max-height:210px!important;overflow:auto!important}
+
+/* =========================================================
+   V15.45.8 — TABLET REFINEMENT ONLY
+   Contract unchanged: only html.ui-tablet is affected.
+   Goal: desktop-like day editor without over-compressing 6 columns.
+   ========================================================= */
+html.ui-tablet #adminCorrectionOverlay .admin-correction-dialog{
+  width:calc(100vw - 8px)!important;
+  max-width:none!important;
+  padding:16px 14px 13px!important;
+}
+
+html.ui-tablet #adminCorrectionOverlay .section-head{
+  margin-bottom:10px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .section-head h2{
+  font-size:20px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-date{
+  font-size:16px!important;
+  margin-bottom:8px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-touch-help{
+  max-width:720px!important;
+  margin:0 auto 10px!important;
+  padding:7px 10px!important;
+  font-size:11px!important;
+}
+
+/* Desktop proportions kept, with horizontal swipe instead of squeezing. */
+html.ui-tablet #adminCorrectionOverlay .day-editor-columns{
+  grid-template-columns:180px repeat(4,128px) 160px!important;
+  width:100%!important;
+  min-width:852px!important;
+  min-height:390px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:thin!important;
+  scroll-snap-type:x proximity;
+}
+html.ui-tablet #adminCorrectionOverlay .day-column{
+  scroll-snap-align:start;
+}
+
+/* Keep member names visible while swiping across role columns. */
+html.ui-tablet #adminCorrectionOverlay .day-column-members{
+  position:sticky!important;
+  left:0!important;
+  z-index:5!important;
+  box-shadow:3px 0 8px rgba(24,39,31,.08)!important;
+  background:#fff!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-column-members .day-column-head{
+  position:sticky!important;
+  left:0!important;
+  z-index:6!important;
+}
+
+html.ui-tablet #adminCorrectionOverlay .day-column-head{
+  height:42px!important;
+  min-height:42px!important;
+  padding:8px 6px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-panel-title,
+html.ui-tablet #adminCorrectionOverlay .day-role-card-title{
+  font-size:11.5px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-item{
+  min-height:40px!important;
+  padding:7px 9px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-text strong{
+  font-size:12px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-role-dropzone{
+  padding:10px 8px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-drop-placeholder{
+  font-size:11.5px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-assignment-chip,
+html.ui-tablet #adminCorrectionOverlay .day-available-chip{
+  min-height:34px!important;
+  padding:5px 7px 5px 10px!important;
+  font-size:12.5px!important;
+  gap:5px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-assignment-remove{
+  width:22px!important;
+  height:22px!important;
+  min-width:22px!important;
+  min-height:22px!important;
+  font-size:15px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-actions{
+  margin-top:10px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-actions .btn{
+  min-width:176px!important;
+}
+
+/* Compact but desktop-like admin calendar on tablet. */
+html.ui-tablet #adminRoot .admin-calendar-card{
+  padding-left:12px!important;
+  padding-right:12px!important;
+}
+html.ui-tablet #adminRoot .admin-schedule-wrap{
+  overflow-x:auto!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:thin!important;
+}
+html.ui-tablet #adminRoot .admin-schedule{
+  min-width:700px!important;
+}
