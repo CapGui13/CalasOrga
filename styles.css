@@ -5610,3 +5610,419 @@ body{
     min-width:0!important;
   }
 }
+
+/* =========================================================
+   V15.45.7 — STRICT 3 UI MODES
+   Contract:
+   - html.ui-desktop : desktop reference
+   - html.ui-tablet  : desktop compact, touch-first
+   - html.ui-mobile  : card/stack mobile
+   Device family is assigned by client.js and is orientation-stable.
+   These rules intentionally sit LAST and override historical breakpoints.
+   ========================================================= */
+
+/* ---------- SHARED: DESKTOP + TABLET = table-based UI ---------- */
+html.ui-desktop body,
+html.ui-tablet body{overflow-x:auto!important}
+
+html.ui-desktop .shell,
+html.ui-tablet .shell{
+  max-width:none!important;
+  margin:0 auto!important;
+}
+
+html.ui-desktop #memberRoot>.topbar,
+html.ui-desktop #adminRoot>.topbar,
+html.ui-tablet #memberRoot>.topbar,
+html.ui-tablet #adminRoot>.topbar{
+  display:flex!important;
+  flex-direction:row!important;
+  justify-content:space-between!important;
+  align-items:center!important;
+  text-align:left!important;
+  gap:12px!important;
+}
+html.ui-desktop #memberRoot>.topbar .top-actions,
+html.ui-desktop #adminRoot>.topbar .top-actions,
+html.ui-tablet #memberRoot>.topbar .top-actions,
+html.ui-tablet #adminRoot>.topbar .top-actions{
+  width:auto!important;
+  margin-left:auto!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+html.ui-desktop .admin-tabs,
+html.ui-tablet .admin-tabs{
+  display:flex!important;
+  overflow:visible!important;
+  justify-content:center!important;
+}
+html.ui-desktop .admin-tabs a,
+html.ui-tablet .admin-tabs a{
+  flex:1 1 0!important;
+  min-width:0!important;
+}
+
+html.ui-desktop #memberRoot .member-schedule-wrap,
+html.ui-desktop #adminRoot .admin-schedule-wrap,
+html.ui-tablet #memberRoot .member-schedule-wrap,
+html.ui-tablet #adminRoot .admin-schedule-wrap{display:block!important}
+html.ui-desktop #memberRoot .member-schedule-mobile,
+html.ui-desktop #adminRoot .admin-schedule-mobile,
+html.ui-tablet #memberRoot .member-schedule-mobile,
+html.ui-tablet #adminRoot .admin-schedule-mobile{display:none!important}
+html.ui-desktop .schedule,
+html.ui-tablet .schedule{
+  display:table!important;
+  width:100%!important;
+  table-layout:fixed!important;
+}
+html.ui-desktop .schedule th,
+html.ui-desktop .schedule td,
+html.ui-tablet .schedule th,
+html.ui-tablet .schedule td{min-width:0!important}
+
+/* Members stay a real table on desktop/tablet. */
+html.ui-desktop #adminMembers .members-table-wrap,
+html.ui-tablet #adminMembers .members-table-wrap{
+  border:1px solid var(--admin-grid-line)!important;
+  border-radius:14px!important;
+}
+html.ui-desktop #adminMembers .members-table,
+html.ui-tablet #adminMembers .members-table{
+  display:table!important;
+  width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+}
+html.ui-desktop #adminMembers .members-table thead,
+html.ui-tablet #adminMembers .members-table thead{display:table-header-group!important}
+html.ui-desktop #adminMembers .members-table tbody,
+html.ui-tablet #adminMembers .members-table tbody{display:table-row-group!important}
+html.ui-desktop #adminMembers .members-table tr,
+html.ui-tablet #adminMembers .members-table tr{
+  display:table-row!important;
+  width:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html.ui-desktop #adminMembers .members-table td,
+html.ui-tablet #adminMembers .members-table td{
+  display:table-cell!important;
+  width:auto!important;
+  min-width:0!important;
+  border-right:0!important;
+  vertical-align:middle!important;
+}
+html.ui-desktop #adminMembers .members-table td::before,
+html.ui-tablet #adminMembers .members-table td::before{content:none!important;display:none!important}
+
+/* History stays a real table on desktop/tablet. */
+html.ui-desktop #adminHistory .table,
+html.ui-tablet #adminHistory .table{display:table!important;width:100%!important;table-layout:fixed!important}
+html.ui-desktop #adminHistory .table thead,
+html.ui-tablet #adminHistory .table thead{display:table-header-group!important}
+html.ui-desktop #adminHistory .table tbody,
+html.ui-tablet #adminHistory .table tbody{display:table-row-group!important}
+html.ui-desktop #adminHistory .table tr,
+html.ui-tablet #adminHistory .table tr{
+  display:table-row!important;
+  width:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+html.ui-desktop #adminHistory .table td,
+html.ui-tablet #adminHistory .table td{display:table-cell!important;width:auto!important}
+html.ui-desktop #adminHistory .table td::before,
+html.ui-tablet #adminHistory .table td::before{content:none!important;display:none!important}
+
+/* ---------- DESKTOP: reference layout ---------- */
+html.ui-desktop .shell{
+  width:min(1180px,calc(100% - 40px))!important;
+  padding:34px 0 70px!important;
+}
+html.ui-desktop #adminCorrectionOverlay .admin-correction-dialog{
+  width:min(1320px,calc(100vw - 20px))!important;
+  max-width:none!important;
+  padding:18px 18px 16px!important;
+}
+html.ui-desktop #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:230px repeat(4,minmax(128px,1fr)) minmax(190px,1.18fr)!important;
+  min-width:0!important;
+  min-height:460px!important;
+  overflow:hidden!important;
+}
+html.ui-desktop #adminCorrectionOverlay .day-column-members,
+html.ui-desktop #adminCorrectionOverlay .day-column-available{grid-column:auto!important;grid-row:auto!important}
+
+/* ---------- TABLET: desktop compact, never mobile cards ---------- */
+html.ui-tablet .shell{
+  width:min(980px,calc(100% - 20px))!important;
+  padding:max(16px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(42px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))!important;
+}
+html.ui-tablet .brand{font-size:21px!important}
+html.ui-tablet .member-calendar-card,
+html.ui-tablet .admin-calendar-card,
+html.ui-tablet .admin-members-page>#adminMembers,
+html.ui-tablet .admin-history-page>#adminHistory{padding:15px!important;border-radius:16px!important}
+html.ui-tablet .admin-tabs{width:min(720px,100%)!important;max-width:720px!important;margin-bottom:16px!important}
+html.ui-tablet .admin-tabs a{min-height:44px!important;padding:9px 8px!important}
+html.ui-tablet .monthnav,
+html.ui-tablet .admin-monthnav{
+  width:min(420px,100%)!important;
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) 44px!important;
+  gap:8px!important;
+  margin:10px auto 14px!important;
+}
+html.ui-tablet .monthnav .icon-btn,
+html.ui-tablet .admin-monthnav .icon-btn{width:44px!important;height:44px!important;min-height:44px!important}
+html.ui-tablet .monthlabel{min-width:0!important;font-size:17px!important}
+
+html.ui-tablet #memberRoot .member-schedule th:first-child,
+html.ui-tablet #memberRoot .member-schedule td:first-child,
+html.ui-tablet #adminRoot .admin-schedule thead th:first-child,
+html.ui-tablet #adminRoot .admin-schedule .date-cell{width:118px!important}
+html.ui-tablet #adminRoot .admin-schedule thead th,
+html.ui-tablet #memberRoot .member-schedule thead th{height:40px!important;padding:8px 4px!important;font-size:10.5px!important;white-space:nowrap!important}
+html.ui-tablet #adminRoot .admin-schedule .date-cell,
+html.ui-tablet #memberRoot .member-schedule .date-cell{padding:9px 5px!important}
+html.ui-tablet #adminRoot .admin-schedule .date-main,
+html.ui-tablet #memberRoot .member-schedule .date-main{font-size:12px!important;line-height:1.25!important}
+/* Modifier button: restore the pre-tweak compact appearance. */
+html.ui-tablet #adminRoot .admin-calendar-edit{
+  width:auto!important;
+  max-width:none!important;
+  min-height:36px!important;
+  margin:7px auto 0!important;
+  padding:6px 7px!important;
+  border:1px solid #d7e2db!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:var(--text)!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  opacity:.92!important;
+}
+html.ui-tablet #adminRoot .admin-role-display,
+html.ui-tablet #memberRoot .member-role-button{min-height:76px!important;padding:9px 5px!important;font-size:10.5px!important}
+html.ui-tablet #adminRoot .admin-schedule .role-chip,
+html.ui-tablet #memberRoot .member-schedule .role-chip{padding:4px 5px!important;font-size:10px!important}
+
+/* Tablet members table proportions. */
+html.ui-tablet #adminMembers .members-table-wrap{overflow:hidden!important}
+html.ui-tablet #adminMembers .members-table td{height:58px!important;padding:7px 6px!important;overflow:hidden!important;border-bottom:1px solid var(--admin-grid-line)!important}
+html.ui-tablet #adminMembers .members-table th{padding:8px 6px!important;font-size:10px!important}
+html.ui-tablet #adminMembers .members-table th:nth-child(1){width:15%!important}
+html.ui-tablet #adminMembers .members-table th:nth-child(2){width:21%!important}
+html.ui-tablet #adminMembers .members-table th:nth-child(3){width:10%!important}
+html.ui-tablet #adminMembers .members-table th:nth-child(4){width:15%!important}
+html.ui-tablet #adminMembers .members-table th:nth-child(5){width:39%!important}
+html.ui-tablet #adminMembers .member-display-name{font-size:11.5px!important}
+html.ui-tablet #adminMembers .member-display-email{font-size:10.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+html.ui-tablet #adminMembers .member-device-primary{font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+html.ui-tablet #adminMembers .member-device-secondary{font-size:8.5px!important}
+html.ui-tablet #adminMembers .member-current-link{font-size:9.5px!important}
+
+/* Tablet history table proportions. */
+html.ui-tablet #adminHistory .audit-tools{
+  display:grid!important;
+  grid-template-columns:minmax(185px,1.55fr) minmax(145px,.9fr) 112px 84px!important;
+  gap:8px!important;
+  align-items:end!important;
+}
+html.ui-tablet #adminHistory #auditClear{width:112px!important}
+html.ui-tablet #adminHistory #auditShown{width:84px!important;min-width:84px!important;font-size:10px!important}
+html.ui-tablet #adminHistory .table-wrap{overflow:hidden!important}
+html.ui-tablet #adminHistory .table td{padding:8px 7px!important;font-size:11px!important;border-bottom:1px solid var(--admin-grid-line)!important;vertical-align:middle!important}
+html.ui-tablet #adminHistory .table th{padding:8px 7px!important;font-size:10px!important}
+html.ui-tablet #adminHistory .table th:nth-child(1){width:22%!important}
+html.ui-tablet #adminHistory .table th:nth-child(2){width:20%!important}
+html.ui-tablet #adminHistory .table th:nth-child(3){width:40%!important}
+html.ui-tablet #adminHistory .table th:nth-child(4){width:18%!important}
+
+/* Tablet day editor = SAME six-column model as desktop, compacted to fit portrait. */
+html.ui-tablet #adminCorrectionOverlay{
+  padding:max(8px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))!important;
+  align-items:center!important;
+  overflow:auto!important;
+}
+html.ui-tablet #adminCorrectionOverlay .admin-correction-dialog{
+  width:calc(100vw - 12px)!important;
+  max-width:none!important;
+  max-height:calc(100dvh - 12px)!important;
+  min-height:0!important;
+  padding:14px 12px 12px!important;
+  margin:auto!important;
+  overflow:auto!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-date{font-size:16px!important;margin:0 0 9px!important}
+html.ui-tablet #adminCorrectionOverlay .day-editor-touch-help{
+  width:min(640px,100%)!important;
+  margin:0 auto 9px!important;
+  padding:7px 10px!important;
+  font-size:11px!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:145px repeat(4,minmax(84px,1fr)) minmax(110px,1.08fr)!important;
+  min-width:0!important;
+  width:100%!important;
+  min-height:420px!important;
+  overflow:hidden!important;
+  align-items:stretch!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-column-members,
+html.ui-tablet #adminCorrectionOverlay .day-column-available{
+  grid-column:auto!important;
+  grid-row:auto!important;
+  max-height:none!important;
+  margin-top:0!important;
+  border-radius:0!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-column{
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin-top:0!important;
+  border-radius:0!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-column-head{height:38px!important;min-height:38px!important;padding:7px 4px!important}
+html.ui-tablet #adminCorrectionOverlay .day-editor-panel-title,
+html.ui-tablet #adminCorrectionOverlay .day-role-card-title{font-size:10px!important}
+html.ui-tablet #adminCorrectionOverlay .day-member-pool-column,
+html.ui-tablet #adminCorrectionOverlay .day-role-dropzone-column{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-item{min-height:38px!important;padding:6px 8px!important}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-text strong{font-size:11px!important}
+html.ui-tablet #adminCorrectionOverlay .day-role-dropzone{min-height:0!important;height:auto!important;padding:9px 5px!important}
+html.ui-tablet #adminCorrectionOverlay .day-assignment-chip,
+html.ui-tablet #adminCorrectionOverlay .day-available-chip{font-size:11px!important;padding-left:8px!important;gap:4px!important}
+html.ui-tablet #adminCorrectionOverlay .day-editor-actions{margin-top:10px!important}
+html.ui-tablet #adminCorrectionOverlay .day-editor-actions .btn{min-width:160px!important}
+
+/* ---------- MOBILE: always card/stack, even landscape ---------- */
+html.ui-mobile body{overflow-x:hidden!important}
+html.ui-mobile .shell{
+  width:100%!important;
+  max-width:none!important;
+  padding:max(10px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important;
+}
+html.ui-mobile #memberRoot .member-schedule-wrap,
+html.ui-mobile #adminRoot .admin-schedule-wrap{display:none!important}
+html.ui-mobile #memberRoot .member-schedule-mobile,
+html.ui-mobile #adminRoot .admin-schedule-mobile{display:block!important}
+html.ui-mobile #memberRoot>.topbar,
+html.ui-mobile #adminRoot>.topbar{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  justify-items:center!important;
+  text-align:center!important;
+  gap:10px!important;
+}
+html.ui-mobile #memberRoot>.topbar .top-actions,
+html.ui-mobile #adminRoot>.topbar .top-actions{
+  width:100%!important;
+  margin:0!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+}
+html.ui-mobile .admin-tabs{
+  width:100%!important;
+  overflow-x:auto!important;
+  justify-content:flex-start!important;
+  scrollbar-width:none!important;
+}
+html.ui-mobile .admin-tabs::-webkit-scrollbar{display:none}
+html.ui-mobile .admin-tabs a{flex:0 0 auto!important;min-width:110px!important;min-height:44px!important}
+
+html.ui-mobile #adminMembers .members-table-wrap{overflow:visible!important;border:0!important;border-radius:0!important}
+html.ui-mobile #adminMembers .members-table{display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important}
+html.ui-mobile #adminMembers .members-table thead{display:none!important}
+html.ui-mobile #adminMembers .members-table tbody,
+html.ui-mobile #adminMembers .members-table tr,
+html.ui-mobile #adminMembers .members-table td{display:block!important;width:100%!important;min-width:0!important}
+html.ui-mobile #adminMembers .members-table tr{
+  margin:0 0 10px!important;
+  padding:4px 10px!important;
+  border:1px solid var(--admin-grid-line)!important;
+  border-radius:14px!important;
+  background:#fff!important;
+}
+html.ui-mobile #adminMembers .members-table td{
+  display:grid!important;
+  grid-template-columns:82px minmax(0,1fr)!important;
+  gap:9px!important;
+  align-items:center!important;
+  padding:9px 0!important;
+  border-bottom:1px solid #e4eae6!important;
+}
+html.ui-mobile #adminMembers .members-table td::before{display:block!important;color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
+html.ui-mobile #adminMembers .members-table td:nth-child(1)::before{content:"Membre"!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(2)::before{content:"Email"!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(3)::before{content:"Statut"!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(4)::before{content:"Appareils"!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(5)::before{content:"Lien"!important}
+
+html.ui-mobile #adminHistory .table-wrap{overflow:visible!important}
+html.ui-mobile #adminHistory .table,
+html.ui-mobile #adminHistory .table tbody,
+html.ui-mobile #adminHistory .table tr,
+html.ui-mobile #adminHistory .table td{display:block!important;width:100%!important}
+html.ui-mobile #adminHistory .table thead{display:none!important}
+html.ui-mobile #adminHistory .table tr{margin-bottom:9px!important;padding:4px 10px!important;border:1px solid var(--admin-grid-line)!important;border-radius:13px!important;background:#fff!important}
+html.ui-mobile #adminHistory .table td{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:8px!important;padding:8px 0!important;border-bottom:1px solid #e5ebe7!important}
+html.ui-mobile #adminHistory .table td::before{display:block!important;color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
+html.ui-mobile #adminHistory .table td:nth-child(1)::before{content:"Quand"!important}
+html.ui-mobile #adminHistory .table td:nth-child(2)::before{content:"Acteur"!important}
+html.ui-mobile #adminHistory .table td:nth-child(3)::before{content:"Action"!important}
+html.ui-mobile #adminHistory .table td:nth-child(4)::before{content:"Date"!important}
+
+html.ui-mobile .confirm-overlay{
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;
+  align-items:start!important;
+  overflow:auto!important;
+}
+html.ui-mobile .confirm-dialog{
+  width:100%!important;
+  max-width:none!important;
+  max-height:calc(100dvh - 16px)!important;
+  overflow:auto!important;
+  padding:16px!important;
+  border-radius:16px!important;
+  margin:auto!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members,
+html.ui-mobile #adminCorrectionOverlay .day-column-available{grid-column:auto!important;grid-row:auto!important}
+html.ui-mobile #adminCorrectionOverlay .day-column-role,
+html.ui-mobile #adminCorrectionOverlay .day-column-role:last-child{margin-top:8px!important;border-radius:14px!important}
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column{height:72px!important;min-height:72px!important;max-height:96px!important}
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{max-height:210px!important;overflow:auto!important}

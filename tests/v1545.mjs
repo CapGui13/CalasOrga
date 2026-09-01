@@ -130,6 +130,17 @@ try{
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
   assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
   assert.match(indexText,/<script src="client\.js(?:\?v=[^"]+)?"><\/script>/);
+  // V15.45.7 : contrat strict de trois modes, stable en orientation.
+  assert.match(appText,/UI MODE CONTRACT/);
+  assert.match(appText,/UI_MODE_CLASSES=\['ui-desktop','ui-tablet','ui-mobile'\]/);
+  assert.match(appText,/uiShortSide\(\)/);
+  assert.match(appText,/return uiShortSide\(\)<600\?'mobile':'tablet'/);
+  assert.match(appText,/if\(!uiTouchCapable\(\)\)return'desktop'/);
+  assert.match(stylesText,/STRICT 3 UI MODES/);
+  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
+  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
+  assert.match(indexText,/styles\.css\?v=1545\.7-strict3/);
+  assert.match(indexText,/client\.js\?v=1545\.7-strict3/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);

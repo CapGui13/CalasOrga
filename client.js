@@ -38,10 +38,55 @@ function sortNamesAlpha(names){
 }
 
 const q = (s) => document.querySelector(s);
-function isTouchUi(){
-  return window.matchMedia?.('(hover: none) and (pointer: coarse)').matches===true
-    || window.matchMedia?.('(any-pointer: coarse) and (max-width: 1024px)').matches===true
+
+/* =========================================================
+   UI MODE CONTRACT — exactly three display families
+   desktop : precise/non-touch device
+   tablet  : touch-capable device, short side >= 600 CSS px
+   mobile  : touch-capable device, short side < 600 CSS px
+
+   The short side is orientation-independent, so a tablet remains
+   a tablet in both portrait and landscape. CSS consumes only the
+   ui-desktop / ui-tablet / ui-mobile classes below.
+   ========================================================= */
+const UI_MODE_CLASSES=['ui-desktop','ui-tablet','ui-mobile'];
+let currentUiMode='desktop';
+function uiShortSide(){
+  const sw=Number(globalThis.screen?.width||0),sh=Number(globalThis.screen?.height||0);
+  if(sw>0&&sh>0)return Math.min(sw,sh);
+  const vw=Number(globalThis.visualViewport?.width||globalThis.innerWidth||document.documentElement.clientWidth||0);
+  const vh=Number(globalThis.visualViewport?.height||globalThis.innerHeight||document.documentElement.clientHeight||0);
+  return Math.min(vw||9999,vh||9999)
 }
+function uiTouchCapable(){
+  return Number(navigator.maxTouchPoints||0)>0
+    || window.matchMedia?.('(pointer: coarse)').matches===true
+    || window.matchMedia?.('(any-pointer: coarse)').matches===true
+}
+function detectUiMode(){
+  if(!uiTouchCapable())return'desktop';
+  return uiShortSide()<600?'mobile':'tablet'
+}
+function applyUiMode(){
+  const next=detectUiMode();
+  currentUiMode=next;
+  for(const root of [document.documentElement,document.body]){
+    if(!root)continue;
+    root.classList.remove(...UI_MODE_CLASSES);
+    root.classList.add(`ui-${next}`);
+    root.dataset.uiMode=next
+  }
+  return next
+}
+applyUiMode();
+let uiModeRefreshTimer=0;
+function scheduleUiModeRefresh(){
+  clearTimeout(uiModeRefreshTimer);
+  uiModeRefreshTimer=setTimeout(applyUiMode,100)
+}
+window.addEventListener('resize',scheduleUiModeRefresh,{passive:true});
+globalThis.visualViewport?.addEventListener?.('resize',scheduleUiModeRefresh,{passive:true});
+function isTouchUi(){return currentUiMode!=='desktop'}
 function usesSingleActivation(event){
   if(event?.detail===0)return true; // clavier / activation assistive
   const pointerType=String(event?.pointerType||'').toLowerCase();
