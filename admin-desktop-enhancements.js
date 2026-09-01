@@ -3,6 +3,7 @@
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const ROLE_LABEL={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
 const isDesktop=()=>document.documentElement.classList.contains('ui-desktop')||document.body.classList.contains('ui-desktop');
 const overlay=()=>$('#adminCorrectionOverlay');
 const editorOpen=()=>overlay()&&!overlay().classList.contains('hidden');
@@ -197,7 +198,7 @@ function confirmReplacement(targetRole,targetIds,memberId){
     return item?.textContent?.trim()||'ce membre'
   }).join(', ');
   const sourceName=$(`#dayMemberPool .day-member-source-item[data-member-id="${CSS.escape(memberId)}"] strong`)?.textContent?.trim()||'Le membre';
-  return window.confirm(`${ROLE_LABELS?.[targetRole]||targetRole} contient déjà ${names}. ${sourceName} le remplacera. Continuer ?`)
+  return window.confirm(`${ROLE_LABEL[targetRole]||targetRole} contient déjà ${names}. ${sourceName} le remplacera. Continuer ?`)
 }
 
 function performAssignedDrop(targetRole){
