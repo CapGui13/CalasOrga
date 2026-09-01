@@ -723,13 +723,17 @@ class FileStore {
   }
 
   #supabaseHeaders(extra = {}) {
-    return {
+    const headers = {
       apikey: this.supabaseSecret,
-      Authorization: `Bearer ${this.supabaseSecret}`,
       'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...extra
+      Accept: 'application/json'
     };
+    /* Les nouvelles clés sb_secret_* s'envoient uniquement via apikey.
+       Les anciennes clés service_role JWT conservent Authorization Bearer. */
+    if (!/^sb_(?:secret|publishable)_/i.test(this.supabaseSecret)) {
+      headers.Authorization = `Bearer ${this.supabaseSecret}`;
+    }
+    return { ...headers, ...extra };
   }
 
   #supabaseRestUrl(query = '') {
@@ -3156,7 +3160,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.47-supabase-storage';
+const APP_VERSION = '0.15.47.1-supabase-storage';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
