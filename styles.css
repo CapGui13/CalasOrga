@@ -5184,3 +5184,34 @@ body{
   .member-link-row{grid-template-columns:44px minmax(0,1fr)!important}
   .member-link-actions{grid-column:1/-1;justify-self:end}
 }
+
+/* =========================================================
+   V15.45 — UI MODIFIER : colonne Membres
+   - masque la poignée visuelle ⋮⋮ sans désactiver le drag & drop
+   - garde toutes les cellules Membres sur fond blanc
+   ========================================================= */
+#adminCorrectionOverlay .day-member-grip{
+  display:none !important;
+}
+
+#adminCorrectionOverlay .day-column-members,
+#adminCorrectionOverlay .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-a .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.week-b .day-member-source-item,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-pool,
+#adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item{
+  background:#fff !important;
+}
+
+@media(hover:hover){
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-a:not(.day-complete) .day-member-source-item:focus-visible,
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.week-b:not(.day-complete) .day-member-source-item:focus-visible,
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:hover,
+  #adminCorrectionOverlay .day-editor-columns.day-complete .day-member-source-item:focus-visible{
+    background:#f4f8f5 !important;
+  }
+}
