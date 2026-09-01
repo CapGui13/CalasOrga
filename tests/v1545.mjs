@@ -127,10 +127,18 @@ try{
   assert.match(appText,/memberPollDelay\(\)/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
-  // Strict 3 modes — tablet refinement must stay scoped to ui-tablet.
+  // Strict 3 modes — tablet and mobile refinements remain scoped to their explicit mode classes.
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns[\s\S]{0,300}min-width:852px!important/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-column-members[\s\S]{0,220}position:sticky!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
+  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns[\s\S]{0,400}min-width:725px!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-column-members[\s\S]{0,250}position:sticky!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminRoot \.admin-schedule-wrap[\s\S]{0,180}display:block!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminRoot \.admin-schedule-mobile\{display:none!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminMembers \.members-table[\s\S]{0,220}display:table!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminHistory \.table[\s\S]{0,220}display:table!important/);
+  assert.match(stylesText,/MOBILE APP REFINEMENT ONLY/);
+  assert.match(appText,/adminCorrectionLastFocus/);
+  assert.match(appText,/adminCellLastFocus/);
 
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
   assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
@@ -144,8 +152,8 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1545\.8-strict3-tablet/);
-  assert.match(indexText,/client\.js\?v=1545\.8-strict3-tablet/);
+  assert.match(indexText,/styles\.css\?v=1545\.9-mobile-app/);
+  assert.match(indexText,/client\.js\?v=1545\.9-mobile-app/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);

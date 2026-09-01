@@ -6143,3 +6143,569 @@ html.ui-tablet #adminRoot .admin-schedule-wrap{
 html.ui-tablet #adminRoot .admin-schedule{
   min-width:700px!important;
 }
+
+/* =========================================================
+   V15.45.9 — MOBILE APP REFINEMENT ONLY
+   Contract unchanged: only html.ui-mobile is affected.
+   Goal: mobile = compact desktop/tablet app, not stacked website cards.
+   ========================================================= */
+
+html.ui-mobile{
+  --mobile-edge:8px;
+  --mobile-sticky-top:max(6px,env(safe-area-inset-top));
+}
+html.ui-mobile body{
+  overflow-x:hidden!important;
+  overscroll-behavior-y:contain;
+  -webkit-tap-highlight-color:transparent;
+  background:#f2f5f3!important;
+}
+html.ui-mobile .shell{
+  width:100%!important;
+  max-width:none!important;
+  padding:max(8px,env(safe-area-inset-top)) max(var(--mobile-edge),env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(var(--mobile-edge),env(safe-area-inset-left))!important;
+}
+html.ui-mobile .card{
+  border-radius:16px!important;
+  padding:12px!important;
+  box-shadow:0 4px 18px rgba(28,48,38,.045)!important;
+}
+html.ui-mobile .spaced{margin-top:10px!important}
+
+/* App header: one compact line instead of a centered stacked header. */
+html.ui-mobile #memberRoot>.topbar,
+html.ui-mobile #adminRoot>.topbar{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  gap:8px!important;
+  width:100%!important;
+  margin:0 0 8px!important;
+  padding:2px 2px 0!important;
+  text-align:left!important;
+}
+html.ui-mobile #memberRoot>.topbar>div:first-child,
+html.ui-mobile #adminRoot>.topbar>div:first-child{
+  min-width:0!important;
+  text-align:left!important;
+}
+html.ui-mobile #memberRoot>.topbar .brand,
+html.ui-mobile #adminRoot>.topbar .brand{
+  font-size:20px!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+html.ui-mobile #memberRoot>.topbar .top-actions,
+html.ui-mobile #adminRoot>.topbar .top-actions{
+  width:auto!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+}
+html.ui-mobile #memberRoot>.topbar .top-actions .btn,
+html.ui-mobile #adminRoot>.topbar .top-actions .btn{
+  flex:0 0 auto!important;
+  min-width:0!important;
+  min-height:42px!important;
+  padding:8px 10px!important;
+  border-radius:11px!important;
+  font-size:11px!important;
+  white-space:nowrap!important;
+}
+
+/* App-like segmented tabs: always visible, no horizontal clipping. */
+html.ui-mobile .admin-tabs{
+  position:sticky!important;
+  top:var(--mobile-sticky-top)!important;
+  z-index:30!important;
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0 0 10px!important;
+  padding:4px!important;
+  gap:3px!important;
+  overflow:visible!important;
+  border:1px solid rgba(214,225,218,.95)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.94)!important;
+  box-shadow:0 5px 18px rgba(24,39,31,.06)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+html.ui-mobile .admin-tabs a{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  width:100%!important;
+  min-height:42px!important;
+  padding:7px 4px!important;
+  border-radius:10px!important;
+  font-size:11px!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+/* "Gestion des membres" becomes "Membres" only visually on mobile. */
+html.ui-mobile .admin-tabs a[data-admin-page="members"]{font-size:0!important}
+html.ui-mobile .admin-tabs a[data-admin-page="members"]::after{content:"Membres";font-size:11px;font-weight:inherit}
+
+/* Shared compact page heads. */
+html.ui-mobile #adminRoot .section-head,
+html.ui-mobile #memberRoot .section-head{
+  gap:8px!important;
+}
+html.ui-mobile #adminRoot .section-head h2,
+html.ui-mobile #memberRoot .section-head h2,
+html.ui-mobile #adminRoot .card h2,
+html.ui-mobile #memberRoot .card h2{
+  margin-bottom:8px!important;
+  font-size:19px!important;
+}
+html.ui-mobile #adminRoot .admin-calendar-card,
+html.ui-mobile #memberRoot .member-calendar-card,
+html.ui-mobile #adminMembers,
+html.ui-mobile #adminHistory{
+  width:100%!important;
+  max-width:none!important;
+  margin-left:0!important;
+  margin-right:0!important;
+}
+
+/* Month navigation: same desktop language, compact. */
+html.ui-mobile .monthnav{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) 44px!important;
+  gap:6px!important;
+  width:100%!important;
+  margin:8px 0 10px!important;
+}
+html.ui-mobile .monthlabel{
+  min-width:0!important;
+  font-size:16px!important;
+  line-height:1.1!important;
+}
+html.ui-mobile .monthnav .icon-btn{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
+
+/* =========================================================
+   MOBILE PLANNING = DESKTOP/TABLET GRID WITH HORIZONTAL SWIPE
+   ========================================================= */
+html.ui-mobile #memberRoot .member-schedule-mobile,
+html.ui-mobile #adminRoot .admin-schedule-mobile{display:none!important}
+html.ui-mobile #memberRoot .member-schedule-wrap,
+html.ui-mobile #adminRoot .admin-schedule-wrap{
+  display:block!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;
+  border-radius:13px!important;
+  scroll-snap-type:x proximity;
+}
+html.ui-mobile #memberRoot .member-schedule-wrap::-webkit-scrollbar,
+html.ui-mobile #adminRoot .admin-schedule-wrap::-webkit-scrollbar{display:none}
+html.ui-mobile #memberRoot .member-schedule,
+html.ui-mobile #adminRoot .admin-schedule{
+  display:table!important;
+  width:100%!important;
+  min-width:690px!important;
+  table-layout:fixed!important;
+}
+html.ui-mobile #memberRoot .member-schedule thead,
+html.ui-mobile #adminRoot .admin-schedule thead{display:table-header-group!important}
+html.ui-mobile #memberRoot .member-schedule tbody,
+html.ui-mobile #adminRoot .admin-schedule tbody{display:table-row-group!important}
+html.ui-mobile #memberRoot .member-schedule tr,
+html.ui-mobile #adminRoot .admin-schedule tr{display:table-row!important}
+html.ui-mobile #memberRoot .member-schedule th,
+html.ui-mobile #memberRoot .member-schedule td,
+html.ui-mobile #adminRoot .admin-schedule th,
+html.ui-mobile #adminRoot .admin-schedule td{display:table-cell!important}
+html.ui-mobile #memberRoot .member-schedule thead th,
+html.ui-mobile #adminRoot .admin-schedule thead th{
+  min-width:112px!important;
+  width:112px!important;
+  padding:9px 5px!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
+}
+html.ui-mobile #memberRoot .member-schedule thead th:first-child,
+html.ui-mobile #adminRoot .admin-schedule thead th:first-child{
+  position:sticky!important;
+  left:0!important;
+  z-index:8!important;
+  width:116px!important;
+  min-width:116px!important;
+  background:#f5f8f6!important;
+  box-shadow:3px 0 8px rgba(24,39,31,.07)!important;
+}
+html.ui-mobile #memberRoot .member-schedule .date-cell,
+html.ui-mobile #adminRoot .admin-schedule .date-cell{
+  position:sticky!important;
+  left:0!important;
+  z-index:6!important;
+  width:116px!important;
+  min-width:116px!important;
+  padding:8px 5px!important;
+  box-shadow:3px 0 8px rgba(24,39,31,.055)!important;
+}
+html.ui-mobile #memberRoot .member-schedule .week-a .date-cell,
+html.ui-mobile #adminRoot .admin-schedule .week-a .date-cell{background:#fbfcfb!important}
+html.ui-mobile #memberRoot .member-schedule .week-b .date-cell,
+html.ui-mobile #adminRoot .admin-schedule .week-b .date-cell{background:#eef4f7!important}
+html.ui-mobile #memberRoot .member-schedule .date-main,
+html.ui-mobile #adminRoot .admin-schedule .date-main{
+  font-size:11.5px!important;
+  line-height:1.2!important;
+}
+html.ui-mobile #adminRoot .admin-calendar-edit{
+  min-height:44px!important;
+  margin:6px auto 0!important;
+  padding:6px 7px!important;
+  font-size:10px!important;
+  border-radius:9px!important;
+}
+html.ui-mobile #memberRoot .member-schedule .role-cell,
+html.ui-mobile #adminRoot .admin-schedule .role-cell{
+  min-width:112px!important;
+  width:112px!important;
+}
+html.ui-mobile #memberRoot .member-role-button,
+html.ui-mobile #adminRoot .admin-role-display{
+  min-height:74px!important;
+  padding:8px 5px!important;
+  font-size:10.5px!important;
+}
+html.ui-mobile #memberRoot .member-schedule .role-chip,
+html.ui-mobile #adminRoot .admin-schedule .role-chip{
+  padding:4px 5px!important;
+  font-size:10px!important;
+}
+
+/* =========================================================
+   MOBILE MEMBERS = COMPACT TABLE, NOT STACKED CARDS
+   ========================================================= */
+html.ui-mobile #adminMembers{padding:11px!important}
+html.ui-mobile #adminMembers .members-title-line{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+html.ui-mobile #adminMembers .members-title-line h2{font-size:18px!important;margin:0!important}
+html.ui-mobile #adminMembers .member-management-actions-main{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+  margin:9px 0 10px!important;
+}
+html.ui-mobile #adminMembers .member-management-actions-main .btn{
+  width:100%!important;
+  min-width:0!important;
+  min-height:44px!important;
+  padding:7px 4px!important;
+  font-size:11px!important;
+}
+html.ui-mobile #adminMembers .members-table-wrap{
+  display:block!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;
+  border:1px solid var(--admin-grid-line)!important;
+  border-radius:13px!important;
+}
+html.ui-mobile #adminMembers .members-table-wrap::-webkit-scrollbar{display:none}
+html.ui-mobile #adminMembers .members-table{
+  display:table!important;
+  width:100%!important;
+  min-width:720px!important;
+  table-layout:fixed!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+html.ui-mobile #adminMembers .members-table thead{display:table-header-group!important}
+html.ui-mobile #adminMembers .members-table tbody{display:table-row-group!important}
+html.ui-mobile #adminMembers .members-table tr{display:table-row!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}
+html.ui-mobile #adminMembers .members-table th,
+html.ui-mobile #adminMembers .members-table td{
+  display:table-cell!important;
+  width:auto!important;
+  min-width:0!important;
+  height:56px!important;
+  padding:7px 6px!important;
+  border-bottom:1px solid var(--admin-grid-line)!important;
+  vertical-align:middle!important;
+  background:#fff!important;
+}
+html.ui-mobile #adminMembers .members-table th{height:auto!important;font-size:9.5px!important;background:#f5f8f6!important}
+html.ui-mobile #adminMembers .members-table td::before{content:none!important;display:none!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(1){width:120px!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(2){width:175px!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(3){width:82px!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(4){width:145px!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(5){width:198px!important}
+html.ui-mobile #adminMembers .members-table th:first-child,
+html.ui-mobile #adminMembers .members-table td:first-child{
+  position:sticky!important;
+  left:0!important;
+  z-index:5!important;
+  box-shadow:3px 0 8px rgba(24,39,31,.06)!important;
+}
+html.ui-mobile #adminMembers .members-table th:first-child{z-index:7!important;background:#f5f8f6!important}
+html.ui-mobile #adminMembers .member-display-name{font-size:11.5px!important}
+html.ui-mobile #adminMembers .member-display-email{font-size:10.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+html.ui-mobile #adminMembers .member-device-primary{font-size:9.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+html.ui-mobile #adminMembers .member-device-secondary{font-size:8.5px!important}
+html.ui-mobile #adminMembers .member-current-link{font-size:9px!important}
+
+/* =========================================================
+   MOBILE HISTORY = COMPACT TABLE WITH STICKY FIRST COLUMN
+   ========================================================= */
+html.ui-mobile #adminHistory{padding:11px!important}
+html.ui-mobile #adminHistory>.section-head{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:start!important;
+}
+html.ui-mobile #adminHistory>.section-head .btn{min-height:42px!important;padding:7px 9px!important;font-size:11px!important}
+html.ui-mobile #adminHistory .audit-tools{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:7px!important;
+  align-items:end!important;
+}
+html.ui-mobile #adminHistory .audit-tools .field:first-child{grid-column:1 / -1!important}
+html.ui-mobile #adminHistory #auditClear{width:100%!important;min-width:0!important}
+html.ui-mobile #adminHistory #auditShown{align-self:center!important;justify-self:end!important;font-size:10px!important}
+html.ui-mobile #adminHistory .table-wrap{
+  display:block!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;
+  border:1px solid var(--admin-grid-line)!important;
+  border-radius:13px!important;
+}
+html.ui-mobile #adminHistory .table-wrap::-webkit-scrollbar{display:none}
+html.ui-mobile #adminHistory .table{
+  display:table!important;
+  width:100%!important;
+  min-width:640px!important;
+  table-layout:fixed!important;
+  border-collapse:separate!important;
+  border-spacing:0!important;
+}
+html.ui-mobile #adminHistory .table thead{display:table-header-group!important}
+html.ui-mobile #adminHistory .table tbody{display:table-row-group!important}
+html.ui-mobile #adminHistory .table tr{display:table-row!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}
+html.ui-mobile #adminHistory .table th,
+html.ui-mobile #adminHistory .table td{
+  display:table-cell!important;
+  width:auto!important;
+  padding:8px 7px!important;
+  border-bottom:1px solid var(--admin-grid-line)!important;
+  vertical-align:middle!important;
+  background:#fff!important;
+  font-size:10.5px!important;
+}
+html.ui-mobile #adminHistory .table th{font-size:9.5px!important;background:#f5f8f6!important}
+html.ui-mobile #adminHistory .table td::before{content:none!important;display:none!important}
+html.ui-mobile #adminHistory .table th:nth-child(1){width:145px!important}
+html.ui-mobile #adminHistory .table th:nth-child(2){width:125px!important}
+html.ui-mobile #adminHistory .table th:nth-child(3){width:235px!important}
+html.ui-mobile #adminHistory .table th:nth-child(4){width:135px!important}
+html.ui-mobile #adminHistory .table th:first-child,
+html.ui-mobile #adminHistory .table td:first-child{
+  position:sticky!important;
+  left:0!important;
+  z-index:5!important;
+  box-shadow:3px 0 8px rgba(24,39,31,.06)!important;
+}
+html.ui-mobile #adminHistory .table th:first-child{z-index:7!important;background:#f5f8f6!important}
+
+/* =========================================================
+   MOBILE MODALS = APP SHEETS / DESKTOP-LIKE DATA GRID
+   ========================================================= */
+html.ui-mobile .confirm-overlay{
+  padding:max(4px,env(safe-area-inset-top)) max(4px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(4px,env(safe-area-inset-left))!important;
+  align-items:center!important;
+  overflow:hidden!important;
+}
+html.ui-mobile .confirm-dialog{
+  width:calc(100vw - 8px)!important;
+  max-width:none!important;
+  max-height:calc(100dvh - 8px)!important;
+  overflow:auto!important;
+  margin:auto!important;
+  padding:12px!important;
+  border-radius:18px!important;
+  box-shadow:0 16px 44px rgba(18,35,26,.22)!important;
+}
+html.ui-mobile .confirm-dialog>.section-head{
+  position:sticky!important;
+  top:-12px!important;
+  z-index:25!important;
+  margin:-12px -12px 8px!important;
+  padding:12px!important;
+  background:rgba(255,255,255,.97)!important;
+  border-bottom:1px solid #e2e8e4!important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html.ui-mobile .confirm-dialog>.section-head h2{font-size:19px!important;margin:0!important}
+html.ui-mobile .confirm-dialog>.section-head .btn{min-height:44px!important;padding:7px 10px!important;font-size:11px!important}
+
+/* Day editor: six desktop/tablet columns, horizontal swipe, sticky members. */
+html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
+  display:flex!important;
+  flex-direction:column!important;
+  width:calc(100vw - 8px)!important;
+  height:calc(100dvh - 8px)!important;
+  max-height:calc(100dvh - 8px)!important;
+  overflow:hidden!important;
+}
+html.ui-mobile #adminCorrectionOverlay #adminDayForm{
+  display:flex!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  flex-direction:column!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-date{
+  flex:0 0 auto!important;
+  margin:0 0 7px!important;
+  font-size:14px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-touch-help{
+  flex:0 0 auto!important;
+  margin:0 0 8px!important;
+  padding:6px 8px!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:145px repeat(4,112px) 132px!important;
+  width:100%!important;
+  min-width:725px!important;
+  min-height:0!important;
+  flex:1 1 auto!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:none!important;
+  scroll-snap-type:x proximity;
+  border-radius:12px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns::-webkit-scrollbar{display:none}
+html.ui-mobile #adminCorrectionOverlay .day-column{
+  display:flex!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  border-radius:0!important;
+  scroll-snap-align:start;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members,
+html.ui-mobile #adminCorrectionOverlay .day-column-available{
+  grid-column:auto!important;
+  grid-row:auto!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members{
+  position:sticky!important;
+  left:0!important;
+  z-index:8!important;
+  background:#fff!important;
+  box-shadow:3px 0 9px rgba(24,39,31,.08)!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members .day-column-head{
+  position:sticky!important;
+  left:0!important;
+  z-index:9!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-head{
+  height:40px!important;
+  min-height:40px!important;
+  padding:7px 4px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-panel-title,
+html.ui-mobile #adminCorrectionOverlay .day-role-card-title{font-size:10px!important}
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column,
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item{min-height:42px!important;padding:7px 8px!important}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-text strong{font-size:11px!important}
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone{height:auto!important;min-height:0!important;max-height:none!important;padding:8px 5px!important}
+html.ui-mobile #adminCorrectionOverlay .day-drop-placeholder{font-size:10px!important}
+html.ui-mobile #adminCorrectionOverlay .day-assignment-chip,
+html.ui-mobile #adminCorrectionOverlay .day-available-chip{
+  min-height:44px!important;
+  padding:5px 4px 5px 8px!important;
+  gap:3px!important;
+  font-size:10.5px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-assignment-remove{
+  width:44px!important;
+  height:44px!important;
+  min-width:44px!important;
+  min-height:44px!important;
+  font-size:15px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-warning{flex:0 0 auto!important;margin:7px 0 0!important}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:20!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  margin:7px 0 0!important;
+  padding-top:6px!important;
+  background:#fff!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions .btn{
+  width:100%!important;
+  min-width:0!important;
+  min-height:48px!important;
+}
+
+/* Cell editor: denser, touch-friendly list in an app sheet. */
+html.ui-mobile #adminCellOverlay .admin-cell-dialog{width:calc(100vw - 8px)!important;max-width:none!important}
+html.ui-mobile #adminCellOverlay .single-choice-list,
+html.ui-mobile #adminCellOverlay .available-checklist{gap:3px!important}
+html.ui-mobile #adminCellOverlay .single-choice-item,
+html.ui-mobile #adminCellOverlay .available-check{
+  min-height:48px!important;
+  padding:9px 10px!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+}
+
+/* Forms / management modals follow the same full-width app sheet language. */
+html.ui-mobile #memberCreatePanel .member-management-dialog,
+html.ui-mobile #memberModifyPanel .member-management-dialog,
+html.ui-mobile #memberEditOverlay .member-edit-dialog{
+  width:calc(100vw - 8px)!important;
+  max-width:none!important;
+}
+html.ui-mobile .field input,
+html.ui-mobile .field select{font-size:16px!important;min-height:48px!important}
+

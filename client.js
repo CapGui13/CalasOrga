@@ -1406,7 +1406,9 @@ function populateDayEditor(date){
     dayEditorSetWarning('')
   }
 }
+let adminCorrectionLastFocus=null;
 function openAdminCorrection(date){
+  adminCorrectionLastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   populateDayEditor(date);
   const overlay=q('#adminCorrectionOverlay');
   overlay.classList.remove('hidden');
@@ -1418,9 +1420,13 @@ function closeAdminCorrection(){
   dayEditorTouchSelectedId='';
   const overlay=q('#adminCorrectionOverlay');
   if(!overlay||overlay.classList.contains('hidden'))return;
+  const active=document.activeElement;
+  if(active instanceof HTMLElement&&overlay.contains(active))active.blur();
   overlay.classList.add('hidden');
   overlay.setAttribute('aria-hidden','true');
-  if(q('#confirmOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
+  if(q('#confirmOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open');
+  const restore=adminCorrectionLastFocus;adminCorrectionLastFocus=null;
+  if(restore?.isConnected)requestAnimationFrame(()=>restore.focus({preventScroll:true}))
 }
 function adminCorrectionForDate(date){openAdminCorrection(date)}
 function populateAdminCellEditor(date,role){
@@ -1453,7 +1459,9 @@ function populateAdminCellEditor(date,role){
     fillSingleChoiceList(q('#adminCellRoleChoices'),ids,active,(memberId)=>saveAdminCellSelection(date,role,memberId,true))
   }
 }
+let adminCellLastFocus=null;
 function openAdminCellEditor(date,role){
+  adminCellLastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   populateAdminCellEditor(date,role);
   const overlay=q('#adminCellOverlay');
   overlay.classList.remove('hidden');
@@ -1464,9 +1472,13 @@ function openAdminCellEditor(date,role){
 function closeAdminCellEditor(){
   const overlay=q('#adminCellOverlay');
   if(!overlay||overlay.classList.contains('hidden'))return;
+  const active=document.activeElement;
+  if(active instanceof HTMLElement&&overlay.contains(active))active.blur();
   overlay.classList.add('hidden');
   overlay.setAttribute('aria-hidden','true');
-  if(q('#confirmOverlay')?.classList.contains('hidden')&&q('#adminCorrectionOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open')
+  if(q('#confirmOverlay')?.classList.contains('hidden')&&q('#adminCorrectionOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open');
+  const restore=adminCellLastFocus;adminCellLastFocus=null;
+  if(restore?.isConnected)requestAnimationFrame(()=>restore.focus({preventScroll:true}))
 }
 function setLocalCellAssignment(date,role,value){
   const old=(localAssignmentsSnapshot()[date]?.[role]||[]).map(String);
