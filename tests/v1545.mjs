@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.45.2-cleanup-vercel-hotfix');
+  assert.equal(health.appVersion,'0.15.45.3-cleanup-vercel-autodetect-fix');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -97,9 +97,12 @@ try{
 
   const indexText=await fs.readFile(path.join(root,'index.html'),'utf8');
   const stylesText=await fs.readFile(path.join(root,'styles.css'),'utf8');
-  const appText=await fs.readFile(path.join(root,'app.js'),'utf8');
+  const appText=await fs.readFile(path.join(root,'client.js'),'utf8');
   const serverText=await fs.readFile(path.join(root,'server.mjs'),'utf8');
   const vercelText=await fs.readFile(path.join(root,'vercel.json'),'utf8');
+  assert.equal(await fs.stat(path.join(root,'client.js')).then(()=>true),true);
+  assert.equal(await fs.access(path.join(root,'app.js')).then(()=>true).catch(()=>false),false,'app.js racine interdit: Vercel peut l’auto-détecter comme entrée serveur');
+  assert.match(vercelText,/\"framework\"\s*:\s*null/,'framework preset must stay Other to disable framework auto-detection');
   // V15.45 conserve le hardening V15.44 : pas de PII réelle dans les sources distribuées.
   assert.doesNotMatch(indexText+appText+stylesText,/(?:gmail\.com|yahoo\.fr|wanadoo\.fr|laposte\.net|orange\.fr|free\.fr)/i);
   assert.doesNotMatch(serverText,/(?:gmail\.com|yahoo\.fr|wanadoo\.fr|laposte\.net|orange\.fr|free\.fr)/i);
@@ -126,16 +129,16 @@ try{
 
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
   assert.match(indexText,/<link rel="stylesheet" href="styles\.css">/);
-  assert.match(indexText,/<script src="app\.js"><\/script>/);
+  assert.match(indexText,/<script src="client\.js"><\/script>/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);
   assert.match(vercelText,/\/admin\/styles\.css/);
-  assert.match(vercelText,/\/admin\/app\.js/);
+  assert.match(vercelText,/\/admin\/client\.js/);
   const cssRes=await fetch(`${origin}/styles.css`); assert.equal(cssRes.status,200); assert.match(cssRes.headers.get('content-type')||'',/text\/css/);
-  const jsRes=await fetch(`${origin}/app.js`); assert.equal(jsRes.status,200); assert.match(jsRes.headers.get('content-type')||'',/text\/javascript/);
+  const jsRes=await fetch(`${origin}/client.js`); assert.equal(jsRes.status,200); assert.match(jsRes.headers.get('content-type')||'',/text\/javascript/);
   const nestedCssRes=await fetch(`${origin}/admin/styles.css`); assert.equal(nestedCssRes.status,200);
-  const nestedJsRes=await fetch(`${origin}/admin/app.js`); assert.equal(nestedJsRes.status,200);
+  const nestedJsRes=await fetch(`${origin}/admin/client.js`); assert.equal(nestedJsRes.status,200);
 
   // Hotfix Vercel 2 : l'import/démarrage backend ne doit dépendre d'AUCUN fichier frontend.
   // Ce mini-bundle reproduit une fonction ne contenant que server.mjs.
@@ -164,7 +167,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.45.2-cleanup-vercel-hotfix');
+    assert.equal(bundleHealth.appVersion,'0.15.45.3-cleanup-vercel-autodetect-fix');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));

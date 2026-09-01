@@ -1,6 +1,6 @@
 {
   "name": "calendrier-club-presences",
-  "version": "0.15.45",
+  "version": "0.15.45-hotfix3",
   "private": true,
   "type": "module",
   "engines": {
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check api/index.mjs && node --check app.js && node --check tests/v1545.mjs",
+    "check": "node --check server.mjs && node --check api/index.mjs && node --check client.js && node --check tests/v1545.mjs",
     "test": "node tests/v1545.mjs"
   }
 }

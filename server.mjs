@@ -2956,7 +2956,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.45.2-cleanup-vercel-hotfix';
+const APP_VERSION = '0.15.45.3-cleanup-vercel-autodetect-fix';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3171,7 +3171,7 @@ export async function requestHandler(req, res) {
     // appelle l'API. Cela accélère l'ouverture du lien et économise des opérations.
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
     if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveLocalStaticFile(res, 'styles.css', 'text/css; charset=utf-8');
-    if ((pathname === '/app.js' || pathname === '/admin/app.js') && req.method === 'GET') return serveLocalStaticFile(res, 'app.js', 'text/javascript; charset=utf-8');
+    if ((pathname === '/client.js' || pathname === '/admin/client.js') && req.method === 'GET') return serveLocalStaticFile(res, 'client.js', 'text/javascript; charset=utf-8');
     if (pathname === '/' && req.method === 'GET') {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);

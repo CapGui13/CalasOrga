@@ -11,8 +11,8 @@
       "destination": "/styles.css"
     },
     {
-      "source": "/admin/app.js",
-      "destination": "/app.js"
+      "source": "/admin/client.js",
+      "destination": "/client.js"
     },
     {
       "source": "/api/:path*",
@@ -101,5 +101,6 @@
         }
       ]
     }
-  ]
+  ],
+  "framework": null
 }

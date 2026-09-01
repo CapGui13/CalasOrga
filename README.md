@@ -23,13 +23,16 @@ Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’ad
 
 ## Architecture frontend V15.45
 
+> Le bundle navigateur s’appelle `client.js` (et non `app.js`) afin d’éviter l’auto-détection serveur Vercel des fichiers racine nommés `app.*`. Le preset Vercel est verrouillé sur `Other` via `"framework": null`.
+
+
 Le frontend n’est plus monolithique :
 
 - `index.html` contient uniquement la structure HTML ;
 - `styles.css` contient les styles desktop/tablette/mobile ;
-- `app.js` contient la logique navigateur ;
+- `client.js` contient la logique navigateur ;
 - la CSP n’utilise plus de hashes de blocs inline : `script-src 'self'` et `style-src 'self'` suffisent ;
-- les routes admin imbriquées servent explicitement `app.js` et `styles.css`, y compris en serveur Node local.
+- les routes admin imbriquées servent explicitement `client.js` et `styles.css`, y compris en serveur Node local.
 
 Le nettoyage ne change pas le modèle de données ni les règles métier. Les protections et comportements V15.44 restent qualifiés.
 
