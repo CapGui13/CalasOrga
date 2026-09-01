@@ -3131,8 +3131,16 @@ function adminOk(req) {
 function csrfCookie(name, secure, maxAge) { const token = randomToken(18); return { token, header: cookie(name, token, { httpOnly: false, secure, maxAge }) }; }
 
 const indexHtml = await fs.readFile(path.join(__dirname, 'index.html'));
-const stylesCss = await fs.readFile(path.join(__dirname, 'styles.css'));
-const appJs = await fs.readFile(path.join(__dirname, 'app.js'));
+// Les assets externes ne doivent pas être lus à l'import de la fonction Vercel :
+// ils sont servis statiquement par Vercel. En Node/Docker, on les charge à la demande
+// et on les met en cache après la première lecture.
+const staticAssetCache = new Map();
+async function localStaticAsset(filename) {
+  if (!staticAssetCache.has(filename)) {
+    staticAssetCache.set(filename, fs.readFile(path.join(__dirname, filename)));
+  }
+  return staticAssetCache.get(filename);
+}
 function serveStatic(res, body, contentType) {
   securityHeaders(res);
   res.statusCode = 200;
@@ -3140,6 +3148,9 @@ function serveStatic(res, body, contentType) {
   res.end(body);
 }
 function serveIndex(res) { return serveStatic(res, indexHtml, 'text/html; charset=utf-8'); }
+async function serveLocalStaticFile(res, filename, contentType) {
+  return serveStatic(res, await localStaticAsset(filename), contentType);
+}
 
 export async function requestHandler(req, res) {
   try {
@@ -3154,8 +3165,8 @@ export async function requestHandler(req, res) {
     // Le HTML est statique : inutile de réveiller Blob avant même que le navigateur
     // appelle l'API. Cela accélère l'ouverture du lien et économise des opérations.
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
-    if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveStatic(res, stylesCss, 'text/css; charset=utf-8');
-    if ((pathname === '/app.js' || pathname === '/admin/app.js') && req.method === 'GET') return serveStatic(res, appJs, 'text/javascript; charset=utf-8');
+    if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveLocalStaticFile(res, 'styles.css', 'text/css; charset=utf-8');
+    if ((pathname === '/app.js' || pathname === '/admin/app.js') && req.method === 'GET') return serveLocalStaticFile(res, 'app.js', 'text/javascript; charset=utf-8');
     if (pathname === '/' && req.method === 'GET') {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);

@@ -137,6 +137,41 @@ try{
   const nestedCssRes=await fetch(`${origin}/admin/styles.css`); assert.equal(nestedCssRes.status,200);
   const nestedJsRes=await fetch(`${origin}/admin/app.js`); assert.equal(nestedJsRes.status,200);
 
+  // Hotfix Vercel : l'import/démarrage backend ne doit plus dépendre de styles.css/app.js.
+  // Ce mini-bundle reproduit une fonction qui contient server.mjs + index.html seulement.
+  const bundleTmp=await fs.mkdtemp(path.join(os.tmpdir(),'calasorga-v1545-function-bundle-'));
+  const bundlePort=42000+Math.floor(Math.random()*5000);
+  await fs.copyFile(path.join(root,'server.mjs'),path.join(bundleTmp,'server.mjs'));
+  await fs.copyFile(path.join(root,'index.html'),path.join(bundleTmp,'index.html'));
+  const bundleChild=spawn(process.execPath,['server.mjs'],{
+    cwd:bundleTmp,
+    env:{
+      ...process.env,
+      DEMO_MODE:'1',
+      ADMIN_CODE:'Ab#123',
+      MEMBER_SHORT_SECRET:'test-member-short-secret-0123456789-abcdef',
+      DATA_FILE:path.join(bundleTmp,'data','store.json'),
+      PORT:String(bundlePort),
+      LISTEN_HOST:'127.0.0.1',
+      RELAXED_FSYNC:'1'
+    },
+    stdio:['ignore','pipe','pipe']
+  });
+  let bundleErr=''; bundleChild.stderr.on('data',d=>bundleErr+=d);
+  try{
+    let bundleHealth=null;
+    for(let i=0;i<80;i++){
+      try{const r=await fetch(`http://127.0.0.1:${bundlePort}/healthz`);if(r.ok){bundleHealth=await r.json();break}}catch{}
+      await new Promise(r=>setTimeout(r,50));
+    }
+    assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
+    assert.equal(bundleHealth.appVersion,'0.15.45.0-cleanup-multidevice-vercel');
+  } finally {
+    bundleChild.kill('SIGTERM');
+    await new Promise(r=>setTimeout(r,100));
+    await fs.rm(bundleTmp,{recursive:true,force:true});
+  }
+
   const revoke=await api(`/api/admin/members/${encodeURIComponent(aliceId)}/sessions/revoke`,{method:'POST',cookies:adminCookies,csrf:adminCsrf});
   assert.equal(revoke.r.status,200,JSON.stringify(revoke.j));
   assert.ok(revoke.j.revoked>=1);
