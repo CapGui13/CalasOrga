@@ -20,11 +20,27 @@ function injectStyle(){
   const style=document.createElement('style');
   style.id='desktopDayEditorParityStyle';
   style.textContent=`
-    .ui-desktop #adminCorrectionOverlay .day-role-dropzone{cursor:pointer}
+    /* Exact cursor contract used by the desktop planning:
+       interactive cell = pointer, draggable person = grab, active drag = grabbing. */
+    .ui-desktop #adminCorrectionOverlay .day-role-dropzone,
+    .ui-desktop #adminCorrectionOverlay .day-drop-placeholder{cursor:pointer!important}
+    .ui-desktop #adminCorrectionOverlay .day-member-source-item,
     .ui-desktop #adminCorrectionOverlay .day-assignment-chip,
-    .ui-desktop #adminCorrectionOverlay .day-available-chip{cursor:grab;user-select:none}
+    .ui-desktop #adminCorrectionOverlay .day-available-chip{cursor:grab!important;user-select:none}
+    .ui-desktop #adminCorrectionOverlay .day-member-source-item:active,
+    .ui-desktop #adminCorrectionOverlay .day-assignment-chip:active,
+    .ui-desktop #adminCorrectionOverlay .day-available-chip:active,
     .ui-desktop #adminCorrectionOverlay .day-assignment-chip.dragging,
-    .ui-desktop #adminCorrectionOverlay .day-available-chip.dragging{opacity:.42;cursor:grabbing}
+    .ui-desktop #adminCorrectionOverlay .day-available-chip.dragging{cursor:grabbing!important}
+    .ui-desktop #adminCorrectionOverlay .day-assignment-remove{cursor:pointer!important}
+    @media(hover:hover){
+      .ui-desktop #adminCorrectionOverlay .day-role-dropzone:hover{
+        box-shadow:inset 0 0 0 1px #bedbc9;
+        filter:brightness(.985)
+      }
+    }
+    .ui-desktop #adminCorrectionOverlay .day-assignment-chip.dragging,
+    .ui-desktop #adminCorrectionOverlay .day-available-chip.dragging{opacity:.42}
     .ui-desktop #adminCorrectionOverlay .day-role-dropzone.admin-drop-target{outline:2px solid rgba(33,108,74,.42);outline-offset:-2px}
     .ui-desktop #adminCorrectionOverlay .day-role-dropzone.admin-drop-swap{outline:2px solid rgba(38,89,142,.48);outline-offset:-2px}
     .ui-desktop #adminCorrectionOverlay .day-role-dropzone.admin-drop-replace{outline:2px solid rgba(166,101,32,.48);outline-offset:-2px}
