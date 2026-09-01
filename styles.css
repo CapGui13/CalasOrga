@@ -5499,3 +5499,114 @@ body{
   #adminHistory .table th:nth-child(3){width:40%!important}
   #adminHistory .table th:nth-child(4){width:18%!important}
 }
+
+/* =========================================================
+   V15.45.6 — TABLET DAY EDITOR CLOSER TO DESKTOP
+   - revert button sizing tweak
+   - keep desktop-like day editor on tablets
+   ========================================================= */
+
+/* Revenir au bouton Modifier tablette d'avant le hotfix ciblé. */
+@media (min-width: 600px) and (max-width: 840px){
+  #adminRoot .admin-calendar-edit{
+    width:auto!important;
+    max-width:none!important;
+    min-height:36px!important;
+    margin-top:7px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    padding:6px 7px!important;
+    border:1px solid #d7e2db!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    color:var(--text)!important;
+    box-shadow:none!important;
+    font-size:10px!important;
+    font-weight:800!important;
+    line-height:1!important;
+    opacity:.92!important;
+  }
+  #adminRoot .admin-calendar-edit:hover:not(:disabled),
+  #adminRoot .admin-calendar-edit:focus-visible{
+    border-color:#b8cbbf!important;
+    background:#f7faf8!important;
+  }
+}
+
+/* Sur tablette, le menu "Modifier" reste proche du desktop :
+   vraies colonnes, non empilées. On accepte un scroll horizontal si besoin. */
+@media (min-width: 681px) and (max-width: 980px){
+  #adminCorrectionOverlay .admin-correction-dialog{
+    width:calc(100vw - 14px)!important;
+    max-width:none!important;
+    padding:16px 16px 14px!important;
+  }
+
+  #adminCorrectionOverlay .day-editor-touch-help{
+    max-width:640px;
+    margin:0 auto 12px!important;
+  }
+
+  #adminCorrectionOverlay .day-editor-columns{
+    display:grid!important;
+    grid-template-columns:200px repeat(4,minmax(132px,1fr)) minmax(176px,1.05fr)!important;
+    min-width:920px!important;
+    min-height:430px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  #adminCorrectionOverlay .day-column-members,
+  #adminCorrectionOverlay .day-column-available{
+    grid-column:auto!important;
+  }
+
+  #adminCorrectionOverlay .day-column{
+    min-width:0!important;
+  }
+
+  #adminCorrectionOverlay .day-column-head{
+    min-height:40px!important;
+    height:40px!important;
+    padding:8px 8px!important;
+  }
+
+  #adminCorrectionOverlay .day-editor-panel-title,
+  #adminCorrectionOverlay .day-role-card-title{
+    font-size:11px!important;
+  }
+
+  #adminCorrectionOverlay .day-member-source-item{
+    min-height:38px!important;
+    padding:6px 9px!important;
+  }
+
+  #adminCorrectionOverlay .day-member-source-text strong{
+    font-size:12px!important;
+  }
+
+  #adminCorrectionOverlay .day-role-dropzone{
+    padding:10px 8px!important;
+  }
+
+  #adminCorrectionOverlay .day-assignment-chip,
+  #adminCorrectionOverlay .day-available-chip{
+    min-height:32px!important;
+    padding:4px 7px 4px 10px!important;
+    font-size:13px!important;
+  }
+
+  #adminCorrectionOverlay .day-assignment-remove{
+    width:20px!important;
+    height:20px!important;
+    font-size:14px!important;
+  }
+}
+
+/* Les téléphones gardent le mode simplifié empilé. */
+@media (max-width: 680px){
+  #adminCorrectionOverlay .day-editor-columns{
+    min-width:0!important;
+  }
+}
