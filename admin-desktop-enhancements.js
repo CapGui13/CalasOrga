@@ -29,9 +29,17 @@ function injectStyle(){
 
 function hideHistory(){
   const link=$('.admin-tabs [data-admin-page="history"]');
-  if(link){link.classList.add('hidden');link.hidden=true;link.setAttribute('aria-hidden','true');link.tabIndex=-1}
+  if(link){
+    if(!link.classList.contains('hidden'))link.classList.add('hidden');
+    if(!link.hidden)link.hidden=true;
+    if(link.getAttribute('aria-hidden')!=='true')link.setAttribute('aria-hidden','true');
+    if(link.tabIndex!==-1)link.tabIndex=-1
+  }
   const page=$('[data-admin-view="history"]');
-  if(page){page.classList.add('hidden');page.setAttribute('aria-hidden','true')}
+  if(page){
+    if(!page.classList.contains('hidden'))page.classList.add('hidden');
+    if(page.getAttribute('aria-hidden')!=='true')page.setAttribute('aria-hidden','true')
+  }
   if(location.pathname==='/admin/historique'||location.pathname==='/admin/historique/'){
     history.replaceState({},'', '/admin');
     const calendar=$('.admin-tabs [data-admin-page="calendar"]');
@@ -41,7 +49,7 @@ function hideHistory(){
 
 function normalizeRenewLabels(){
   const main=$('#memberManageRotateAll');
-  if(main&&!main.disabled)main.textContent='Renouveler';
+  if(main&&!main.disabled&&main.textContent.trim()!=='Renouveler')main.textContent='Renouveler';
   const confirm=$('#confirmOverlay');
   if(confirm&&!confirm.classList.contains('hidden')){
     const title=$('#confirmTitle');
@@ -135,9 +143,7 @@ function wrapDropzone(zone){
     if(sourceRole)drag.removeButton?.click();
     const result=original.call(zone,e);
 
-    if(canSwap){
-      queueMicrotask(()=>assignViaExistingUi(displacedId,sourceRole))
-    }
+    if(canSwap)queueMicrotask(()=>assignViaExistingUi(displacedId,sourceRole));
     return result
   };
   wrapped.__calasDesktopWrapped=true;
@@ -149,7 +155,8 @@ function wireDoubleClick(zone){
   if(!isDesktop()||zone.dataset.desktopDblWired==='1')return;
   zone.dataset.desktopDblWired='1';
   zone.addEventListener('dblclick',e=>{
-    if(e.target.closest('button'))return;
+    if(!isDesktop())return;
+    if(e.target instanceof Element&&e.target.closest('button'))return;
     e.preventDefault();e.stopPropagation();
     const date=currentDay(),role=String(zone.dataset.dayRole||'');
     if(!date||!role)return;
@@ -166,7 +173,8 @@ function syncRoleFromPlanning(date,role){
   if(!cell)return;
   const ids=$$('[data-member-id]',cell).map(el=>String(el.dataset.memberId||'')).filter(Boolean);
   if(role==='present'){
-    for(const btn of $$('.day-available-chip .day-assignment-remove',roleZone('present')))btn.click();
+    const zone=roleZone('present');
+    if(zone)for(const btn of $$('.day-available-chip .day-assignment-remove',zone))btn.click();
     for(const id of [...new Set(ids)])assignViaExistingUi(id,'present')
   }else{
     removeCurrentRole(role);
