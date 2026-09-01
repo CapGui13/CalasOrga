@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#216c4a">
 <meta name="robots" content="noindex,nofollow">
 <title>Présences du club</title>
-<link rel="stylesheet" href="styles.css?v=1545.9-mobile-app">
+<link rel="stylesheet" href="styles.css?v=1546.0-ux-hardening">
 </head>
 <body>
 <main class="shell" id="appRoot">
@@ -71,29 +71,31 @@
     </div>
   </div>
 
-  <div id="memberEditOverlay" class="confirm-overlay hidden" aria-hidden="true">
-    <div class="confirm-dialog member-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
+  <div id="memberQuickPanel" class="confirm-overlay hidden" aria-hidden="true">
+    <div class="confirm-dialog member-quick-dialog" role="dialog" aria-modal="true" aria-labelledby="memberQuickTitle">
       <div class="section-head">
         <div>
-          <h2 id="memberEditTitle">Modifier un membre</h2>
-          <div class="muted small" id="memberEditContext"></div>
+          <h2 id="memberQuickTitle">Membre</h2>
+          <div class="muted small" id="memberQuickEmail"></div>
         </div>
-        <button class="btn" type="button" id="memberEditClose">Fermer</button>
+        <button class="btn" type="button" id="memberQuickClose">Fermer</button>
       </div>
-      <form id="memberEditForm" class="member-edit-form">
-        <input type="hidden" id="memberEditId">
-        <div class="field">
-          <label for="memberEditName">Nom</label>
-          <input id="memberEditName" maxlength="80" autocomplete="off" required>
-        </div>
-        <div class="field">
-          <label for="memberEditEmail">Email</label>
-          <input id="memberEditEmail" type="email" maxlength="254" autocomplete="email" required>
-        </div>
-        <div class="actions member-edit-actions">
-          <button class="btn primary" type="submit">Enregistrer</button>
-        </div>
-      </form>
+      <div class="member-quick-summary">
+        <div class="member-quick-stat"><span>Statut</span><strong id="memberQuickStatus">—</strong></div>
+        <div class="member-quick-stat"><span>Appareils</span><strong id="memberQuickDevices">—</strong></div>
+      </div>
+      <div class="member-quick-device-list" id="memberQuickDeviceList"></div>
+      <div class="member-quick-link-card">
+        <span>Lien personnel</span>
+        <div class="member-quick-link" id="memberQuickLink">—</div>
+      </div>
+      <div class="member-quick-actions">
+        <button class="btn" type="button" id="memberQuickToggle">Statut</button>
+        <button class="btn" type="button" id="memberQuickRotate">Renouveler</button>
+        <button class="btn" type="button" id="memberQuickCopy">Copier</button>
+        <button class="btn" type="button" id="memberQuickSend">Envoyer</button>
+        <button class="btn primary" type="button" id="memberQuickEdit">Modifier</button>
+      </div>
     </div>
   </div>
 
@@ -272,6 +274,16 @@
           <input type="hidden" id="dayEditorDate">
           <div class="day-editor-date" id="dayEditorDateLabel"></div>
           <div class="day-editor-touch-help hidden" id="dayEditorTouchHelp" role="status" aria-live="polite"></div>
+          <div class="day-editor-quick-roles hidden" id="dayEditorQuickRoles" aria-live="polite">
+            <div class="day-editor-quick-selected" id="dayEditorQuickSelected"></div>
+            <div class="day-editor-quick-buttons" role="group" aria-label="Attribuer le membre sélectionné">
+              <button type="button" data-quick-role="accueil">Accueil</button>
+              <button type="button" data-quick-role="tpe">TPE</button>
+              <button type="button" data-quick-role="mep">MEP</button>
+              <button type="button" data-quick-role="arbitrage">Arbitrage</button>
+              <button type="button" data-quick-role="present">Disponible</button>
+            </div>
+          </div>
           <div class="day-editor-workspace day-editor-columns" role="group" aria-label="Affectations de la journée">
             <div class="day-column day-column-members" aria-label="Liste des membres">
               <div class="day-column-head"><div class="day-editor-panel-title">Membres</div></div>
@@ -341,5 +353,5 @@
   </section>
 
 </main>
-<script src="client.js?v=1545.9-mobile-app"></script>
+<script src="client.js?v=1546.0-ux-hardening"></script>
 </body></html>

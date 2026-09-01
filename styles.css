@@ -5921,112 +5921,6 @@ html.ui-tablet #adminCorrectionOverlay .day-available-chip{font-size:11px!import
 html.ui-tablet #adminCorrectionOverlay .day-editor-actions{margin-top:10px!important}
 html.ui-tablet #adminCorrectionOverlay .day-editor-actions .btn{min-width:160px!important}
 
-/* ---------- MOBILE: always card/stack, even landscape ---------- */
-html.ui-mobile body{overflow-x:hidden!important}
-html.ui-mobile .shell{
-  width:100%!important;
-  max-width:none!important;
-  padding:max(10px,env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(9px,env(safe-area-inset-left))!important;
-}
-html.ui-mobile #memberRoot .member-schedule-wrap,
-html.ui-mobile #adminRoot .admin-schedule-wrap{display:none!important}
-html.ui-mobile #memberRoot .member-schedule-mobile,
-html.ui-mobile #adminRoot .admin-schedule-mobile{display:block!important}
-html.ui-mobile #memberRoot>.topbar,
-html.ui-mobile #adminRoot>.topbar{
-  display:grid!important;
-  grid-template-columns:1fr!important;
-  justify-items:center!important;
-  text-align:center!important;
-  gap:10px!important;
-}
-html.ui-mobile #memberRoot>.topbar .top-actions,
-html.ui-mobile #adminRoot>.topbar .top-actions{
-  width:100%!important;
-  margin:0!important;
-  display:grid!important;
-  grid-template-columns:1fr 1fr!important;
-  gap:8px!important;
-}
-html.ui-mobile .admin-tabs{
-  width:100%!important;
-  overflow-x:auto!important;
-  justify-content:flex-start!important;
-  scrollbar-width:none!important;
-}
-html.ui-mobile .admin-tabs::-webkit-scrollbar{display:none}
-html.ui-mobile .admin-tabs a{flex:0 0 auto!important;min-width:110px!important;min-height:44px!important}
-
-html.ui-mobile #adminMembers .members-table-wrap{overflow:visible!important;border:0!important;border-radius:0!important}
-html.ui-mobile #adminMembers .members-table{display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important}
-html.ui-mobile #adminMembers .members-table thead{display:none!important}
-html.ui-mobile #adminMembers .members-table tbody,
-html.ui-mobile #adminMembers .members-table tr,
-html.ui-mobile #adminMembers .members-table td{display:block!important;width:100%!important;min-width:0!important}
-html.ui-mobile #adminMembers .members-table tr{
-  margin:0 0 10px!important;
-  padding:4px 10px!important;
-  border:1px solid var(--admin-grid-line)!important;
-  border-radius:14px!important;
-  background:#fff!important;
-}
-html.ui-mobile #adminMembers .members-table td{
-  display:grid!important;
-  grid-template-columns:82px minmax(0,1fr)!important;
-  gap:9px!important;
-  align-items:center!important;
-  padding:9px 0!important;
-  border-bottom:1px solid #e4eae6!important;
-}
-html.ui-mobile #adminMembers .members-table td::before{display:block!important;color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
-html.ui-mobile #adminMembers .members-table td:nth-child(1)::before{content:"Membre"!important}
-html.ui-mobile #adminMembers .members-table td:nth-child(2)::before{content:"Email"!important}
-html.ui-mobile #adminMembers .members-table td:nth-child(3)::before{content:"Statut"!important}
-html.ui-mobile #adminMembers .members-table td:nth-child(4)::before{content:"Appareils"!important}
-html.ui-mobile #adminMembers .members-table td:nth-child(5)::before{content:"Lien"!important}
-
-html.ui-mobile #adminHistory .table-wrap{overflow:visible!important}
-html.ui-mobile #adminHistory .table,
-html.ui-mobile #adminHistory .table tbody,
-html.ui-mobile #adminHistory .table tr,
-html.ui-mobile #adminHistory .table td{display:block!important;width:100%!important}
-html.ui-mobile #adminHistory .table thead{display:none!important}
-html.ui-mobile #adminHistory .table tr{margin-bottom:9px!important;padding:4px 10px!important;border:1px solid var(--admin-grid-line)!important;border-radius:13px!important;background:#fff!important}
-html.ui-mobile #adminHistory .table td{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;gap:8px!important;padding:8px 0!important;border-bottom:1px solid #e5ebe7!important}
-html.ui-mobile #adminHistory .table td::before{display:block!important;color:#69766f;font-size:10px;font-weight:850;text-transform:uppercase}
-html.ui-mobile #adminHistory .table td:nth-child(1)::before{content:"Quand"!important}
-html.ui-mobile #adminHistory .table td:nth-child(2)::before{content:"Acteur"!important}
-html.ui-mobile #adminHistory .table td:nth-child(3)::before{content:"Action"!important}
-html.ui-mobile #adminHistory .table td:nth-child(4)::before{content:"Date"!important}
-
-html.ui-mobile .confirm-overlay{
-  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;
-  align-items:start!important;
-  overflow:auto!important;
-}
-html.ui-mobile .confirm-dialog{
-  width:100%!important;
-  max-width:none!important;
-  max-height:calc(100dvh - 16px)!important;
-  overflow:auto!important;
-  padding:16px!important;
-  border-radius:16px!important;
-  margin:auto!important;
-}
-html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
-  display:grid!important;
-  grid-template-columns:1fr!important;
-  min-width:0!important;
-  min-height:0!important;
-  overflow:visible!important;
-}
-html.ui-mobile #adminCorrectionOverlay .day-column-members,
-html.ui-mobile #adminCorrectionOverlay .day-column-available{grid-column:auto!important;grid-row:auto!important}
-html.ui-mobile #adminCorrectionOverlay .day-column-role,
-html.ui-mobile #adminCorrectionOverlay .day-column-role:last-child{margin-top:8px!important;border-radius:14px!important}
-html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column{height:72px!important;min-height:72px!important;max-height:96px!important}
-html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{max-height:210px!important;overflow:auto!important}
-
 /* =========================================================
    V15.45.8 — TABLET REFINEMENT ONLY
    Contract unchanged: only html.ui-tablet is affected.
@@ -6701,11 +6595,185 @@ html.ui-mobile #adminCellOverlay .available-check{
 
 /* Forms / management modals follow the same full-width app sheet language. */
 html.ui-mobile #memberCreatePanel .member-management-dialog,
-html.ui-mobile #memberModifyPanel .member-management-dialog,
-html.ui-mobile #memberEditOverlay .member-edit-dialog{
+html.ui-mobile #memberModifyPanel .member-management-dialog{
   width:calc(100vw - 8px)!important;
   max-width:none!important;
 }
 html.ui-mobile .field input,
 html.ui-mobile .field select{font-size:16px!important;min-height:48px!important}
 
+
+
+/* =========================================================
+   V15.46 — UX HARDENING / 3 MODES CANONICAL OVERRIDES
+   Final ergonomic layer. Desktop / tablet / mobile remain explicit.
+   ========================================================= */
+
+/* --- Shared horizontal affordance: visible edge shadow while more content exists. --- */
+.has-horizontal-overflow{position:relative}
+.can-scroll-right{box-shadow:inset -18px 0 14px -18px rgba(23,37,30,.48)!important}
+.can-scroll-left{box-shadow:inset 18px 0 14px -18px rgba(23,37,30,.48)!important}
+.can-scroll-left.can-scroll-right{box-shadow:inset 18px 0 14px -18px rgba(23,37,30,.42),inset -18px 0 14px -18px rgba(23,37,30,.42)!important}
+
+/* --- Unified member detail sheet/card for touch devices. --- */
+.member-quick-dialog{width:min(560px,100%)}
+.member-quick-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.member-quick-stat{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f8faf9}
+.member-quick-stat span,.member-quick-link-card>span{font-size:10px;font-weight:850;text-transform:uppercase;color:var(--muted)}
+.member-quick-stat strong{font-size:15px}
+.member-quick-device-list{display:grid;gap:6px;max-height:190px;overflow:auto;margin:8px 0}
+.member-quick-device{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.member-quick-device strong{font-size:12.5px}.member-quick-device span{font-size:10.5px;color:var(--muted)}
+.member-quick-link-card{display:grid;gap:5px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;margin:8px 0}
+.member-quick-link{font-size:11px;line-height:1.3;word-break:break-all;color:var(--accent-strong)}
+.member-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.member-quick-actions .btn{min-height:44px!important}.member-quick-actions .primary{grid-column:1/-1}
+.member-row-detail:focus-visible{outline:3px solid color-mix(in srgb,var(--focus) 38%,transparent);outline-offset:-3px}
+html.ui-tablet .member-row-detail,html.ui-mobile .member-row-detail{cursor:pointer}
+
+/* --- Day editor: one selection model for mouse, keyboard and touch. --- */
+#adminCorrectionOverlay .day-editor-touch-help{display:block!important}
+#adminCorrectionOverlay .day-member-source-item.touch-selected{background:#e8f6ed!important;box-shadow:inset 0 0 0 2px #82b995!important}
+.day-editor-quick-roles{display:none}
+
+/* --- DESKTOP: make assignment discoverable without changing the reference layout. --- */
+html.ui-desktop #adminCorrectionOverlay .day-editor-touch-help{
+  max-width:720px!important;margin:0 auto 10px!important;padding:7px 10px!important;font-size:12px!important;
+  background:#f7faf8!important;border:1px solid #dce7df!important;color:#506158!important;border-radius:9px!important
+}
+html.ui-desktop #adminCorrectionOverlay .day-member-source-item{cursor:grab}
+html.ui-desktop #adminCorrectionOverlay .day-member-source-item.touch-selected{cursor:pointer}
+
+/* --- TABLET hardening: no sub-44px actions, readable text, detail-on-tap. --- */
+html.ui-tablet #adminRoot .admin-calendar-edit{
+  min-height:44px!important;min-width:64px!important;padding:7px 9px!important;font-size:12px!important;line-height:1.1!important
+}
+html.ui-tablet #adminRoot .admin-schedule thead th,
+html.ui-tablet #memberRoot .member-schedule thead th{font-size:11.5px!important}
+html.ui-tablet #adminRoot .admin-schedule .date-main,
+html.ui-tablet #memberRoot .member-schedule .date-main{font-size:13px!important}
+html.ui-tablet #adminRoot .admin-role-display,
+html.ui-tablet #memberRoot .member-role-button{font-size:12px!important}
+html.ui-tablet #adminRoot .admin-schedule .role-chip,
+html.ui-tablet #memberRoot .member-schedule .role-chip{font-size:11.5px!important}
+html.ui-tablet #adminMembers .members-table-wrap,
+html.ui-tablet #adminHistory .table-wrap{overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:thin!important}
+html.ui-tablet #adminMembers .member-display-email,
+html.ui-tablet #adminMembers .member-device-primary{font-size:11.5px!important}
+html.ui-tablet #adminMembers .member-device-secondary,
+html.ui-tablet #adminMembers .member-current-link{font-size:10.5px!important}
+html.ui-tablet #adminHistory .table td{font-size:12px!important}
+html.ui-tablet #adminHistory .table th{font-size:11px!important}
+html.ui-tablet #adminCorrectionOverlay .day-editor-touch-help{font-size:12.5px!important}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-text strong{font-size:12.5px!important}
+html.ui-tablet #adminCorrectionOverlay .day-drop-placeholder{font-size:12px!important}
+html.ui-tablet #adminCorrectionOverlay .day-assignment-chip,
+html.ui-tablet #adminCorrectionOverlay .day-available-chip{min-height:44px!important;font-size:12.5px!important}
+html.ui-tablet #adminCorrectionOverlay .day-assignment-remove{
+  width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;margin:-5px -5px -5px 0!important;font-size:18px!important
+}
+html.ui-tablet .member-quick-dialog{width:min(520px,calc(100vw - 24px))!important}
+
+/* Quick role bar appears after member selection on touch. */
+html.ui-tablet .day-editor-quick-roles,
+html.ui-mobile .day-editor-quick-roles{
+  position:sticky;z-index:24;display:grid;gap:6px;padding:8px;border:1px solid #cfe1d5;border-radius:12px;background:rgba(247,252,249,.97);box-shadow:0 5px 16px rgba(24,39,31,.09);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+html.ui-tablet .day-editor-quick-roles.hidden,
+html.ui-mobile .day-editor-quick-roles.hidden{display:none!important}
+html.ui-tablet .day-editor-quick-roles{top:0;margin:0 auto 8px;max-width:760px}
+.day-editor-quick-selected{font-size:11.5px;font-weight:850;text-align:center;color:var(--accent-strong)}
+.day-editor-quick-buttons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.day-editor-quick-buttons button{min-height:44px;padding:6px 4px;border:1px solid #cbdcd1;border-radius:9px;background:#fff;color:var(--text);font:800 10.5px/1.15 inherit;cursor:pointer;touch-action:manipulation}
+.day-editor-quick-buttons button:active{background:var(--accent-bg)}
+
+/* --- MOBILE = true app mode. --- */
+html.ui-mobile{--mobile-edge:8px;--mobile-nav-height:62px}
+html.ui-mobile .shell{
+  padding:max(8px,env(safe-area-inset-top)) max(var(--mobile-edge),env(safe-area-inset-right)) calc(var(--mobile-nav-height) + max(22px,env(safe-area-inset-bottom))) max(var(--mobile-edge),env(safe-area-inset-left))!important
+}
+html.ui-mobile #memberRoot>.topbar .top-actions .btn,
+html.ui-mobile #adminRoot>.topbar .top-actions .btn{min-height:44px!important;font-size:11.5px!important}
+
+/* Bottom navigation: easier thumb reach than top tabs. */
+html.ui-mobile #adminRoot .admin-tabs{
+  position:fixed!important;top:auto!important;bottom:max(6px,env(safe-area-inset-bottom))!important;left:max(8px,env(safe-area-inset-left))!important;right:max(8px,env(safe-area-inset-right))!important;width:auto!important;z-index:80!important;
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important;margin:0!important;padding:5px!important;border:1px solid rgba(204,217,209,.95)!important;border-radius:18px!important;background:rgba(255,255,255,.96)!important;box-shadow:0 10px 30px rgba(18,35,26,.18)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)
+}
+html.ui-mobile #adminRoot .admin-tabs a{min-height:48px!important;padding:7px 3px!important;border-radius:13px!important;font-size:11px!important}
+html.ui-mobile #adminRoot .admin-tabs a.active{background:var(--accent-bg)!important;color:var(--accent-strong)!important}
+html.ui-mobile #backTop{bottom:calc(var(--mobile-nav-height) + max(18px,env(safe-area-inset-bottom)))!important}
+
+/* Mobile planning keeps desktop/tablet semantics with explicit swipe affordance. */
+html.ui-mobile #memberRoot .member-schedule,
+html.ui-mobile #adminRoot .admin-schedule{min-width:660px!important}
+html.ui-mobile #memberRoot .member-schedule thead th,
+html.ui-mobile #adminRoot .admin-schedule thead th{font-size:11px!important}
+html.ui-mobile #memberRoot .member-schedule .date-main,
+html.ui-mobile #adminRoot .admin-schedule .date-main{font-size:12px!important}
+html.ui-mobile #memberRoot .member-role-button,
+html.ui-mobile #adminRoot .admin-role-display{font-size:11.5px!important}
+html.ui-mobile #memberRoot .member-schedule .role-chip,
+html.ui-mobile #adminRoot .admin-schedule .role-chip{font-size:11px!important}
+html.ui-mobile #adminRoot .admin-calendar-edit{min-height:44px!important;min-width:62px!important;font-size:11px!important}
+
+/* Mobile members = overview, details/actions in tap sheet: no mandatory horizontal swipe. */
+html.ui-mobile #adminMembers .members-table-wrap{overflow:visible!important;border:1px solid var(--admin-grid-line)!important;border-radius:13px!important}
+html.ui-mobile #adminMembers .members-table{min-width:0!important;width:100%!important;table-layout:fixed!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(1),html.ui-mobile #adminMembers .members-table td:nth-child(1){display:table-cell!important;width:48%!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(3),html.ui-mobile #adminMembers .members-table td:nth-child(3){display:table-cell!important;width:22%!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(4),html.ui-mobile #adminMembers .members-table td:nth-child(4){display:table-cell!important;width:30%!important}
+html.ui-mobile #adminMembers .members-table th:nth-child(2),html.ui-mobile #adminMembers .members-table td:nth-child(2),
+html.ui-mobile #adminMembers .members-table th:nth-child(5),html.ui-mobile #adminMembers .members-table td:nth-child(5){display:none!important}
+html.ui-mobile #adminMembers .members-table th:first-child,
+html.ui-mobile #adminMembers .members-table td:first-child{position:static!important;box-shadow:none!important}
+html.ui-mobile #adminMembers .members-table th{font-size:10.5px!important}
+html.ui-mobile #adminMembers .member-display-name{font-size:12.5px!important}
+html.ui-mobile #adminMembers .member-device-primary{font-size:10.5px!important;white-space:normal!important;line-height:1.2!important}
+html.ui-mobile #adminMembers .member-device-secondary{display:none!important}
+html.ui-mobile #adminMembers .member-state-pill{min-height:44px!important;min-width:54px!important;font-size:11px!important}
+html.ui-mobile #adminMembers .member-row-detail{min-height:58px!important}
+
+/* Mobile history = compact native feed instead of a hidden-width table. */
+html.ui-mobile #adminHistory .table-wrap{overflow:visible!important;border:0!important;border-radius:0!important}
+html.ui-mobile #adminHistory .table{display:block!important;min-width:0!important;width:100%!important}
+html.ui-mobile #adminHistory .table thead{display:none!important}
+html.ui-mobile #adminHistory .table tbody{display:grid!important;gap:7px!important}
+html.ui-mobile #adminHistory .table tr{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:2px 8px!important;padding:9px 10px!important;border:1px solid var(--admin-grid-line)!important;border-radius:12px!important;background:#fff!important
+}
+html.ui-mobile #adminHistory .table td{display:block!important;width:auto!important;padding:0!important;border:0!important;background:transparent!important}
+html.ui-mobile #adminHistory .table td:nth-child(1){font-size:10.5px!important;color:var(--muted)!important;font-weight:700!important}
+html.ui-mobile #adminHistory .table td:nth-child(2){font-size:11px!important;font-weight:800!important;text-align:right!important}
+html.ui-mobile #adminHistory .table td:nth-child(3){grid-column:1/-1!important;font-size:12.5px!important;font-weight:750!important;margin-top:3px!important}
+html.ui-mobile #adminHistory .table td:nth-child(4){grid-column:1/-1!important;font-size:10.5px!important;color:var(--muted)!important}
+html.ui-mobile #adminHistory .table th:first-child,html.ui-mobile #adminHistory .table td:first-child{position:static!important;box-shadow:none!important}
+html.ui-mobile #adminHistory .audit-tools input,html.ui-mobile #adminHistory .audit-tools select,html.ui-mobile #adminHistory #auditClear{min-height:44px!important}
+
+/* Mobile member detail is a bottom sheet. */
+html.ui-mobile #memberQuickPanel{align-items:end!important;padding:0!important}
+html.ui-mobile #memberQuickPanel .member-quick-dialog{width:100%!important;max-height:88dvh!important;margin:0!important;padding:14px max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;border-radius:22px 22px 0 0!important}
+html.ui-mobile #memberQuickPanel .section-head{position:sticky!important;top:-14px!important;z-index:5!important;margin:-14px -12px 8px!important;padding:14px 12px 10px!important;background:#fff!important}
+
+/* Mobile day editor: six-column overview + immediate role bar after member selection. */
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{min-width:690px!important}
+html.ui-mobile #adminCorrectionOverlay .day-column-members{width:138px!important;min-width:138px!important}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-roles{bottom:0!important;margin:0 0 7px!important}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons{grid-template-columns:repeat(5,minmax(62px,1fr))!important;overflow-x:auto!important;padding-bottom:2px!important}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button{font-size:10.5px!important;min-width:62px!important}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-text strong{font-size:12px!important}
+html.ui-mobile #adminCorrectionOverlay .day-drop-placeholder{font-size:11.5px!important}
+html.ui-mobile #adminCorrectionOverlay .day-assignment-chip,
+html.ui-mobile #adminCorrectionOverlay .day-available-chip{min-height:44px!important;font-size:12px!important}
+html.ui-mobile #adminCorrectionOverlay .day-assignment-remove{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;margin:-5px -5px -5px 0!important;font-size:18px!important}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions .btn{min-height:48px!important}
+
+/* Modals: every close/action remains finger-sized. */
+html.ui-mobile .confirm-dialog .btn,html.ui-tablet .confirm-dialog .btn{min-height:44px!important}
+
+/* First-use touch hint for horizontal data surfaces. */
+.horizontal-scroll-hint{
+  width:max-content;max-width:calc(100% - 12px);margin:5px 6px 0 auto;padding:5px 8px;border-radius:999px;
+  background:#eef6f1;color:#4a6054;font-size:10.5px;font-weight:800;line-height:1.1;pointer-events:none
+}
+html.ui-desktop .horizontal-scroll-hint{display:none!important}

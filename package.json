@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check api/index.mjs && node --check client.js && node --check tests/v1545.mjs",
-    "test": "node tests/v1545.mjs"
+    "check": "node --check server.mjs && node --check api/index.mjs && node --check client.js && node --check tests/v1545.mjs && node --check tests/ui-modes.mjs",
+    "test": "node tests/v1545.mjs && node tests/ui-modes.mjs"
   }
 }

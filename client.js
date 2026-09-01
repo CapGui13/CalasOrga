@@ -47,10 +47,12 @@ const q = (s) => document.querySelector(s);
 
    The short side is orientation-independent, so a tablet remains
    a tablet in both portrait and landscape. CSS consumes only the
-   ui-desktop / ui-tablet / ui-mobile classes below.
+   ui-desktop / ui-tablet / ui-mobile classes below. ?ui=desktop|tablet|mobile persists an override; ?ui=auto clears it.
    ========================================================= */
 const UI_MODE_CLASSES=['ui-desktop','ui-tablet','ui-mobile'];
+const UI_MODE_OVERRIDE_KEY='calasorga-ui-mode-v1';
 let currentUiMode='desktop';
+let uiModeOverride='';
 function uiShortSide(){
   const sw=Number(globalThis.screen?.width||0),sh=Number(globalThis.screen?.height||0);
   if(sw>0&&sh>0)return Math.min(sw,sh);
@@ -63,7 +65,26 @@ function uiTouchCapable(){
     || window.matchMedia?.('(pointer: coarse)').matches===true
     || window.matchMedia?.('(any-pointer: coarse)').matches===true
 }
+function readUiModeOverride(){
+  const valid=new Set(['desktop','tablet','mobile']);
+  let query='';
+  try{query=new URLSearchParams(location.search).get('ui')||''}catch{}
+  if(query==='auto'){
+    try{localStorage.removeItem(UI_MODE_OVERRIDE_KEY)}catch{}
+    return''
+  }
+  if(valid.has(query)){
+    try{localStorage.setItem(UI_MODE_OVERRIDE_KEY,query)}catch{}
+    return query
+  }
+  try{
+    const saved=localStorage.getItem(UI_MODE_OVERRIDE_KEY)||'';
+    return valid.has(saved)?saved:''
+  }catch{return''}
+}
+uiModeOverride=readUiModeOverride();
 function detectUiMode(){
+  if(uiModeOverride)return uiModeOverride;
   if(!uiTouchCapable())return'desktop';
   return uiShortSide()<600?'mobile':'tablet'
 }
@@ -74,10 +95,24 @@ function applyUiMode(){
     if(!root)continue;
     root.classList.remove(...UI_MODE_CLASSES);
     root.classList.add(`ui-${next}`);
-    root.dataset.uiMode=next
+    root.dataset.uiMode=next;
+    root.dataset.uiModeSource=uiModeOverride?'override':'auto'
   }
+  queueMicrotask(()=>wireHorizontalScrollAffordances?.());
   return next
 }
+function setUiModeOverride(mode='auto'){
+  const next=String(mode||'auto').toLowerCase();
+  if(next==='auto'){
+    uiModeOverride='';
+    try{localStorage.removeItem(UI_MODE_OVERRIDE_KEY)}catch{}
+  }else if(UI_MODE_CLASSES.includes(`ui-${next}`)){
+    uiModeOverride=next;
+    try{localStorage.setItem(UI_MODE_OVERRIDE_KEY,next)}catch{}
+  }else return currentUiMode;
+  return applyUiMode()
+}
+globalThis.CalasOrgaUiMode={get:()=>currentUiMode,set:setUiModeOverride,clear:()=>setUiModeOverride('auto')};
 applyUiMode();
 let uiModeRefreshTimer=0;
 function scheduleUiModeRefresh(){
@@ -344,9 +379,49 @@ function toast(text){const admin=q('#adminRoot');if(admin&&!admin.classList.cont
 function setNotice(el,text=''){el.classList.toggle('hidden',!text);el.textContent=text}
 let memberErrorTimer=0;
 function showMemberError(text='',duration=3600){clearTimeout(memberErrorTimer);const el=q('#memberError');setNotice(el,text);if(text&&duration>0)memberErrorTimer=setTimeout(()=>setNotice(el),duration)}
-let confirmResolve=null,confirmLastFocus=null;
-function closeConfirmModal(value){const overlay=q('#confirmOverlay');if(!overlay||overlay.classList.contains('hidden'))return;overlay.classList.add('hidden');overlay.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');const resolve=confirmResolve;confirmResolve=null;if(confirmLastFocus?.focus)confirmLastFocus.focus();confirmLastFocus=null;if(resolve)resolve(Boolean(value))}
-function confirmModal(message,{title='Confirmation',confirmText='Confirmer',danger=false}={}){if(confirmResolve)closeConfirmModal(false);confirmLastFocus=document.activeElement;const overlay=q('#confirmOverlay'),dialog=overlay.querySelector('.confirm-dialog');q('#confirmTitle').textContent=title;q('#confirmMessage').textContent=message;q('#confirmAccept').textContent=confirmText;dialog.classList.toggle('danger',danger);overlay.classList.remove('hidden');overlay.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>q('#confirmCancel').focus(),0);return new Promise(resolve=>{confirmResolve=resolve})}
+const modalReturnFocus=new WeakMap();
+function syncModalBodyState(){
+  document.body.classList.toggle('modal-open',!!document.querySelector('.confirm-overlay:not(.hidden)'))
+}
+function resolveFocusTarget(target,overlay){
+  if(typeof target==='function')target=target();
+  if(typeof target==='string')target=overlay?.querySelector(target)||document.querySelector(target);
+  return target instanceof HTMLElement?target:null
+}
+function openModalOverlay(overlay,{focus=null,returnFocus=null}={}){
+  if(!overlay)return;
+  const origin=returnFocus instanceof HTMLElement?returnFocus:(document.activeElement instanceof HTMLElement?document.activeElement:null);
+  if(origin)modalReturnFocus.set(overlay,origin);
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  syncModalBodyState();
+  requestAnimationFrame(()=>resolveFocusTarget(focus,overlay)?.focus({preventScroll:true}))
+}
+function closeModalOverlay(overlay,{restoreFocus=true}={}){
+  if(!overlay||overlay.classList.contains('hidden'))return;
+  const active=document.activeElement;
+  if(active instanceof HTMLElement&&overlay.contains(active))active.blur();
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+  syncModalBodyState();
+  const restore=modalReturnFocus.get(overlay);modalReturnFocus.delete(overlay);
+  if(restoreFocus&&restore?.isConnected)requestAnimationFrame(()=>restore.focus({preventScroll:true}))
+}
+let confirmResolve=null;
+function closeConfirmModal(value){
+  const overlay=q('#confirmOverlay');if(!overlay||overlay.classList.contains('hidden'))return;
+  closeModalOverlay(overlay);
+  const resolve=confirmResolve;confirmResolve=null;
+  if(resolve)resolve(Boolean(value))
+}
+function confirmModal(message,{title='Confirmation',confirmText='Confirmer',danger=false}={}){
+  if(confirmResolve)closeConfirmModal(false);
+  const overlay=q('#confirmOverlay'),dialog=overlay.querySelector('.confirm-dialog');
+  q('#confirmTitle').textContent=title;q('#confirmMessage').textContent=message;q('#confirmAccept').textContent=confirmText;
+  dialog.classList.toggle('danger',danger);
+  openModalOverlay(overlay,{focus:'#confirmCancel'});
+  return new Promise(resolve=>{confirmResolve=resolve})
+}
 function setButtonBusy(btn,busy,label='Enregistrement…'){if(!btn)return;if(busy){if(!btn.dataset.busyLabel)btn.dataset.busyLabel=btn.textContent;if(!btn.dataset.busyAria)btn.dataset.busyAria=btn.getAttribute('aria-label')||'';btn.classList.add('is-busy');btn.disabled=true;btn.setAttribute('aria-busy','true');btn.setAttribute('aria-label',`${btn.dataset.busyLabel} — ${label}`)}else{btn.classList.remove('is-busy');btn.disabled=false;btn.removeAttribute('aria-busy');if(btn.dataset.busyAria)btn.setAttribute('aria-label',btn.dataset.busyAria);else btn.removeAttribute('aria-label');delete btn.dataset.busyAria;delete btn.dataset.busyLabel}}
 function setAdminSaveState(mode,text){
   const el=q('#adminSaveState');if(!el)return;
@@ -1162,20 +1237,28 @@ function dayEditorMemberStatus(id){
   if((dayEditorDraft?.present||[]).map(String).includes(String(id)))labels.push('Disponible');
   return labels.join(' · ')
 }
+function toggleDayEditorMemberSelection(memberId){
+  dayEditorTouchSelectedId=dayEditorTouchSelectedId===String(memberId)?'':String(memberId);
+  renderDayEditorDraft()
+}
 function makeDayMemberDraggable(el,id){
   const memberId=String(id);
   el.dataset.memberId=memberId;
   el.tabIndex=0;
+  el.setAttribute('role','button');
+  el.setAttribute('aria-pressed',dayEditorTouchSelectedId===memberId?'true':'false');
+  el.addEventListener('keydown',e=>{
+    if(!['Enter',' '].includes(e.key))return;
+    e.preventDefault();toggleDayEditorMemberSelection(memberId)
+  });
+  el.addEventListener('click',()=>{
+    if(el.classList.contains('is-dragging'))return;
+    toggleDayEditorMemberSelection(memberId)
+  });
 
   if(isTouchUi()){
     el.draggable=false;
     el.classList.add('touch-selectable');
-    el.setAttribute('role','button');
-    el.setAttribute('aria-pressed',dayEditorTouchSelectedId===memberId?'true':'false');
-    el.addEventListener('click',()=>{
-      dayEditorTouchSelectedId=dayEditorTouchSelectedId===memberId?'':memberId;
-      renderDayEditorDraft()
-    });
     return
   }
 
@@ -1226,7 +1309,7 @@ function dayEditorRemove(role,memberId=''){
   renderDayEditorDraft()
 }
 function dayEditorTouchAssign(role){
-  if(!isTouchUi()||!dayEditorTouchSelectedId)return;
+  if(!dayEditorTouchSelectedId)return;
   const id=dayEditorTouchSelectedId;
   dayEditorTouchSelectedId='';
   if(!dayEditorAssign(id,role)){
@@ -1237,7 +1320,7 @@ function dayEditorTouchAssign(role){
 
 function dayEditorWireDropzone(zone,role){
   zone.onclick=e=>{
-    if(!isTouchUi()||!dayEditorTouchSelectedId)return;
+    if(!dayEditorTouchSelectedId)return;
     if(e.target.closest('.day-assignment-remove'))return;
     dayEditorTouchAssign(role)
   };
@@ -1275,11 +1358,20 @@ function renderDayEditorDraft(){
   q('.day-editor-columns')?.classList.toggle('touch-member-selected',isTouchUi()&&!!dayEditorTouchSelectedId);
   const touchHelp=q('#dayEditorTouchHelp');
   if(touchHelp){
-    const touch=isTouchUi();
-    touchHelp.classList.toggle('hidden',!touch);
-    touchHelp.textContent=dayEditorTouchSelectedId
-      ?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · touchez maintenant le poste à lui attribuer.`
-      :'Touchez un membre, puis le poste à lui attribuer.'
+    touchHelp.classList.remove('hidden');
+    if(dayEditorTouchSelectedId){
+      touchHelp.textContent=`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · choisissez un poste.`
+    }else if(isTouchUi()){
+      touchHelp.textContent='Touchez un membre, puis un poste. Balayez horizontalement pour voir tous les postes.'
+    }else{
+      touchHelp.textContent='Cliquez un membre puis un poste, ou glissez-déposez le membre vers le poste.'
+    }
+  }
+  const quickRoles=q('#dayEditorQuickRoles'),quickSelected=q('#dayEditorQuickSelected');
+  if(quickRoles){
+    const show=isTouchUi()&&!!dayEditorTouchSelectedId;
+    quickRoles.classList.toggle('hidden',!show);
+    if(quickSelected)quickSelected.textContent=show?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné`:''
   }
   const members=dayEditorActiveMembers();
   const pool=q('#dayMemberPool');
@@ -1287,7 +1379,7 @@ function renderDayEditorDraft(){
 
   for(const m of members){
     const item=document.createElement('div');
-    item.className='day-member-source-item'+(isTouchUi()&&dayEditorTouchSelectedId===String(m.id)?' touch-selected':'');
+    item.className='day-member-source-item'+(dayEditorTouchSelectedId===String(m.id)?' touch-selected':'');
 
     const grip=document.createElement('span');
     grip.className='day-member-grip';
@@ -1303,8 +1395,8 @@ function renderDayEditorDraft(){
     text.append(name);
     item.append(grip,text);
     item.title=isTouchUi()
-      ?(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · touchez une case de rôle`:`Touchez ${m.name} puis une case de rôle`)
-      :(statusText?`${m.name} · ${statusText}`:`Glisser ${m.name}`);
+      ?(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · choisissez un poste`:`Touchez ${m.name} puis un poste`)
+      :(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · cliquez un poste`:(statusText?`${m.name} · ${statusText} · cliquer ou glisser`:`Cliquer ou glisser ${m.name}`));
     makeDayMemberDraggable(item,m.id);
     pool.append(item)
   }
@@ -1369,6 +1461,7 @@ function renderDayEditorDraft(){
     }
     availableZone.append(wrap)
   }
+  wireHorizontalScrollAffordances()
 }
 function populateDayEditor(date){
   dayEditorTouchSelectedId='';
@@ -1406,27 +1499,15 @@ function populateDayEditor(date){
     dayEditorSetWarning('')
   }
 }
-let adminCorrectionLastFocus=null;
 function openAdminCorrection(date){
-  adminCorrectionLastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   populateDayEditor(date);
   const overlay=q('#adminCorrectionOverlay');
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
-  setTimeout(()=>q('#dayMemberPool .day-member-source-item')?.focus(),0)
+  openModalOverlay(overlay,{focus:()=>q('#dayMemberPool .day-member-source-item')||q('#adminCorrectionClose')});
+  wireHorizontalScrollAffordances()
 }
 function closeAdminCorrection(){
   dayEditorTouchSelectedId='';
-  const overlay=q('#adminCorrectionOverlay');
-  if(!overlay||overlay.classList.contains('hidden'))return;
-  const active=document.activeElement;
-  if(active instanceof HTMLElement&&overlay.contains(active))active.blur();
-  overlay.classList.add('hidden');
-  overlay.setAttribute('aria-hidden','true');
-  if(q('#confirmOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open');
-  const restore=adminCorrectionLastFocus;adminCorrectionLastFocus=null;
-  if(restore?.isConnected)requestAnimationFrame(()=>restore.focus({preventScroll:true}))
+  closeModalOverlay(q('#adminCorrectionOverlay'))
 }
 function adminCorrectionForDate(date){openAdminCorrection(date)}
 function populateAdminCellEditor(date,role){
@@ -1459,27 +1540,12 @@ function populateAdminCellEditor(date,role){
     fillSingleChoiceList(q('#adminCellRoleChoices'),ids,active,(memberId)=>saveAdminCellSelection(date,role,memberId,true))
   }
 }
-let adminCellLastFocus=null;
 function openAdminCellEditor(date,role){
-  adminCellLastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   populateAdminCellEditor(date,role);
   const overlay=q('#adminCellOverlay');
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
-  setTimeout(()=>role==='present'?q('#adminCellClose')?.focus():q('#adminCellRoleChoices .single-choice-item.selected, #adminCellRoleChoices .single-choice-item')?.focus(),0)
+  openModalOverlay(overlay,{focus:()=>role==='present'?q('#adminCellClose'):q('#adminCellRoleChoices .single-choice-item.selected, #adminCellRoleChoices .single-choice-item')})
 }
-function closeAdminCellEditor(){
-  const overlay=q('#adminCellOverlay');
-  if(!overlay||overlay.classList.contains('hidden'))return;
-  const active=document.activeElement;
-  if(active instanceof HTMLElement&&overlay.contains(active))active.blur();
-  overlay.classList.add('hidden');
-  overlay.setAttribute('aria-hidden','true');
-  if(q('#confirmOverlay')?.classList.contains('hidden')&&q('#adminCorrectionOverlay')?.classList.contains('hidden'))document.body.classList.remove('modal-open');
-  const restore=adminCellLastFocus;adminCellLastFocus=null;
-  if(restore?.isConnected)requestAnimationFrame(()=>restore.focus({preventScroll:true}))
-}
+function closeAdminCellEditor(){closeModalOverlay(q('#adminCellOverlay'))}
 function setLocalCellAssignment(date,role,value){
   const old=(localAssignmentsSnapshot()[date]?.[role]||[]).map(String);
   const next=role==='present'
@@ -1886,6 +1952,85 @@ async function sendMemberLinkEmail(memberId,memberName='',btn=null){
   }
 }
 
+function memberCurrentUrl(m){
+  if(!m?.active)return'';
+  if(LOCAL)return localPersonalUrl(m.id);
+  return m.currentShortToken?shortPersonalUrl(m.currentShortToken):''
+}
+function formatMemberDeviceLabel(d){
+  const label=String(d?.label||'').trim();
+  if(label)return label;
+  return [d?.type,d?.browser,d?.os].filter(Boolean).join(' · ')||'Appareil'
+}
+function renderMemberQuick(id){
+  const m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));
+  if(!m)return false;
+  const panel=q('#memberQuickPanel');panel.dataset.memberId=String(m.id);
+  q('#memberQuickTitle').textContent=m.name||'Membre';
+  q('#memberQuickEmail').textContent=m.email||'Aucun email';
+  q('#memberQuickStatus').textContent=m.active?'Actif':'Inactif';
+  const n=Number(m.deviceCount||0);q('#memberQuickDevices').textContent=`${n} appareil${n>1?'s':''}`;
+  const list=q('#memberQuickDeviceList');list.innerHTML='';
+  const devices=(m.devices||[]).filter(Boolean);
+  if(!devices.length){const e=document.createElement('div');e.className='muted small';e.textContent='Aucun appareil connecté.';list.append(e)}
+  else for(const d of devices){const row=document.createElement('div');row.className='member-quick-device';const strong=document.createElement('strong');strong.textContent=formatMemberDeviceLabel(d);const small=document.createElement('span');small.textContent=d.createdAt?`Depuis ${new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(d.createdAt))}`:'';row.append(strong,small);list.append(row)}
+  const url=memberCurrentUrl(m);q('#memberQuickLink').textContent=url||'Aucun lien actif';q('#memberQuickLink').title=url;
+  const toggle=q('#memberQuickToggle');toggle.textContent=m.active?'Désactiver':'Activer';toggle.classList.toggle('danger',m.active);toggle.disabled=false;
+  q('#memberQuickRotate').disabled=!m.active;
+  q('#memberQuickCopy').disabled=!url;
+  q('#memberQuickSend').disabled=!url||!m.email;
+  return true
+}
+function openMemberQuick(id,trigger=null){
+  if(!isTouchUi()||!renderMemberQuick(id))return;
+  openModalOverlay(q('#memberQuickPanel'),{focus:'#memberQuickClose',returnFocus:trigger})
+}
+function closeMemberQuick(){closeModalOverlay(q('#memberQuickPanel'))}
+async function refreshMemberQuickAfter(id,work){
+  await work;
+  if(!q('#memberQuickPanel')?.classList.contains('hidden'))renderMemberQuick(id)
+}
+
+let overflowHintRaf=0;
+function horizontalScrollHintKey(el){
+  if(el.closest('#adminCorrectionOverlay'))return'editor';
+  if(el.closest('#adminMembers'))return'members';
+  if(el.closest('#adminHistory'))return'history';
+  return'planning'
+}
+function syncHorizontalScrollHint(el,right){
+  if(!isTouchUi())return;
+  const key=horizontalScrollHintKey(el),storageKey=`calasorga-scroll-hint-${key}`;
+  let seen=false;try{seen=sessionStorage.getItem(storageKey)==='1'}catch{}
+  let hint=el.parentElement?.querySelector(`:scope > .horizontal-scroll-hint[data-scroll-key="${key}"]`);
+  if(right&&!seen){
+    if(!hint){hint=document.createElement('div');hint.className='horizontal-scroll-hint';hint.dataset.scrollKey=key;hint.textContent='Balayez horizontalement →';el.insertAdjacentElement('afterend',hint)}
+  }else hint?.remove()
+  if(el.scrollLeft>12&&!seen){try{sessionStorage.setItem(storageKey,'1')}catch{};hint?.remove()}
+}
+function updateHorizontalScrollAffordance(el){
+  if(!el)return;
+  const overflow=el.scrollWidth>el.clientWidth+3;
+  const left=overflow&&el.scrollLeft>3;
+  const right=overflow&&el.scrollLeft+el.clientWidth<el.scrollWidth-3;
+  el.classList.toggle('has-horizontal-overflow',overflow);
+  el.classList.toggle('can-scroll-left',left);
+  el.classList.toggle('can-scroll-right',right);
+  if(overflow)el.setAttribute('aria-description','Contenu horizontal : balayez ou faites défiler pour voir les colonnes suivantes.');else el.removeAttribute('aria-description');
+  syncHorizontalScrollHint(el,right)
+}
+function wireHorizontalScrollAffordances(){
+  cancelAnimationFrame(overflowHintRaf);
+  overflowHintRaf=requestAnimationFrame(()=>{
+    const selectors=['#memberRoot .member-schedule-wrap','#adminRoot .admin-schedule-wrap','#adminMembers .members-table-wrap','#adminHistory .table-wrap','#adminCorrectionOverlay .day-editor-columns'];
+    for(const el of document.querySelectorAll(selectors.join(','))){
+      if(!el.dataset.scrollAffordance){el.dataset.scrollAffordance='1';el.addEventListener('scroll',()=>updateHorizontalScrollAffordance(el),{passive:true})}
+      updateHorizontalScrollAffordance(el)
+    }
+  })
+}
+window.addEventListener('resize',wireHorizontalScrollAffordances,{passive:true});
+
 function renderMembers(){
   const body=q('#membersTable');
   body.innerHTML='';
@@ -2039,9 +2184,20 @@ function renderMembers(){
     linkTd.append(linkRow)
 
     tr.append(nameTd,emailTd,stateTd,devicesTd,linkTd);
+    tr.classList.add('member-row-detail');
+    tr.tabIndex=isTouchUi()?0:-1;
+    tr.setAttribute('aria-label',`Ouvrir la fiche de ${m.name}`);
+    tr.addEventListener('click',e=>{
+      if(!isTouchUi()||e.target.closest('button,a,input,select,textarea'))return;
+      openMemberQuick(m.id,tr)
+    });
+    tr.addEventListener('keydown',e=>{
+      if(!isTouchUi()||!['Enter',' '].includes(e.key)||e.target!==tr)return;
+      e.preventDefault();openMemberQuick(m.id,tr)
+    });
     body.append(tr)
   }
-  renderMemberManagementList()
+  renderMemberManagementList();wireHorizontalScrollAffordances()
 }
 
 function renderDayEditorMembers(){
@@ -2049,7 +2205,7 @@ function renderDayEditorMembers(){
   if(date&&!q('#adminCorrectionOverlay').classList.contains('hidden'))populateDayEditor(date)
 }
 
-function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`}
+function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`;wireHorizontalScrollAffordances()}
 let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),adminPollTimer=0;
 function markAdminActivity(){
   lastAdminActivityAt=Date.now();
@@ -2270,36 +2426,21 @@ function showNewLink(url){latestPersonalUrl=url;q('#newLink').textContent=url;q(
 let memberManagementMode='',memberManagementSelectedId='';
 function closeMemberManagement(){
   memberManagementMode='';
-  for(const id of ['memberCreatePanel','memberModifyPanel']){
-    const overlay=q('#'+id);
-    if(!overlay)continue;
-    overlay.classList.add('hidden');
-    overlay.setAttribute('aria-hidden','true')
-  }
-  if(
-    q('#confirmOverlay')?.classList.contains('hidden')&&
-    q('#memberEditOverlay')?.classList.contains('hidden')&&
-    q('#adminCellOverlay')?.classList.contains('hidden')&&
-    q('#adminCorrectionOverlay')?.classList.contains('hidden')
-  )document.body.classList.remove('modal-open')
+  for(const id of ['memberCreatePanel','memberModifyPanel'])closeModalOverlay(q('#'+id))
 }
-function setMemberManagementMode(mode){
+function setMemberManagementMode(mode,{selectedId=''}={}){
   closeMemberManagement();
   if(!['create','modify'].includes(mode))return;
   memberManagementMode=mode;
   const overlay=q(mode==='create'?'#memberCreatePanel':'#memberModifyPanel');
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
   if(mode==='modify'){
-    memberManagementSelectedId='';
-    q('#memberManageEditForm')?.classList.add('hidden');
+    memberManagementSelectedId=selectedId||'';
+    q('#memberManageEditForm')?.classList.toggle('hidden',!memberManagementSelectedId);
     renderMemberManagementList();
-    setTimeout(()=>q('#memberModifyList .btn')?.focus(),0)
+    openModalOverlay(overlay,{focus:()=>memberManagementSelectedId?q('#memberManageEditName'):q('#memberModifyList .btn')})
   }else{
-    q('#newName').value='';
-    q('#newEmail').value='';
-    setTimeout(()=>q('#newName')?.focus(),0)
+    q('#newName').value='';q('#newEmail').value='';
+    openModalOverlay(overlay,{focus:'#newName'})
   }
 }
 function renderMemberManagementList(){
@@ -2360,85 +2501,6 @@ async function saveManagedMember(btn=null){
     }
     renderAdmin();fillManagedMemberForm(id);endAdminSave(true)
   }catch(e){endAdminSave(false);setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}
-}
-function openMemberEditor(id){
-  const m=(adminData?.membersAdmin||[]).find(x=>x.id===id);
-  if(!m)return;
-  q('#memberEditId').value=m.id;
-  q('#memberEditName').value=m.name||'';
-  q('#memberEditEmail').value=m.email||'';
-  q('#memberEditContext').textContent=m.name||'';
-  const overlay=q('#memberEditOverlay');
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
-  setTimeout(()=>q('#memberEditName')?.focus(),0)
-}
-function closeMemberEditor(){
-  const overlay=q('#memberEditOverlay');
-  if(!overlay||overlay.classList.contains('hidden'))return;
-  overlay.classList.add('hidden');
-  overlay.setAttribute('aria-hidden','true');
-  if(
-    q('#confirmOverlay')?.classList.contains('hidden')&&
-    q('#adminCellOverlay')?.classList.contains('hidden')&&
-    q('#adminCorrectionOverlay')?.classList.contains('hidden')
-  )document.body.classList.remove('modal-open')
-}
-async function saveMemberEditor(btn=null){
-  const id=q('#memberEditId').value;
-  const name=q('#memberEditName').value.trim();
-  const email=q('#memberEditEmail').value.trim().toLowerCase();
-  const current=(adminData?.membersAdmin||[]).find(x=>x.id===id);
-  if(!current||!name||!email)return;
-
-  const nameChanged=name!==String(current.name||'');
-  const emailChanged=email!==String(current.email||'').toLowerCase();
-  if(!nameChanged&&!emailChanged){
-    closeMemberEditor();
-    return
-  }
-
-  setButtonBusy(btn,true,'Enregistrement…');
-  try{
-    if(LOCAL){
-      const m=localState.members.find(x=>x.id===id);
-      if(!m)return;
-      if(nameChanged){
-        m.name=name.slice(0,80);
-        audit('Administrateur','membre_renomme','',{memberId:id})
-      }
-      if(emailChanged){
-        m.email=email;
-        audit('Administrateur','email_membre_modifie','',{memberId:id})
-      }
-      saveLocal();
-      adminData=localAdminSnapshot()
-    }else{
-      if(nameChanged){
-        const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({name})
-        });
-        applyAdminServerSnapshot(j.snapshot)
-      }
-      if(emailChanged){
-        const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({email})
-        });
-        applyAdminServerSnapshot(j.snapshot)
-      }
-    }
-    closeMemberEditor();
-    renderAdmin()
-  }catch(e){
-    setNotice(q('#adminError'),e.message)
-  }finally{
-    setButtonBusy(btn,false)
-  }
 }
 async function createMember(name,email,btn=null){setButtonBusy(btn,true,'Création…');try{name=String(name).trim();email=String(email).trim().toLowerCase();if(!name||!email)return false;if(LOCAL){const id='m'+Math.random().toString(36).slice(2,10);localState.members.push({id,name,email,active:true,adminPrivilege:false,createdAt:nowIso()});audit('Administrateur','membre_cree','',{memberId:id});saveLocal();adminData=localAdminSnapshot();showNewLink(localPersonalUrl(id));renderAdmin()}else{const j=await netApi('/api/admin/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});applyAdminServerSnapshot(j.snapshot);showNewLink(j.shortToken?shortPersonalUrl(j.shortToken):location.origin+j.personalPath);renderAdmin()}toast('Membre créé');return true}catch(e){setNotice(q('#adminError'),e.message);return false}finally{setButtonBusy(btn,false)}}
 async function renameMember(id,name,input=null){if(input){input.disabled=true;input.setAttribute('aria-busy','true')}try{if(LOCAL){const m=localState.members.find(x=>x.id===id);if(!m)return;m.name=String(name).trim().slice(0,80)||m.name;audit('Administrateur','membre_renomme','',{memberId:id});saveLocal();adminData=localAdminSnapshot()}else{const j=await netApi(`/api/admin/members/${encodeURIComponent(id)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});applyAdminServerSnapshot(j.snapshot)}renderAdmin();toast('Nom enregistré')}catch(e){setNotice(q('#adminError'),e.message)}finally{if(input){input.disabled=false;input.removeAttribute('aria-busy')}}}
@@ -2836,6 +2898,14 @@ q('#memberCreatePanel').addEventListener('click',e=>{if(e.target===e.currentTarg
 q('#memberModifyPanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberManagement()});
 q('#memberManageEditForm').addEventListener('submit',e=>{e.preventDefault();saveManagedMember(e.submitter)});
 q('#memberManageRotateLink').addEventListener('click',()=>{const id=q('#memberManageEditId').value,m=(adminData?.membersAdmin||[]).find(x=>x.id===id);if(m)rotateMember(m.id,m.name,q('#memberManageRotateLink'))});
+for(const btn of document.querySelectorAll('#dayEditorQuickRoles [data-quick-role]'))btn.addEventListener('click',()=>dayEditorTouchAssign(btn.dataset.quickRole));
+q('#memberQuickClose').addEventListener('click',closeMemberQuick);
+q('#memberQuickPanel').addEventListener('click',e=>{if(e.target===e.currentTarget)closeMemberQuick()});
+q('#memberQuickToggle').addEventListener('click',async e=>{const id=q('#memberQuickPanel').dataset.memberId,m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));if(m)await refreshMemberQuickAfter(id,()=>toggleMemberActiveDirect(m.id,!m.active,m.name,e.currentTarget))});
+q('#memberQuickRotate').addEventListener('click',async e=>{const id=q('#memberQuickPanel').dataset.memberId,m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));if(m)await refreshMemberQuickAfter(id,()=>rotateMember(m.id,m.name,e.currentTarget,{showResult:false,scrollResult:false}))});
+q('#memberQuickCopy').addEventListener('click',async e=>{const id=q('#memberQuickPanel').dataset.memberId,m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id)),url=memberCurrentUrl(m);if(url)await copyMemberLink(url,m.name,e.currentTarget)});
+q('#memberQuickSend').addEventListener('click',async e=>{const id=q('#memberQuickPanel').dataset.memberId,m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));if(m)await sendMemberLinkEmail(m.id,m.name,e.currentTarget)});
+q('#memberQuickEdit').addEventListener('click',()=>{const id=q('#memberQuickPanel').dataset.memberId;closeMemberQuick();setTimeout(()=>setMemberManagementMode('modify',{selectedId:id}),0)});
 
 
 function trapModalFocus(event){
@@ -2852,16 +2922,12 @@ function trapModalFocus(event){
 }
 document.addEventListener('keydown',trapModalFocus);
 
-q('#memberEditClose').addEventListener('click',closeMemberEditor);
-q('#memberEditOverlay').addEventListener('click',e=>{if(e.target===q('#memberEditOverlay'))closeMemberEditor()});
-q('#memberEditForm').addEventListener('submit',e=>{e.preventDefault();saveMemberEditor(e.submitter)});
-
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
 q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
 q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
 q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
 q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});applyAdminServerSnapshot(j.snapshot);renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
-q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#memberCreatePanel')?.classList.contains('hidden')||!q('#memberModifyPanel')?.classList.contains('hidden')){closeMemberManagement();return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
+q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#memberQuickPanel')?.classList.contains('hidden')){closeMemberQuick();return}if(!q('#memberCreatePanel')?.classList.contains('hidden')||!q('#memberModifyPanel')?.classList.contains('hidden')){closeMemberManagement();return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
   e.preventDefault();
   microAdminPageTransition(tab.dataset.adminPage,{push:true,scroll:false})

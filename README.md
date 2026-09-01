@@ -1,4 +1,4 @@
-# CalasOrga — V15.45
+# CalasOrga — UX hardening 3 modes
 
 Calendrier partagé du club, qualifié pour un usage **desktop, tablette et mobile**. Production : **Vercel + Vercel Blob privé**. GitHub Pages reste la porte d’entrée stable des membres et de l’administration.
 
@@ -10,44 +10,83 @@ Les liens personnels courts conservent la forme `https://capgui13.github.io/Cala
 
 Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’administration gère membres, appareils, planning, rôles, historique, exports et sauvegardes.
 
-## Multi-device V15.45
+## Contrat UI : exactement 3 modes
 
-- desktop : double-clic conservé sur les deux interactions historiques ; Entrée/Espace fonctionnent au clavier ;
-- tactile : un seul tap produit la même action ;
-- hybrides Surface/DeX : distinction par `PointerEvent.pointerType` afin qu’une souris reste en double-clic et qu’un doigt/stylet reste en simple tap ;
-- planning en cartes jusqu’à 980 px ; tables membres/historique en cartes téléphone ;
-- cibles tactiles critiques >= 44 px ;
-- safe areas iOS/iPadOS prises en compte ;
-- modales scrollables et focus clavier contenu ;
-- éditeur de journée : aide tactile visible « membre puis poste ».
+Le frontend applique une classe unique sur `<html>` et `<body>` :
 
-## Architecture frontend V15.45
+- `ui-desktop` : référence complète, souris/clavier, grand tableau ;
+- `ui-tablet` : desktop compact tactile, jamais de cartes téléphone ;
+- `ui-mobile` : interface d’app, navigation au pouce et vues compactes.
 
-> Le bundle navigateur s’appelle `client.js` (et non `app.js`) afin d’éviter l’auto-détection serveur Vercel des fichiers racine nommés `app.*`. Le preset Vercel est verrouillé sur `Other` via `"framework": null`.
+L’auto-détection reste stable en portrait/paysage : un appareil tactile dont le petit côté fait moins de 600 px est mobile ; à partir de 600 px il est tablette ; un appareil sans interface tactile principale reste desktop.
 
+Pour diagnostiquer les appareils hybrides, un override persistant est disponible :
 
-Le frontend n’est plus monolithique :
+```text
+?ui=desktop
+?ui=tablet
+?ui=mobile
+?ui=auto      # supprime l’override et revient à la détection automatique
+```
 
-- `index.html` contient uniquement la structure HTML ;
-- `styles.css` contient les styles desktop/tablette/mobile ;
-- `client.js` contient la logique navigateur ;
-- la CSP n’utilise plus de hashes de blocs inline : `script-src 'self'` et `style-src 'self'` suffisent ;
-- les routes admin imbriquées servent explicitement `client.js` et `styles.css`, y compris en serveur Node local.
+L’override peut aussi être piloté dans la console avec `CalasOrgaUiMode.set('desktop'|'tablet'|'mobile'|'auto')`.
 
-Le nettoyage ne change pas le modèle de données ni les règles métier. Les protections et comportements V15.44 restent qualifiés.
+## Ergonomie UX hardening
+
+### Desktop
+
+- planning, membres et historique restent les vues de référence ;
+- dans la grande fenêtre `Modifier`, un membre peut maintenant être **cliqué puis affecté à un poste**, en plus du drag & drop ;
+- une aide explicite rappelle les deux gestes ;
+- les interactions clavier existantes sont conservées.
+
+### Tablette
+
+- mêmes tableaux que desktop avec proportions compactes ;
+- toutes les actions critiques tactiles sont >= 44 px ;
+- textes fonctionnels relevés pour une meilleure lecture réelle ;
+- indicateurs visuels signalent le contenu horizontal restant ;
+- un tap sur un membre ouvre une fiche détaillée pour récupérer les informations éventuellement tronquées ;
+- l’éditeur de journée garde ses six colonnes et une barre rapide apparaît après sélection d’un membre.
+
+### Mobile
+
+- navigation admin fixe en bas : `Calendrier / Membres / Historique` ;
+- planning en tableau compact avec colonne Date fixe et balayage horizontal signalé ;
+- gestion des membres : vue d’ensemble compacte `Membre / Statut / Appareils`, puis **fiche membre en bottom sheet** au tap pour email, appareils, lien et actions ;
+- historique transformé en feed compact lisible sans swipe horizontal ;
+- fenêtre `Modifier` : six colonnes conservées comme repère, colonne Membres fixe et barre rapide `Accueil / TPE / MEP / Arbitrage / Disponible` après sélection ;
+- safe areas iOS/iPadOS et cibles tactiles >= 44 px.
+
+## Modales et accessibilité
+
+Les overlays utilisent désormais un gestionnaire commun pour :
+
+- sauvegarder et restaurer le focus ;
+- sortir le focus avant `aria-hidden=true` ;
+- conserver `modal-open` tant qu’une modale imbriquée reste ouverte ;
+- piéger Tab dans la modale active.
+
+L’ancien éditeur membre legacy non utilisé a été retiré.
+
+## Architecture frontend
+
+> Le bundle navigateur s’appelle `client.js` (et non `app.js`) afin d’éviter l’auto-détection serveur Vercel des fichiers racine nommés `app.*`. Le preset Vercel reste verrouillé sur `Other` via `"framework": null`.
+
+Le frontend reste séparé :
+
+- `index.html` : structure HTML ;
+- `styles.css` : styles et contrat des 3 modes ;
+- `client.js` : logique navigateur ;
+- `api/index.mjs` + `server.mjs` : backend inchangé par ce chantier UX.
 
 ## Sécurité et confidentialité
 
 - aucun nom ni email réel n’est embarqué dans le frontend public ni dans le roster source du serveur ;
 - le roster réel reste dans le stockage privé ;
-- la migration V15.44 du roster est **non destructive** : membres, liens, sessions, disponibilités et rôles existants sont conservés ;
-- désactiver un membre demande une confirmation explicite et précise que les inscriptions futures seront retirées ;
-- stockage Vercel Blob privé, permissions serveur, CSRF/origine/CSP, cookies `HttpOnly`/`Secure`/`SameSite=Strict` ;
-- liens personnels révocables et sauvegardes contrôlées.
-
-## Synchronisation
-
-Le rafraîchissement reste adaptatif (rapide après activité, plus lent ensuite), immédiat au retour sur la page et suspendu lorsque la page n’est pas visible. Les mutations métier conservent ETag + retry et snapshots de récupération.
+- la migration du roster reste non destructive ;
+- désactiver un membre demande une confirmation explicite ;
+- stockage Vercel Blob privé, CSRF/origine/CSP et cookies sécurisés conservés.
 
 ## Variables Vercel
 
@@ -58,16 +97,14 @@ MEMBER_SHORT_SECRET=<secret aléatoire indépendant, au moins 32 caractères>
 BLOB_STATE_PATH=calasorga/store.json
 ```
 
-Vercel fournit les variables du Blob privé. `MEMBER_SHORT_SECRET` doit rester stable.
-
 ## Santé
 
 `https://calasorga.vercel.app/healthz`
 
-Réponse attendue :
+Le backend actuellement qualifié répond notamment avec :
 
 ```json
-{"ok":true,"appVersion":"0.15.45.0-cleanup-multidevice-vercel","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.45.3-cleanup-vercel-autodetect-fix","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests
@@ -77,4 +114,7 @@ npm run check
 npm test
 ```
 
-Le test V15.45 vérifie les parcours serveur historiques ainsi que les invariants de hardening multi-device (confidentialité du source, confirmation de désactivation, clavier/tactile, cibles 44 px, aide tactile, safe areas et versioning).
+`npm test` lance :
+
+1. les parcours serveur/hardening historiques ;
+2. une **matrice Chromium réelle** sans dépendance npm supplémentaire, qui vérifie desktop 1440×900, tablette 712×1138 et mobile 375×667. Si Chromium n’est pas installé dans l’environnement CI, la partie navigateur est explicitement marquée `SKIP`.

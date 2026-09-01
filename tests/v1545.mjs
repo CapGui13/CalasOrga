@@ -116,7 +116,7 @@ try{
   // Cibles tactiles et aide explicite.
   assert.match(stylesText,/day-assignment-remove[\s\S]{0,180}width:44px!important/);
   assert.match(stylesText,/member-state-pill\{min-height:44px!important/);
-  assert.match(appText,/Touchez un membre, puis le poste à lui attribuer/);
+  assert.match(appText,/Touchez un membre, puis un poste/);
   assert.match(stylesText,/safe-area-inset-left/);
   assert.match(stylesText,/safe-area-inset-right/);
   // Roster public supprimé et migration non destructive.
@@ -127,18 +127,26 @@ try{
   assert.match(appText,/memberPollDelay\(\)/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
-  // Strict 3 modes — tablet and mobile refinements remain scoped to their explicit mode classes.
-  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns[\s\S]{0,300}min-width:852px!important/);
-  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-column-members[\s\S]{0,220}position:sticky!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns[\s\S]{0,400}min-width:725px!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-column-members[\s\S]{0,250}position:sticky!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminRoot \.admin-schedule-wrap[\s\S]{0,180}display:block!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminRoot \.admin-schedule-mobile\{display:none!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminMembers \.members-table[\s\S]{0,220}display:table!important/);
-  assert.match(stylesText,/html\.ui-mobile #adminHistory \.table[\s\S]{0,220}display:table!important/);
-  assert.match(stylesText,/MOBILE APP REFINEMENT ONLY/);
-  assert.match(appText,/adminCorrectionLastFocus/);
-  assert.match(appText,/adminCellLastFocus/);
+  // V15.46 UX hardening — strict modes, touch targets, quick detail/action surfaces.
+  assert.match(appText,/UI_MODE_OVERRIDE_KEY='calasorga-ui-mode-v1'/);
+  assert.match(appText,/query==='auto'/);
+  assert.match(appText,/globalThis\.CalasOrgaUiMode=\{get:/);
+  assert.match(appText,/function openModalOverlay\(/);
+  assert.match(appText,/function closeModalOverlay\(/);
+  assert.doesNotMatch(indexText+appText,/memberEditOverlay/,'legacy member editor must stay removed');
+  assert.match(indexText,/id="memberQuickPanel"/);
+  assert.match(indexText,/id="dayEditorQuickRoles"/);
+  assert.match(appText,/function openMemberQuick\(/);
+  assert.match(appText,/function wireHorizontalScrollAffordances\(/);
+  assert.match(appText,/Cliquez un membre puis un poste, ou glissez-déposez/);
+  assert.match(stylesText,/V15\.46 — UX HARDENING/);
+  assert.match(stylesText,/html\.ui-tablet #adminRoot \.admin-calendar-edit[\s\S]{0,220}min-height:44px!important/);
+  assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-assignment-remove[\s\S]{0,220}width:44px!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-assignment-remove[\s\S]{0,220}width:44px!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminRoot \.admin-tabs[\s\S]{0,220}position:fixed!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminMembers \.members-table th:nth-child\(2\)[\s\S]{0,260}display:none!important/);
+  assert.match(stylesText,/html\.ui-mobile #adminHistory \.table tr[\s\S]{0,220}display:grid!important/);
+  assert.match(stylesText,/day-editor-quick-buttons button[\s\S]{0,180}min-height:44px/);
 
   // Cleanup V15.45 : HTML sémantique, assets externes, CSP sans hashes inline.
   assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
@@ -152,8 +160,8 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1545\.9-mobile-app/);
-  assert.match(indexText,/client\.js\?v=1545\.9-mobile-app/);
+  assert.match(indexText,/styles\.css\?v=1546\.0-ux-hardening/);
+  assert.match(indexText,/client\.js\?v=1546\.0-ux-hardening/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);
