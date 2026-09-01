@@ -132,3 +132,13 @@ Le titre de l’onglet navigateur est **Planning Bridge**.
 - cache mémoire Vercel 60 s (`BLOB_REFRESH_TTL_MS`) ;
 - refresh concurrents coalescés ;
 - optimistic concurrency conservée sur les écritures.
+
+## Protection contre un démarrage Supabase vide
+
+En production, si `CALASORGA_STORAGE=supabase` et que la ligne `calasorga_state/main` n'existe pas encore, le serveur refuse de créer automatiquement un état vierge. Cela protège les membres, liens personnels et affectations historiques contre un remplacement accidentel.
+
+Trois chemins de mise en service existent :
+
+1. Restaurer temporairement l'accès au Blob et lancer `npm run migrate:blob:supabase`.
+2. Importer un backup JSON avec `npm run import:supabase -- <backup.json>`.
+3. Repartir volontairement à zéro en définissant temporairement `SUPABASE_ALLOW_EMPTY_INIT=1`, ouvrir l'application une fois, puis supprimer/repasser cette variable à `0`.

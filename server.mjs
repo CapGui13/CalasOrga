@@ -696,12 +696,23 @@ class FileStore {
     this.confirmationSecret = configuredConfirmationBasis
       ? sha256Text(`confirmation-v1:${configuredConfirmationBasis}`)
       : randomToken(32);
-    this.remoteBlob = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+    const requestedStorage = String(process.env.CALASORGA_STORAGE || '').trim().toLowerCase();
+    this.supabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+    this.supabaseSecret = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    this.supabaseTable = String(process.env.SUPABASE_STATE_TABLE || 'calasorga_state').trim();
+    this.supabaseRowId = String(process.env.SUPABASE_STATE_ID || 'main').trim();
+    const hasSupabase = !!(this.supabaseUrl && this.supabaseSecret);
+    const hasBlob = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+    this.storageMode = requestedStorage || (hasSupabase ? 'supabase' : hasBlob ? 'blob' : 'file');
+    this.remoteSupabase = this.storageMode === 'supabase';
+    this.remoteBlob = this.storageMode === 'blob';
+    this.remoteStore = this.remoteSupabase || this.remoteBlob;
     this.blobPath = String(process.env.BLOB_STATE_PATH || 'calasorga/store.json').replace(/^\/+/, '');
+    this.remotePrimaryKey = this.remoteSupabase ? this.supabaseRowId : this.blobPath;
     this.blobApi = null;
     this.remoteEtag = null;
     this.remoteCurrentText = null;
-    this.remoteRefreshTtlMs = Math.max(0, Number(process.env.BLOB_REFRESH_TTL_MS || (process.env.VERCEL ? 60000 : 0)) || 0);
+    this.remoteRefreshTtlMs = Math.max(0, Number(process.env.STORAGE_REFRESH_TTL_MS || process.env.BLOB_REFRESH_TTL_MS || (process.env.VERCEL ? 60000 : 0)) || 0);
     this.lastRemoteLoadAt = 0;
     this.remoteRefreshPromise = null;
   }
@@ -709,6 +720,172 @@ class FileStore {
   async #blobClient() {
     if (!this.blobApi) this.blobApi = await import('@vercel/blob');
     return this.blobApi;
+  }
+
+  #supabaseHeaders(extra = {}) {
+    return {
+      apikey: this.supabaseSecret,
+      Authorization: `Bearer ${this.supabaseSecret}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...extra
+    };
+  }
+
+  #supabaseRestUrl(query = '') {
+    return `${this.supabaseUrl}/rest/v1/${encodeURIComponent(this.supabaseTable)}${query}`;
+  }
+
+  async #supabaseJsonRequest(url, options = {}) {
+    let response;
+    try {
+      response = await fetch(url, options);
+    } catch (err) {
+      throw Object.assign(new Error(`Supabase indisponible : ${err?.message || err}`), { code: 'SUPABASE_UNAVAILABLE', cause: err });
+    }
+    const raw = await response.text();
+    let body = null;
+    if (raw) {
+      try { body = JSON.parse(raw); } catch { body = raw; }
+    }
+    if (!response.ok) {
+      const message = typeof body === 'object' && body
+        ? String(body.message || body.error_description || body.hint || body.details || `HTTP ${response.status}`)
+        : String(body || `HTTP ${response.status}`);
+      const err = Object.assign(new Error(`Supabase ${response.status} : ${message}`), {
+        code: response.status === 401 || response.status === 403 ? 'SUPABASE_AUTH' : 'SUPABASE_HTTP',
+        status: response.status,
+        responseBody: body
+      });
+      throw err;
+    }
+    return { response, body };
+  }
+
+  async #readSupabaseCandidate(rowId) {
+    const params = new URLSearchParams({
+      id: `eq.${rowId}`,
+      select: 'version,state',
+      limit: '1'
+    });
+    const { body } = await this.#supabaseJsonRequest(
+      this.#supabaseRestUrl(`?${params.toString()}`),
+      { method: 'GET', headers: this.#supabaseHeaders() }
+    );
+    const row = Array.isArray(body) ? body[0] : null;
+    if (!row) throw Object.assign(new Error('État Supabase absent.'), { code: 'ENOENT' });
+    const version = Number(row.version);
+    if (!Number.isInteger(version) || version < 1 || !row.state || typeof row.state !== 'object' || Array.isArray(row.state)) {
+      throw Object.assign(new Error('État Supabase invalide.'), { code: 'INVALID_SCHEMA' });
+    }
+    const rawText = JSON.stringify(row.state);
+    const before = this.state;
+    try {
+      this.state = clone(row.state);
+      const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
+      this.#normalize({ requireEnvelope: true });
+      const report = this.integrityReport();
+      if (!report.ok) throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
+      return { state: clone(this.state), rawText, etag: String(version), rosterMigrationNeeded };
+    } finally { this.state = before; }
+  }
+
+  async #writeSupabaseSnapshot(rowId, state, version) {
+    const query = new URLSearchParams({ on_conflict: 'id' });
+    await this.#supabaseJsonRequest(
+      this.#supabaseRestUrl(`?${query.toString()}`),
+      {
+        method: 'POST',
+        headers: this.#supabaseHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify({
+          id: rowId,
+          version: Math.max(1, Number(version) || 1),
+          state,
+          updated_at: new Date().toISOString()
+        })
+      }
+    );
+  }
+
+  async #persistSupabase(text, { preserveCurrent = true, snapshots = true } = {}) {
+    const previousText = this.remoteCurrentText;
+    const expectedVersion = Number(this.remoteEtag || 0);
+    let nextVersion = expectedVersion > 0 ? expectedVersion + 1 : 1;
+    let resultRows = [];
+
+    if (expectedVersion > 0) {
+      const params = new URLSearchParams({
+        id: `eq.${this.supabaseRowId}`,
+        version: `eq.${expectedVersion}`,
+        select: 'version'
+      });
+      const { body } = await this.#supabaseJsonRequest(
+        this.#supabaseRestUrl(`?${params.toString()}`),
+        {
+          method: 'PATCH',
+          headers: this.#supabaseHeaders({ Prefer: 'return=representation' }),
+          body: JSON.stringify({
+            version: nextVersion,
+            state: this.state,
+            updated_at: new Date().toISOString()
+          })
+        }
+      );
+      resultRows = Array.isArray(body) ? body : [];
+      if (!resultRows.length) {
+        throw Object.assign(new Error('Le calendrier a été modifié simultanément. Nouvelle tentative requise.'), {
+          code: 'REMOTE_CONFLICT',
+          status: 409
+        });
+      }
+    } else {
+      try {
+        const params = new URLSearchParams({ select: 'version' });
+        const { body } = await this.#supabaseJsonRequest(
+          this.#supabaseRestUrl(`?${params.toString()}`),
+          {
+            method: 'POST',
+            headers: this.#supabaseHeaders({ Prefer: 'return=representation' }),
+            body: JSON.stringify({
+              id: this.supabaseRowId,
+              version: 1,
+              state: this.state,
+              updated_at: new Date().toISOString()
+            })
+          }
+        );
+        resultRows = Array.isArray(body) ? body : [];
+      } catch (err) {
+        if (err?.status === 409) {
+          throw Object.assign(new Error('Le calendrier a été initialisé simultanément. Nouvelle tentative requise.'), {
+            code: 'REMOTE_CONFLICT',
+            status: 409
+          });
+        }
+        throw err;
+      }
+    }
+
+    const returnedVersion = Number(resultRows?.[0]?.version);
+    if (Number.isInteger(returnedVersion) && returnedVersion > 0) nextVersion = returnedVersion;
+    this.remoteEtag = String(nextVersion);
+    this.remoteCurrentText = text;
+    this.lastRemoteLoadAt = Date.now();
+
+    if (!snapshots) return;
+    const snapshotWrites = [];
+    if (preserveCurrent && previousText) {
+      try {
+        snapshotWrites.push([`${this.supabaseRowId}.bak`, JSON.parse(previousText)]);
+      } catch {}
+    }
+    snapshotWrites.push([`${this.supabaseRowId}.good`, clone(this.state)]);
+    const settled = await Promise.allSettled(
+      snapshotWrites.map(([rowId, state]) => this.#writeSupabaseSnapshot(rowId, state, nextVersion))
+    );
+    for (const item of settled) {
+      if (item.status === 'rejected') console.warn(`Impossible de mettre à jour un snapshot Supabase auxiliaire : ${item.reason?.message || item.reason}`);
+    }
   }
 
   #isBlobNotFound(err) {
@@ -729,6 +906,7 @@ class FileStore {
   }
 
   async #readRemoteCandidate(pathname) {
+    if (this.remoteSupabase) return this.#readSupabaseCandidate(pathname);
     const api = await this.#blobClient();
     const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
     let result;
@@ -754,7 +932,7 @@ class FileStore {
   }
 
   async #loadRemotePrimary({ persistRosterMigration = false } = {}) {
-    const loaded = await this.#readRemoteCandidate(this.blobPath);
+    const loaded = await this.#readRemoteCandidate(this.remotePrimaryKey);
     this.state = loaded.state;
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
@@ -766,7 +944,7 @@ class FileStore {
   }
 
   async refresh({ force = false } = {}) {
-    if (!this.remoteBlob) return this;
+    if (!this.remoteStore) return this;
     const freshEnough = !force && this.state && this.lastRemoteLoadAt > 0 && Date.now() - this.lastRemoteLoadAt < this.remoteRefreshTtlMs;
     if (freshEnough) return this;
     if (this.remoteRefreshPromise) {
@@ -783,7 +961,7 @@ class FileStore {
   }
 
   async init(seed = null) {
-    if (this.remoteBlob) {
+    if (this.remoteStore) {
       let primaryError = null;
       try {
         await this.#loadRemotePrimary({ persistRosterMigration: true });
@@ -791,6 +969,12 @@ class FileStore {
       } catch (err) {
         if (err?.code === 'UNSUPPORTED_SCHEMA') throw err;
         if (err?.code === 'ENOENT') {
+          if (this.remoteSupabase && process.env.SUPABASE_ALLOW_EMPTY_INIT !== '1') {
+            throw Object.assign(
+              new Error('Stockage Supabase vide : importez d’abord la sauvegarde CalasOrga ou activez explicitement SUPABASE_ALLOW_EMPTY_INIT=1 pour démarrer à neuf.'),
+              { code: 'SUPABASE_EMPTY' }
+            );
+          }
           this.state = seed ? clone(seed) : defaultState();
           this.#normalize({ requireEnvelope: true });
           this.remoteEtag = null;
@@ -801,19 +985,23 @@ class FileStore {
         primaryError = err;
       }
 
-      try {
-        const api = await this.#blobClient();
-        const meta = await api.head(this.blobPath, { token: process.env.BLOB_READ_WRITE_TOKEN || undefined });
-        this.remoteEtag = meta?.etag || null;
-      } catch {}
+      if (this.remoteBlob) {
+        try {
+          const api = await this.#blobClient();
+          const meta = await api.head(this.blobPath, { token: process.env.BLOB_READ_WRITE_TOKEN || undefined });
+          this.remoteEtag = meta?.etag || null;
+        } catch {}
+      }
 
       for (const suffix of ['.good', '.bak']) {
         try {
-          const loaded = await this.#readRemoteCandidate(`${this.blobPath}${suffix}`);
+          const loaded = await this.#readRemoteCandidate(`${this.remotePrimaryKey}${suffix}`);
           this.state = loaded.state;
           this.remoteCurrentText = null;
-          this.#invalidateRecoveredCredentials(`blob:${suffix}`);
-          console.warn(`Stockage Blob principal illisible/invalide : récupération depuis ${suffix}.`);
+          this.remoteEtag = loaded.etag;
+          const source = this.remoteSupabase ? 'supabase' : 'blob';
+          this.#invalidateRecoveredCredentials(`${source}:${suffix}`);
+          console.warn(`Stockage ${this.remoteSupabase ? 'Supabase' : 'Blob'} principal illisible/invalide : récupération depuis ${suffix}.`);
           await this.#persist({ preserveCurrent: false });
           return this;
         } catch (recoveryErr) {
@@ -1003,6 +1191,11 @@ class FileStore {
   async #persist({ preserveCurrent = true, snapshots = true } = {}) {
     const text = JSON.stringify(this.state, null, 2);
 
+    if (this.remoteSupabase) {
+      await this.#persistSupabase(text, { preserveCurrent, snapshots });
+      return;
+    }
+
     if (this.remoteBlob) {
       const api = await this.#blobClient();
       const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
@@ -1077,7 +1270,7 @@ class FileStore {
 
   async mutate(fn, { snapshots = true, useCurrentRemote = false } = {}) {
     const task = this.queue.then(async () => {
-      if (this.remoteBlob) {
+      if (this.remoteStore) {
         for (let attempt = 0; attempt < 8; attempt++) {
           // requestHandler a déjà rafraîchi l'état partagé juste avant ces mutations.
           // Le premier essai réutilise donc cet état et son ETag. En cas de conflit,
@@ -2963,7 +3156,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.46.2-blob-quota-hardening';
+const APP_VERSION = '0.15.47-supabase-storage';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -2985,8 +3178,37 @@ function configurationError(message) {
 if (configuredAdminHash && !/^[a-f0-9]{64}$/.test(configuredAdminHash)) {
   configurationError('ADMIN_TOKEN_SHA256 doit être une empreinte SHA-256 hexadécimale de 64 caractères.');
 }
-if (isVercelRuntime && !process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
-  configurationError('Vercel Blob n’est pas connecté : créez un Blob privé dans le projet et connectez-le à CalasOrga.');
+
+const storagePreference = String(process.env.CALASORGA_STORAGE || '').trim().toLowerCase();
+const supabaseUrlConfig = String(process.env.SUPABASE_URL || '').trim();
+const supabaseSecretConfig = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const hasSupabaseConfig = !!(supabaseUrlConfig && supabaseSecretConfig);
+const hasBlobConfig = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+if (storagePreference && !['supabase', 'blob', 'file'].includes(storagePreference)) {
+  configurationError('CALASORGA_STORAGE doit valoir supabase, blob ou file.');
+}
+if ((supabaseUrlConfig && !supabaseSecretConfig) || (!supabaseUrlConfig && supabaseSecretConfig)) {
+  configurationError('Supabase est partiellement configuré : SUPABASE_URL et SUPABASE_SECRET_KEY doivent être définis ensemble.');
+}
+if (hasSupabaseConfig) {
+  let parsed = null;
+  try { parsed = new URL(supabaseUrlConfig); } catch {}
+  if (!parsed || !['https:', ...(process.env.NODE_ENV === 'test' ? ['http:'] : [])].includes(parsed.protocol)) {
+    configurationError('SUPABASE_URL invalide : utilisez l’URL HTTPS du projet Supabase.');
+  }
+  const table = String(process.env.SUPABASE_STATE_TABLE || 'calasorga_state').trim();
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) {
+    configurationError('SUPABASE_STATE_TABLE invalide.');
+  }
+}
+if (storagePreference === 'supabase' && !hasSupabaseConfig) {
+  configurationError('CALASORGA_STORAGE=supabase nécessite SUPABASE_URL et SUPABASE_SECRET_KEY.');
+}
+if (storagePreference === 'blob' && !hasBlobConfig) {
+  configurationError('CALASORGA_STORAGE=blob nécessite un stockage Vercel Blob connecté.');
+}
+if (isVercelRuntime && storagePreference !== 'file' && !hasSupabaseConfig && !hasBlobConfig) {
+  configurationError('Aucun stockage distant configuré : configurez Supabase (recommandé) ou Vercel Blob.');
 }
 
 const adminTokenHash = configuredAdminHash || (adminToken ? tokenHash(adminToken) : '');
@@ -3246,11 +3468,11 @@ export async function requestHandler(req, res) {
 
     if (pathname === '/healthz' && req.method === 'GET') {
       const integrity = store.integrityReport();
-      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', integrity: integrity.ok, memberShortSecretMode });
+      return json(res, 200, { ok: true, appVersion: APP_VERSION, storage: store.storageMode === 'supabase' ? 'supabase-postgres' : store.remoteBlob ? 'vercel-blob' : 'file', integrity: integrity.ok, memberShortSecretMode });
     }
     if (pathname === '/readyz' && req.method === 'GET') {
       const integrity = store.integrityReport();
-      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.remoteBlob ? 'vercel-blob' : 'file', memberShortSecretMode });
+      return json(res, integrity.ok ? 200 : 503, { ok: integrity.ok, appVersion: APP_VERSION, storage: store.storageMode === 'supabase' ? 'supabase-postgres' : store.remoteBlob ? 'vercel-blob' : 'file', memberShortSecretMode });
     }
     if (pathname === '/api/demo/launch-state' && req.method === 'GET' && demoMode) return json(res, 200, { pageHits: demoRootHits });
 
@@ -3656,7 +3878,7 @@ if (isMainModule(import.meta.url)) {
   process.once('SIGINT', () => shutdown('SIGINT'));
   const onListening = () => {
     const displayHost = listenHost || 'localhost';
-    console.log(`Présences du club v${APP_VERSION}: http://${displayHost}:${port}`);
+    console.log(`Planning Bridge v${APP_VERSION}: http://${displayHost}:${port}`);
     if (demoMode) console.log(`Admin démo: http://${displayHost}:${port}/admin-login#${adminToken}`);
   };
   if (listenHost) server.listen(port, listenHost, onListening);

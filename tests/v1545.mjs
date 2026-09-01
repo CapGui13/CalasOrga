@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.46.2-blob-quota-hardening');
+  assert.equal(health.appVersion,'0.15.47-supabase-storage');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -130,6 +130,13 @@ try{
   assert.match(serverText,/remoteRefreshTtlMs/);
   assert.match(serverText,/result\.blob\?\.etag/);
   assert.doesNotMatch(serverText,/#readRemoteCandidate[\s\S]{0,900}api\.head\(/);
+  // V15.47 : Supabase devient le stockage distant prioritaire si configuré.
+  assert.match(serverText,/SUPABASE_SECRET_KEY/);
+  assert.match(serverText,/storageMode = requestedStorage \|\| \(hasSupabase \? 'supabase'/);
+  assert.match(serverText,/#readSupabaseCandidate\(/);
+  assert.match(serverText,/#persistSupabase\(/);
+  assert.match(serverText,/version: `eq\.\$\{expectedVersion\}`/);
+  assert.match(serverText,/storage: store\.storageMode === 'supabase' \? 'supabase-postgres'/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
   // V15.46 UX hardening — strict modes, touch targets, quick detail/action surfaces.
@@ -170,8 +177,8 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1546\.2-blob-quota/);
-  assert.match(indexText,/client\.js\?v=1546\.2-blob-quota/);
+  assert.match(indexText,/styles\.css\?v=1547-supabase/);
+  assert.match(indexText,/client\.js\?v=1547-supabase/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);
@@ -209,7 +216,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.46.2-blob-quota-hardening');
+    assert.equal(bundleHealth.appVersion,'0.15.47-supabase-storage');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));
