@@ -46,6 +46,72 @@ function normalizeRenewButton(){
   }
 }
 
+function removePlanningChipThroughExistingEditor(chip,button){
+  const cell=chip?.closest('#adminScheduleBody td[data-date][data-role]');
+  const memberId=String(chip?.dataset.memberId||'');
+  const role=String(cell?.dataset.role||'');
+  if(!cell||!memberId||!role)return;
+
+  button.disabled=true;
+  cell.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true,view:window,detail:2}));
+
+  requestAnimationFrame(()=>{
+    const cellOverlay=$('#adminCellOverlay');
+    if(!cellOverlay||cellOverlay.classList.contains('hidden')){
+      button.disabled=false;
+      return;
+    }
+
+    if(role==='present'){
+      const input=$$('#adminCellAvailableChoices input[type="checkbox"]')
+        .find(x=>String(x.value)===memberId);
+      if(!input){
+        $('#adminCellClose')?.click();
+        button.disabled=false;
+        return;
+      }
+      input.checked=false;
+      const form=$('#adminCellForm');
+      if(form?.requestSubmit)form.requestSubmit();
+      else $('#adminCellActions button[type="submit"]')?.click();
+      return;
+    }
+
+    const empty=$('#adminCellRoleChoices .single-choice-item.empty-choice');
+    if(empty){
+      empty.click();
+    }else{
+      $('#adminCellClose')?.click();
+      button.disabled=false;
+    }
+  });
+}
+
+function decoratePlanningRemoveButtons(){
+  if(!desktop())return;
+  for(const chip of $$('#adminScheduleBody td[data-date][data-role] .role-chip[data-member-id]')){
+    if(chip.dataset.adminQuickRemove==='1')continue;
+    chip.dataset.adminQuickRemove='1';
+
+    const name=chip.textContent.trim()||'ce membre';
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='day-assignment-remove';
+    button.textContent='×';
+    button.draggable=false;
+    button.title=`Retirer ${name} de ${ROLE_LABEL[String(chip.closest('td[data-role]')?.dataset.role||'')]||'cette case'}`;
+    button.setAttribute('aria-label',button.title);
+    button.addEventListener('pointerdown',e=>e.stopPropagation());
+    button.addEventListener('dragstart',e=>{e.preventDefault();e.stopPropagation()});
+    button.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      removePlanningChipThroughExistingEditor(chip,button);
+    });
+    chip.append(button);
+  }
+}
+
 function memberIdByName(name){
   const wanted=String(name||'').trim();
   if(!wanted)return'';
@@ -277,7 +343,9 @@ function enhance(){
   queued=false;
   hideHistory();
   normalizeRenewButton();
-  if(!desktop()||!editorOpen())return;
+  if(!desktop())return;
+  decoratePlanningRemoveButtons();
+  if(!editorOpen())return;
   for(const zone of $$('#adminCorrectionOverlay .day-role-dropzone'))installZone(zone);
   decorateAssignedChips();
 }
@@ -321,6 +389,11 @@ document.addEventListener('drop',e=>{
 const editor=overlay();
 if(editor){
   new MutationObserver(queueEnhance).observe(editor,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+}
+
+const planningBody=$('#adminScheduleBody');
+if(planningBody){
+  new MutationObserver(queueEnhance).observe(planningBody,{subtree:true,childList:true});
 }
 
 const cellOverlay=$('#adminCellOverlay');
