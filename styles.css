@@ -5219,8 +5219,8 @@ body{
 
 /* =========================================================
    V15.45 — TABLET DESKTOP PARITY
-   680–980px : conserver les tableaux desktop, en version compacte.
-   Le vrai mode cartes reste réservé aux téléphones (<680px).
+   600–980px : conserver les tableaux desktop, en version compacte.
+   Le vrai mode cartes reste réservé aux téléphones (<600px).
    ========================================================= */
 @media (min-width:600px) and (max-width:980px){
   html,body{overflow-x:auto!important}
@@ -5335,10 +5335,25 @@ body{
     line-height:1.25!important;
   }
   #adminRoot .admin-calendar-edit{
-    min-height:36px!important;
-    margin-top:7px!important;
-    padding:6px 7px!important;
-    font-size:10px!important;
+    width:82px!important;
+    max-width:100%!important;
+    min-height:44px!important;
+    margin:8px auto 0!important;
+    padding:7px 10px!important;
+    border:1px solid #cbdcd1!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    color:var(--accent-strong)!important;
+    box-shadow:0 1px 3px rgba(28,48,38,.08)!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    line-height:1!important;
+    opacity:1!important;
+  }
+  #adminRoot .admin-calendar-edit:hover:not(:disabled),
+  #adminRoot .admin-calendar-edit:focus-visible{
+    border-color:#9fc4ad!important;
+    background:var(--accent-bg)!important;
   }
   #adminRoot .admin-role-display,
   #memberRoot .member-role-button{
