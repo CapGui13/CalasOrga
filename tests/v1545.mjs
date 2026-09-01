@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.45.3-cleanup-vercel-autodetect-fix');
+  assert.equal(health.appVersion,'0.15.46.2-blob-quota-hardening');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -124,7 +124,12 @@ try{
   assert.match(serverText,/roster_migration_non_destructive/);
   assert.match(serverText,/membersPreserved/);
   assert.match(appText,/session-invalid/);
-  assert.match(appText,/memberPollDelay\(\)/);
+  assert.match(appText,/QUOTA_ACTIVE_POLL_MS=5\*60\*1000/);
+  assert.match(appText,/QUOTA_IDLE_POLL_MS=15\*60\*1000/);
+  assert.doesNotMatch(appText,/age<120000\?2000/);
+  assert.match(serverText,/remoteRefreshTtlMs/);
+  assert.match(serverText,/result\.blob\?\.etag/);
+  assert.doesNotMatch(serverText,/#readRemoteCandidate[\s\S]{0,900}api\.head\(/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);
 
   // V15.46 UX hardening — strict modes, touch targets, quick detail/action surfaces.
@@ -165,8 +170,8 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1546\.1-device-polish/);
-  assert.match(indexText,/client\.js\?v=1546\.1-device-polish/);
+  assert.match(indexText,/styles\.css\?v=1546\.2-blob-quota/);
+  assert.match(indexText,/client\.js\?v=1546\.2-blob-quota/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);
@@ -204,7 +209,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.45.3-cleanup-vercel-autodetect-fix');
+    assert.equal(bundleHealth.appVersion,'0.15.46.2-blob-quota-hardening');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));

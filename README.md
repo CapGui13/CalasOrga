@@ -122,3 +122,13 @@ npm test
 
 ## Nom navigateur
 Le titre de l’onglet navigateur est **Planning Bridge**.
+
+
+## V15.46.2 — Blob quota hardening
+
+- polling visible : 5 min après activité, puis 15 min ;
+- synchronisation au retour sur l’onglet si la dernière lecture date de plus de 30 s ;
+- une lecture Blob = un seul `get()` (ETag inclus), sans `head()` préalable ;
+- cache mémoire Vercel 60 s (`BLOB_REFRESH_TTL_MS`) ;
+- refresh concurrents coalescés ;
+- optimistic concurrency conservée sur les écritures.

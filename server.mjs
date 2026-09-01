@@ -701,6 +701,9 @@ class FileStore {
     this.blobApi = null;
     this.remoteEtag = null;
     this.remoteCurrentText = null;
+    this.remoteRefreshTtlMs = Math.max(0, Number(process.env.BLOB_REFRESH_TTL_MS || (process.env.VERCEL ? 60000 : 0)) || 0);
+    this.lastRemoteLoadAt = 0;
+    this.remoteRefreshPromise = null;
   }
 
   async #blobClient() {
@@ -728,21 +731,16 @@ class FileStore {
   async #readRemoteCandidate(pathname) {
     const api = await this.#blobClient();
     const token = process.env.BLOB_READ_WRITE_TOKEN || undefined;
-    let meta;
-    try {
-      meta = await api.head(pathname, { token });
-    } catch (err) {
-      if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
-      throw err;
-    }
     let result;
     try {
+      // get() renvoie déjà l'ETag dans result.blob.etag : un HEAD préalable
+      // doublait inutilement toutes les Simple Operations Blob.
       result = await api.get(pathname, { access: 'private', useCache: false, token });
     } catch (err) {
       if (this.#isBlobNotFound(err)) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
       throw err;
     }
-    if (!result || result.statusCode !== 200) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
+    if (!result || result.statusCode !== 200 || !result.stream) throw Object.assign(new Error('Blob absent.'), { code: 'ENOENT' });
     const rawText = await new Response(result.stream).text();
     const before = this.state;
     try {
@@ -750,13 +748,9 @@ class FileStore {
       const rosterMigrationNeeded = this.state?.rosterVersion !== CURRENT_ROSTER_VERSION;
       this.#normalize({ requireEnvelope: true });
       const report = this.integrityReport();
-      if (!report.ok) {
-        throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
-      }
-      return { state: clone(this.state), rawText, etag: meta?.etag || null, rosterMigrationNeeded };
-    } finally {
-      this.state = before;
-    }
+      if (!report.ok) throw Object.assign(new Error(`Stockage incohérent : ${report.issues.slice(0, 5).join(', ')}.`), { code: 'INVALID_SCHEMA' });
+      return { state: clone(this.state), rawText, etag: result.blob?.etag || result.headers?.get?.('etag') || null, rosterMigrationNeeded };
+    } finally { this.state = before; }
   }
 
   async #loadRemotePrimary({ persistRosterMigration = false } = {}) {
@@ -764,16 +758,28 @@ class FileStore {
     this.state = loaded.state;
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
+    this.lastRemoteLoadAt = Date.now();
     if (persistRosterMigration && loaded.rosterMigrationNeeded) {
       await this.#persist({ preserveCurrent: false, snapshots: true });
     }
     return loaded;
   }
 
-  async refresh() {
+  async refresh({ force = false } = {}) {
     if (!this.remoteBlob) return this;
-    await this.#loadRemotePrimary({ persistRosterMigration: true });
-    return this;
+    const freshEnough = !force && this.state && this.lastRemoteLoadAt > 0 && Date.now() - this.lastRemoteLoadAt < this.remoteRefreshTtlMs;
+    if (freshEnough) return this;
+    if (this.remoteRefreshPromise) {
+      await this.remoteRefreshPromise;
+      return this;
+    }
+    this.remoteRefreshPromise = this.#loadRemotePrimary({ persistRosterMigration: true });
+    try {
+      await this.remoteRefreshPromise;
+      return this;
+    } finally {
+      this.remoteRefreshPromise = null;
+    }
   }
 
   async init(seed = null) {
@@ -1020,6 +1026,7 @@ class FileStore {
         this.remoteEtag = meta?.etag || null;
       }
       this.remoteCurrentText = text;
+      this.lastRemoteLoadAt = Date.now();
 
       // Les écritures de session n'ont pas besoin de réécrire .bak/.good : en cas de
       // récupération exceptionnelle, toutes les sessions sont de toute façon révoquées.
@@ -2956,7 +2963,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.45.3-cleanup-vercel-autodetect-fix';
+const APP_VERSION = '0.15.46.2-blob-quota-hardening';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();

@@ -640,6 +640,7 @@ function queueAdminPlanningChanges(changes){
 async function refreshAdminAfterPlanningFailure(batch){
   try{
     const fresh=await netApi('/api/admin');
+    lastAdminSyncAt=Date.now();
     adminSessionContext=fresh.adminContext||adminSessionContext;
     applyAdminPendingOverlay(fresh);
     renderAdminCalendar();
@@ -806,6 +807,7 @@ function queueMemberPlanningChange(date,role,present){
 async function refreshMemberAfterPlanningFailure(batch){
   try{
     const fresh=await netApi('/api/me');
+    lastMemberSyncAt=Date.now();
     memberData=memberPendingOverlay(fresh);
     renderMember();
     return
@@ -1066,9 +1068,12 @@ function toggleAssignment(date,role,present){
 
 function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
 function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GITHUB_HOME}#session-invalid`);return true}showMemberLinkRequired('Votre association à cet appareil n’est plus valide. Ouvrez à nouveau votre lien personnel.');return false}
-let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),memberPollTimer=0;
+let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),lastMemberSyncAt=0,memberPollTimer=0;
+const QUOTA_ACTIVE_POLL_MS=5*60*1000;
+const QUOTA_IDLE_POLL_MS=15*60*1000;
+const QUOTA_WAKE_STALE_MS=30*1000;
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
-function memberPollDelay(){const age=Date.now()-lastMemberActivityAt;return age<120000?2000:age<600000?5000:10000}
+function memberPollDelay(){return Date.now()-lastMemberActivityAt<10*60*1000?QUOTA_ACTIVE_POLL_MS:QUOTA_IDLE_POLL_MS}
 async function refreshMember({openIfSuccessful=false}={}){
   if(memberRefreshBusy||memberPlanningHasWork())return;
 
@@ -1082,6 +1087,7 @@ async function refreshMember({openIfSuccessful=false}={}){
   memberRefreshBusy=true;
   try{
     const fresh=await netApi('/api/me');
+    lastMemberSyncAt=Date.now();
     memberData=memberPendingOverlay(fresh);
 
     if(!memberMonth){
@@ -2219,14 +2225,13 @@ function renderDayEditorMembers(){
 }
 
 function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`;wireHorizontalScrollAffordances()}
-let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),adminPollTimer=0;
+let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),lastAdminSyncAt=0,adminPollTimer=0;
 function markAdminActivity(){
   lastAdminActivityAt=Date.now();
   if(!LOCAL&&!GITHUB_PAGES)scheduleAdminPoll()
 }
 function adminPollDelay(){
-  const age=Date.now()-lastAdminActivityAt;
-  return age<120000?2000:age<600000?5000:10000
+  return Date.now()-lastAdminActivityAt<10*60*1000?QUOTA_ACTIVE_POLL_MS:QUOTA_IDLE_POLL_MS
 }
 function adminRefreshSafe(){
   if(LOCAL||GITHUB_PAGES)return false;
@@ -2263,6 +2268,7 @@ async function refreshAdmin(btn=null,{silent=false,openIfSuccessful=false}={}){
   setButtonBusy(btn,true,'Actualisation…');
   try{
     const fresh=await netApi('/api/admin');
+    lastAdminSyncAt=Date.now();
     adminSessionContext=fresh.adminContext||{fromMember:false,memberId:null,name:null};
     applyAdminServerSnapshot(fresh);
     if(openIfSuccessful&&activeRootView!=='adminRoot')showOnly('adminRoot');
@@ -2956,16 +2962,23 @@ if(!LOCAL&&!GITHUB_PAGES){
   q('#memberRoot').addEventListener('keydown',markMemberActivity);
   q('#adminRoot').addEventListener('pointerdown',markAdminActivity,{passive:true});
   q('#adminRoot').addEventListener('keydown',markAdminActivity);
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible'){
+  const quotaSafeWakeRefresh=()=>{
+    const now=Date.now();
+    if(!memberPlanningHasWork()&&!q('#memberRoot').classList.contains('hidden')&&now-lastMemberSyncAt>=QUOTA_WAKE_STALE_MS){
       markMemberActivity();
-      if(!memberPlanningHasWork()&&!q('#memberRoot').classList.contains('hidden'))refreshMember();
-      if(!q('#adminRoot').classList.contains('hidden')){
-        markAdminActivity();
-        if(adminRefreshSafe())refreshAdmin(null,{silent:true})
-      }
+      refreshMember()
     }
+    if(!q('#adminRoot').classList.contains('hidden')&&now-lastAdminSyncAt>=QUOTA_WAKE_STALE_MS){
+      markAdminActivity();
+      if(adminRefreshSafe())refreshAdmin(null,{silent:true})
+    }
+  };
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')quotaSafeWakeRefresh()
   });
+  window.addEventListener('focus',quotaSafeWakeRefresh,{passive:true});
+  window.addEventListener('pageshow',quotaSafeWakeRefresh,{passive:true});
+  window.addEventListener('online',quotaSafeWakeRefresh,{passive:true});
   scheduleMemberPoll();
   scheduleAdminPoll()
 }
