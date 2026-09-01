@@ -18,7 +18,7 @@ Le frontend applique une classe unique sur `<html>` et `<body>` :
 - `ui-tablet` : desktop compact tactile, jamais de cartes téléphone ;
 - `ui-mobile` : interface d’app, navigation au pouce et vues compactes.
 
-L’auto-détection reste stable en portrait/paysage : un appareil tactile dont le petit côté fait moins de 600 px est mobile ; à partir de 600 px il est tablette ; un appareil sans interface tactile principale reste desktop.
+L’auto-détection reste stable en portrait/paysage : un appareil tactile dont le petit côté fait moins de 600 px est mobile ; à partir de 600 px il est tablette. Un grand appareil hybride Windows / pointeur fin actif (Surface, PC tactile avec souris ou trackpad) est traité comme desktop.
 
 Pour diagnostiquer les appareils hybrides, un override persistant est disponible :
 
@@ -118,3 +118,7 @@ npm test
 
 1. les parcours serveur/hardening historiques ;
 2. une **matrice Chromium réelle** sans dépendance npm supplémentaire, qui vérifie desktop 1440×900, tablette 712×1138 et mobile 375×667. Si Chromium n’est pas installé dans l’environnement CI, la partie navigateur est explicitement marquée `SKIP`.
+
+
+## Nom navigateur
+Le titre de l’onglet navigateur est **Planning Bridge**.

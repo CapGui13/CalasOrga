@@ -18,7 +18,8 @@ const [indexRaw,stylesRaw,clientRaw]=await Promise.all([
 const clientTest=clientRaw.replace(/const LOCAL = .*?;\n/,"const LOCAL = true;\n");
 const testHtml=indexRaw
   .replace(/<link rel="stylesheet" href="[^"]+">/,`<style>${stylesRaw}</style>`)
-  .replace(/<script src="[^"]+"><\/script>/,`<script>${clientTest.replace(/<\/script/gi,'<\\/script')}</script>`);
+  .replace(/<script src="[^"]+"><\/script>/,`<script>${clientTest.replace(/<\/script/gi,'<\\/script')}</script>`)
+  .replace('</head>','<style>#localBanner{display:none!important}</style></head>');
 
 function connectCdp(wsUrl){
   return new Promise((resolve,reject)=>{
@@ -59,6 +60,7 @@ try{
 
   const desktop=await newPage({mode:'desktop',width:1440,height:900});
   assert.equal(await desktop.evalJs(`document.documentElement.dataset.uiMode`),'desktop');
+  assert.equal(await desktop.evalJs(`document.title`),'Planning Bridge');
   assert.notEqual(await desktop.evalJs(`getComputedStyle(document.querySelector('.admin-tabs')).position`),'fixed');
   await desktop.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
   assert.match(await desktop.evalJs(`document.querySelector('#dayEditorTouchHelp')?.textContent||''`),/Cliquez un membre puis un poste/);
@@ -71,11 +73,18 @@ try{
   assert.equal(await tablet.evalJs(`document.querySelector('#adminCorrectionOverlay').classList.contains('hidden')`),false);
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).overflowX`),'auto');
   assert.ok(Number(await tablet.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).minWidth)`))>=800);
+  assert.ok(Number(await tablet.evalJs(`(()=>{const b=document.createElement('button');b.className='day-assignment-remove';document.querySelector('#adminCorrectionOverlay').append(b);const n=parseFloat(getComputedStyle(b).minWidth||getComputedStyle(b).width);b.remove();return n})()`))>=44);
+  assert.equal(await tablet.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet body must not overflow horizontally');
   await tablet.close();
 
   const mobile=await newPage({mode:'mobile',width:375,height:667});
   assert.equal(await mobile.evalJs(`document.documentElement.dataset.uiMode`),'mobile');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('.admin-tabs')).position`),'fixed');
+  assert.equal(await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').innerText.trim()`),'Membres');
+  assert.equal(await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').innerText.includes('Gestion des membres')`),false);
+  assert.equal(await mobile.evalJs(`(()=>{const a=[...document.querySelectorAll('.admin-tabs a')].map(x=>x.getBoundingClientRect());return a.every((r,i)=>r.left>=0&&r.right<=innerWidth+1&&(i===0||r.left>=a[i-1].right-1))})()`),true,'mobile bottom nav must fit without overlap');
+  assert.equal(await mobile.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'mobile body must not overflow horizontally');
+  assert.equal(await mobile.evalJs(`(()=>{const b=document.querySelector('#adminRoot .brand').getBoundingClientRect(),x=document.querySelector('#adminExit').getBoundingClientRect();return b.right<=x.left+1})()`),true,'mobile brand and logout must not overlap');
   assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminRoot .top-actions .btn')).minHeight)`))>=44);
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-wrap')).display`),'block');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).display`),'none');
@@ -99,7 +108,14 @@ try{
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay').contains(document.activeElement)`),false);
   await mobile.close();
 
-  console.log('UI browser tests: PASS (desktop/tablet/mobile)');
+  const mobileLandscape=await newPage({mode:'mobile',width:780,height:360});
+  assert.equal(await mobileLandscape.evalJs(`document.documentElement.dataset.uiMode`),'mobile');
+  assert.equal(await mobileLandscape.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'mobile landscape body must not overflow horizontally');
+  assert.equal(await mobileLandscape.evalJs(`(()=>{const n=document.querySelector('.admin-tabs').getBoundingClientRect();return n.left>=0&&n.right<=innerWidth+1&&n.bottom<=innerHeight+1})()`),true,'mobile landscape nav must remain inside viewport');
+  assert.ok(Number(await mobileLandscape.evalJs(`parseFloat(getComputedStyle(document.querySelector('.admin-tabs a')).minHeight)`))>=44);
+  await mobileLandscape.close();
+
+  console.log('UI browser tests: PASS (desktop/tablet/mobile + visual geometry + landscape)');
 } finally {
   try{cdp?.close()}catch{}
   try{chrome?.kill('SIGTERM')}catch{}

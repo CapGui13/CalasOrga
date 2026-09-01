@@ -6147,9 +6147,6 @@ html.ui-mobile .admin-tabs a{
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-/* "Gestion des membres" becomes "Membres" only visually on mobile. */
-html.ui-mobile .admin-tabs a[data-admin-page="members"]{font-size:0!important}
-html.ui-mobile .admin-tabs a[data-admin-page="members"]::after{content:"Membres";font-size:11px;font-weight:inherit}
 
 /* Shared compact page heads. */
 html.ui-mobile #adminRoot .section-head,
@@ -6777,3 +6774,72 @@ html.ui-mobile .confirm-dialog .btn,html.ui-tablet .confirm-dialog .btn{min-heig
   background:#eef6f1;color:#4a6054;font-size:10.5px;font-weight:800;line-height:1.1;pointer-events:none
 }
 html.ui-desktop .horizontal-scroll-hint{display:none!important}
+
+/* =========================================================
+   V15.46.1 — DEVICE POLISH / VISUAL QA FOLLOW-UP
+   - clean mobile nav labels
+   - stronger horizontal affordance
+   - compact mobile landscape
+   - long-name resilience
+   ========================================================= */
+
+/* One semantic nav label, two explicit presentations; no pseudo-text duplication. */
+.admin-tabs .nav-label-mobile{display:none}
+html.ui-mobile .admin-tabs .nav-label-desktop{display:none!important}
+html.ui-mobile .admin-tabs .nav-label-mobile{display:inline!important}
+
+/* Stronger but unobtrusive cue that more columns exist. */
+html.ui-tablet .can-scroll-right,
+html.ui-mobile .can-scroll-right{
+  box-shadow:inset -28px 0 20px -24px rgba(25,63,43,.70)!important;
+}
+html.ui-tablet .can-scroll-left,
+html.ui-mobile .can-scroll-left{
+  box-shadow:inset 28px 0 20px -24px rgba(25,63,43,.55)!important;
+}
+html.ui-tablet .can-scroll-left.can-scroll-right,
+html.ui-mobile .can-scroll-left.can-scroll-right{
+  box-shadow:inset 28px 0 20px -24px rgba(25,63,43,.50),inset -28px 0 20px -24px rgba(25,63,43,.65)!important;
+}
+html.ui-tablet .horizontal-scroll-hint,
+html.ui-mobile .horizontal-scroll-hint{
+  margin-top:6px!important;
+  padding:6px 10px!important;
+  background:#e8f4ec!important;
+  border:1px solid #c7dfcf!important;
+  color:#315c43!important;
+  font-size:11px!important;
+  box-shadow:0 2px 8px rgba(24,39,31,.05)!important;
+}
+
+/* Long names/actions must never collide in the app header. */
+html.ui-mobile #memberRoot>.topbar>div:first-child,
+html.ui-mobile #adminRoot>.topbar>div:first-child{min-width:0!important;overflow:hidden!important}
+html.ui-mobile #memberRoot>.topbar .brand,
+html.ui-mobile #adminRoot>.topbar .brand{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+html.ui-mobile #memberRoot>.topbar .top-actions,
+html.ui-mobile #adminRoot>.topbar .top-actions{flex:0 0 auto!important;min-width:0!important}
+
+/* Mobile landscape stays ui-mobile but spends much less vertical space. */
+@media (orientation:landscape) and (max-height:560px){
+  html.ui-mobile{--mobile-nav-height:54px!important;--mobile-edge:6px!important}
+  html.ui-mobile .shell{
+    padding-top:max(5px,env(safe-area-inset-top))!important;
+    padding-left:max(6px,env(safe-area-inset-left))!important;
+    padding-right:max(6px,env(safe-area-inset-right))!important;
+  }
+  html.ui-mobile #memberRoot>.topbar,
+  html.ui-mobile #adminRoot>.topbar{margin-bottom:4px!important;gap:5px!important}
+  html.ui-mobile #memberRoot>.topbar .brand,
+  html.ui-mobile #adminRoot>.topbar .brand{font-size:17px!important}
+  html.ui-mobile #memberRoot>.topbar .top-actions .btn,
+  html.ui-mobile #adminRoot>.topbar .top-actions .btn{min-height:44px!important;padding:6px 8px!important;font-size:10.5px!important}
+  html.ui-mobile .card{padding:8px!important;border-radius:13px!important}
+  html.ui-mobile .spaced{margin-top:6px!important}
+  html.ui-mobile #adminRoot .card h2,
+  html.ui-mobile #memberRoot .card h2{font-size:17px!important;margin-bottom:4px!important}
+  html.ui-mobile .monthnav{margin:4px 0 6px!important;grid-template-columns:44px minmax(0,1fr) 44px!important}
+  html.ui-mobile .monthlabel{font-size:14px!important}
+  html.ui-mobile #adminRoot .admin-tabs{padding:3px!important;border-radius:15px!important;bottom:max(3px,env(safe-area-inset-bottom))!important}
+  html.ui-mobile #adminRoot .admin-tabs a{min-height:44px!important;padding:5px 2px!important;font-size:10px!important}
+}

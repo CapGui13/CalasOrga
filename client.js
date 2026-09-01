@@ -65,6 +65,13 @@ function uiTouchCapable(){
     || window.matchMedia?.('(pointer: coarse)').matches===true
     || window.matchMedia?.('(any-pointer: coarse)').matches===true
 }
+function uiPrecisePointerActive(){
+  return window.matchMedia?.('(hover: hover) and (pointer: fine)').matches===true
+}
+function uiDesktopPlatformHint(){
+  const platform=String(navigator.userAgentData?.platform||navigator.platform||'');
+  return /windows|win32|win64/i.test(platform)
+}
 function readUiModeOverride(){
   const valid=new Set(['desktop','tablet','mobile']);
   let query='';
@@ -85,8 +92,13 @@ function readUiModeOverride(){
 uiModeOverride=readUiModeOverride();
 function detectUiMode(){
   if(uiModeOverride)return uiModeOverride;
+  const shortSide=uiShortSide();
   if(!uiTouchCapable())return'desktop';
-  return uiShortSide()<600?'mobile':'tablet'
+  /* Un grand appareil hybride (Surface/PC tactile) piloté par une vraie
+     souris/trackpad reste desktop. Un téléphone/tablette tactile sans
+     pointeur précis conserve mobile/tablette. */
+  if(shortSide>=800&&(uiPrecisePointerActive()||uiDesktopPlatformHint()))return'desktop';
+  return shortSide<600?'mobile':'tablet'
 }
 function applyUiMode(){
   const next=detectUiMode();
@@ -96,7 +108,8 @@ function applyUiMode(){
     root.classList.remove(...UI_MODE_CLASSES);
     root.classList.add(`ui-${next}`);
     root.dataset.uiMode=next;
-    root.dataset.uiModeSource=uiModeOverride?'override':'auto'
+    root.dataset.uiModeSource=uiModeOverride?'override':'auto';
+    root.dataset.uiInputProfile=uiPrecisePointerActive()?'fine':'touch'
   }
   queueMicrotask(()=>wireHorizontalScrollAffordances?.());
   return next
