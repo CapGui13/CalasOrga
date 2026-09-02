@@ -92,6 +92,11 @@ try{
   assert.equal(loginA3.r.status,200);
   const aliceCookies2={...aliceCookies1,...loginA3.set};
   const adminSnap=await api('/api/admin',{cookies:adminCookies});
+  const syncAdmin=await api('/api/sync?view=admin&since=',{cookies:adminCookies});
+  assert.equal(syncAdmin.r.status,200,JSON.stringify(syncAdmin.j));
+  assert.equal(typeof syncAdmin.j.changed,'boolean');
+  const syncMember=await api('/api/sync?view=member&since=',{cookies:aliceCookies2});
+  assert.equal(syncMember.r.status,200,JSON.stringify(syncMember.j));
   const alice=adminSnap.j.membersAdmin.find(m=>m.id===aliceId);
   assert.equal(alice.deviceCount,1,'réouvrir le lien sur le même navigateur ne doit pas créer un faux appareil');
 
@@ -129,6 +134,8 @@ try{
   assert.match(appText,/session-invalid/);
   assert.match(appText,/QUOTA_ACTIVE_POLL_MS=5\*60\*1000/);
   assert.match(appText,/QUOTA_IDLE_POLL_MS=15\*60\*1000/);
+  assert.match(appText,/SHARED_SYNC_POLL_MS=2000/);
+  assert.match(appText,/\/api\/sync\?view=\$\{view\}&since=/);
   assert.doesNotMatch(appText,/age<120000\?2000/);
   assert.match(serverText,/remoteRefreshTtlMs/);
   assert.match(serverText,/result\.blob\?\.etag/);
@@ -138,6 +145,8 @@ try{
   assert.match(serverText,/storageMode = requestedStorage \|\| \(hasSupabase \? 'supabase'/);
   assert.match(serverText,/#readSupabaseCandidate\(/);
   assert.match(serverText,/#persistSupabase\(/);
+  assert.match(serverText,/currentRemoteSyncVersion\(\)/);
+  assert.match(serverText,/pathname === '\/api\/sync'/);
   assert.match(serverText,/version: `eq\.\$\{expectedVersion\}`/);
   assert.match(serverText,/storage: store\.storageMode === 'supabase' \? 'supabase-postgres'/);
   assert.doesNotMatch(indexText+appText,/Choisis un membre|Ouvre ton lien|Entre ton code|Copie ce lien/);

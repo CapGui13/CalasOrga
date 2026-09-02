@@ -159,7 +159,7 @@
       </nav>
       <div class="schedule-wrap admin-schedule-wrap member-schedule-wrap">
         <table class="schedule admin-schedule member-schedule" aria-label="Planning des permanences">
-          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
+          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>Mise en place</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
           <tbody id="scheduleBody"></tbody>
         </table>
       </div>
@@ -206,7 +206,7 @@
       </nav>
       <div class="schedule-wrap admin-schedule-wrap">
         <table class="schedule admin-schedule" aria-label="Calendrier administrateur des permanences">
-          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>MEP</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
+          <thead><tr><th>Date</th><th>Accueil</th><th>TPE</th><th>Mise en place</th><th>Arbitrage</th><th>Disponible</th></tr></thead>
           <tbody id="adminScheduleBody"></tbody>
         </table>
       </div>
@@ -273,7 +273,7 @@
             <div class="day-editor-quick-buttons" role="group" aria-label="Attribuer le membre sélectionné">
               <button type="button" data-quick-role="accueil">Accueil</button>
               <button type="button" data-quick-role="tpe">TPE</button>
-              <button type="button" data-quick-role="mep">MEP</button>
+              <button type="button" data-quick-role="mep">Mise en place</button>
               <button type="button" data-quick-role="arbitrage">Arbitrage</button>
               <button type="button" data-quick-role="present">Disponible</button>
             </div>
@@ -292,8 +292,8 @@
               <div id="dayTpeChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="tpe" aria-label="TPE"></div>
             </div>
             <div class="day-column day-column-role">
-              <div class="day-column-head"><div class="day-role-card-title">MEP</div></div>
-              <div id="dayMepChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="mep" aria-label="MEP"></div>
+              <div class="day-column-head"><div class="day-role-card-title">Mise en place</div></div>
+              <div id="dayMepChoices" class="day-role-dropzone day-role-dropzone-column" data-day-role="mep" aria-label="Mise en place"></div>
             </div>
             <div class="day-column day-column-role">
               <div class="day-column-head"><div class="day-role-card-title">Arbitrage</div></div>
@@ -340,7 +340,7 @@
     </div>
 
     <div id="adminSupport" class="hidden" aria-hidden="true">
-      <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, MEP et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Disponible » peut contenir plusieurs personnes disponibles.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
+      <div class="admin-grid"><section class="card" id="adminSettings"><div class="section-head"><h2>Réglages</h2><span class="pill" id="integrityBadge">État…</span></div><div class="muted small" id="integrityDetail"></div><div class="sep"></div><p><strong>Couverture complète :</strong><br>Accueil, TPE, Mise en place et Arbitrage doivent chacun avoir au moins une personne.<br><span class="muted small">La colonne « Disponible » peut contenir plusieurs personnes disponibles.</span></p><div class="sep"></div><p><strong>Ouverture habituelle :</strong><br>lundi, mardi, jeudi</p><div class="actions"><button class="btn" id="downloadPlanning" type="button">Planning CSV · 12 mois</button><button class="btn" id="downloadBackup" type="button">Sauvegarde complète</button></div><div class="sep"></div><div class="field"><label for="backupFile">Restaurer une sauvegarde</label><input id="backupFile" type="file" accept="application/json,.json"></div><button class="btn danger spaced" id="restoreBackup" type="button">Restaurer ce fichier</button><p class="muted small">La restauration remplace les données actuelles.</p><div class="server-only"><div class="sep"></div><button class="btn" id="revokeOtherAdmins" type="button">Déconnecter les autres sessions admin</button></div></section></div>
       <section class="card spaced" id="adminExceptions"><div class="section-head"><h2>Exceptions calendrier</h2><span class="muted small">Fermer un jour habituel ou ouvrir exceptionnellement un autre jour.</span></div><form id="exceptionForm" class="form-row"><div class="exception-fields"><div class="field"><label for="exceptionDate">Date</label><input type="date" id="exceptionDate" required></div><div class="field"><label for="exceptionState">État</label><select id="exceptionState"><option value="closed">Fermé</option><option value="open">Ouvert</option></select></div><div class="field"><label for="exceptionNote">Remarque</label><input id="exceptionNote" maxlength="200" placeholder="Vacances, ouverture exceptionnelle…"></div></div><button class="btn primary" type="submit">Enregistrer</button></form><div class="sep"></div><form id="bulkExceptionForm" class="form-row"><div class="bulk-exception-fields"><div class="field"><label for="bulkFrom">Du</label><input type="date" id="bulkFrom" required></div><div class="field"><label for="bulkTo">Au</label><input type="date" id="bulkTo" required></div><div class="field"><label for="bulkState">État</label><select id="bulkState"><option value="closed">Fermé</option><option value="normal">Horaires habituels</option><option value="open">Ouvert tous les jours</option></select></div><div class="field"><label for="bulkNote">Remarque</label><input id="bulkNote" maxlength="200" placeholder="Vacances, ouverture spéciale…"></div></div><button class="btn primary" type="submit">Appliquer à la période</button></form><div class="exception-list spaced" id="exceptionList"></div></section>
     </div>
 

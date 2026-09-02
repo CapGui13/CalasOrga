@@ -454,7 +454,7 @@ const ALL_ROLE_KEYS = [...ROLE_KEYS, 'present'];
 const ROLE_NOTIFICATION_LABELS = Object.freeze({
   accueil: 'Accueil',
   tpe: 'TPE',
-  mep: 'MEP',
+  mep: 'Mise en place',
   arbitrage: 'Arbitrage'
 });
 
@@ -986,6 +986,29 @@ class FileStore {
     } finally {
       this.remoteRefreshPromise = null;
     }
+  }
+
+
+  syncVersion() {
+    if (this.remoteSupabase && this.remoteEtag) return `supabase:${this.remoteEtag}`;
+    if (this.remoteBlob && this.remoteEtag) return `blob:${this.remoteEtag}`;
+    return '';
+  }
+
+  async currentRemoteSyncVersion() {
+    if (!this.remoteSupabase) return this.syncVersion();
+    const params = new URLSearchParams({
+      id: `eq.${this.supabaseRowId}`,
+      select: 'version',
+      limit: '1'
+    });
+    const { body } = await this.#supabaseJsonRequest(
+      this.#supabaseRestUrl(`?${params.toString()}`),
+      { method: 'GET', headers: this.#supabaseHeaders() }
+    );
+    const row = Array.isArray(body) ? body[0] : null;
+    const version = Number(row?.version);
+    return Number.isInteger(version) && version > 0 ? `supabase:${version}` : '';
   }
 
   async init(seed = null) {
@@ -1978,6 +2001,7 @@ class FileStore {
     snap.settings.memberWindow = { from, to };
     const self = this.state.members.find((m) => m.id === memberId && m.active);
     if (snap.me) snap.me.adminPrivilege = !!self?.adminPrivilege;
+    snap.syncVersion = this.syncVersion();
     return snap;
   }
   auditEntries(limit = 5000) {
@@ -2029,7 +2053,8 @@ class FileStore {
         };
       }),
       auditLog: this.state.auditLog.slice(-200).reverse(),
-      integrity: this.integrityReport()
+      integrity: this.integrityReport(),
+      syncVersion: this.syncVersion()
     };
   }
 
@@ -3321,7 +3346,7 @@ function planningCsv(snapshot, from, to) {
   const dates = isoDateRange(from, to, 366);
   if (!dates) return null;
   const names = Object.fromEntries((snapshot.members || []).map((m) => [m.id, m.name]));
-  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'MEP', 'Arbitrage', 'Disponible', 'Nombre disponibles', 'Postes pourvus', 'Postes requis', 'Couverture', 'Remarque']];
+  const rows = [['Date', 'Jour', 'Accueil', 'TPE', 'Mise en place', 'Arbitrage', 'Disponible', 'Nombre disponibles', 'Postes pourvus', 'Postes requis', 'Couverture', 'Remarque']];
   for (const date of dates) {
     if (!effectiveIsOpen(snapshot, date)) continue;
     const dayAssignments = snapshot.assignments?.[date] || {};
@@ -3491,6 +3516,39 @@ export async function requestHandler(req, res) {
       const session = await store.createAdminSession(60 * 60 * 8, adminCredentialTag);
       const csrf = csrfCookie('club_admin_csrf', secure, 60 * 60 * 8);
       return json(res, 200, { ok: true, loginMode: codeOk ? 'code' : 'recovery-token' }, { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] });
+    }
+
+    // Synchronisation légère multi-appareils : on ne lit que le numéro de version
+    // Supabase tant que rien n'a changé. Lorsqu'une autre session a écrit, une seule
+    // requête force alors la lecture de l'état complet et renvoie le snapshot utile.
+    if (pathname === '/api/sync' && req.method === 'GET') {
+      const view = url.searchParams.get('view') === 'admin' ? 'admin' : 'member';
+      const since = String(url.searchParams.get('since') || '');
+      const remoteVersion = await store.currentRemoteSyncVersion();
+      const changed = !!remoteVersion && remoteVersion !== since;
+      if (changed && remoteVersion !== store.syncVersion()) await store.refresh({ force: true });
+
+      if (view === 'admin') {
+        const a = adminOk(req);
+        if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
+        if (!changed) return json(res, 200, { ok: true, changed: false, version: remoteVersion || store.syncVersion() });
+        return json(res, 200, {
+          ok: true,
+          changed: true,
+          version: store.syncVersion(),
+          snapshot: { ...store.adminSnapshot(), adminContext: a.context || { fromMember: false, memberId: null, name: null } }
+        });
+      }
+
+      const m = sessionMember(req);
+      if (!m.member) return json(res, 401, { error: 'Session invalide.' });
+      if (!changed) return json(res, 200, { ok: true, changed: false, version: remoteVersion || store.syncVersion() });
+      return json(res, 200, {
+        ok: true,
+        changed: true,
+        version: store.syncVersion(),
+        snapshot: store.memberSnapshot(m.member.id)
+      });
     }
 
     // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue

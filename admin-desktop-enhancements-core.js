@@ -3,7 +3,7 @@
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const ROLE_LABEL={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
+const ROLE_LABEL={accueil:'Accueil',tpe:'TPE',mep:'Mise en place',arbitrage:'Arbitrage',present:'Disponible'};
 const CORE_ROLES=['accueil','tpe','mep','arbitrage'];
 const finePointer=()=>window.matchMedia?.('(hover: hover) and (pointer: fine)').matches===true;
 const desktop=()=>document.documentElement.classList.contains('ui-desktop')||document.body.classList.contains('ui-desktop')||finePointer();

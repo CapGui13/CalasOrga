@@ -14,7 +14,7 @@ const INITIAL_MEMBERS=Array.from({length:10},(_,i)=>({
 }));
 const CORE_ROLE_KEYS=['accueil','tpe','mep','arbitrage'];
 const ROLE_KEYS=[...CORE_ROLE_KEYS,'present'];
-const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'MEP',arbitrage:'Arbitrage',present:'Disponible'};
+const ROLE_LABELS={accueil:'Accueil',tpe:'TPE',mep:'Mise en place',arbitrage:'Arbitrage',present:'Disponible'};
 const MEMBER_COLLATOR=new Intl.Collator('fr-FR',{sensitivity:'base',numeric:true,ignorePunctuation:true});
 function memberDisplayName(m){return String(m?.name??m?.displayName??'').trim()}
 function sortMembersAlpha(list){
@@ -567,6 +567,7 @@ function normalizedAdminCellChanges(changes){
 
 function applyAdminServerSnapshot(snapshot){
   if(!snapshot)return adminData;
+  noteSharedSyncVersion(snapshot);
   adminData=snapshot;
 
   for(const c of adminPlanningInFlightCells)writeAdminRoleIds(c.date,c.role,c.ids);
@@ -697,6 +698,7 @@ async function flushAdminPlanningBatch(){
 }
 
 function memberPendingOverlay(snapshot){
+  noteSharedSyncVersion(snapshot);
   let next=snapshot;
   for(const c of memberPlanningPending.values()){
     next=optimisticAssignment(next,c.date,c.role,c.present)
@@ -897,7 +899,7 @@ function netApi(url,opts={}){
 }
 function downloadBlob(name,type,text){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)}
 function csvCell(v){let t=String(v??'');if(/^[\t \r\n]*[=+\-@]/.test(t))t="'"+t;return /[;"\n\r]/.test(t)?'"'+t.replaceAll('"','""')+'"':t}
-function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=planningHorizonEnd(from),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','MEP','Arbitrage','Disponible','Nombre disponibles','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>sortNamesAlpha((a[r]||[]).map(id=>byId[id]).filter(Boolean)).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
+function localPlanningCsv(){const data=localAdminSnapshot(),from=parisToday(),to=planningHorizonEnd(from),byId=Object.fromEntries(data.members.map(m=>[m.id,m.name]));const rows=[['Date','Jour','Accueil','TPE','Mise en place','Arbitrage','Disponible','Nombre disponibles','Postes pourvus','Postes requis','Couverture']];for(let d=from;d<=to;d=addDays(d,1)){if(!effectiveOpen(data,d))continue;const a=data.assignments[d]||{},names=r=>sortNamesAlpha((a[r]||[]).map(id=>byId[id]).filter(Boolean)).join(', '),present=a.present||[],c=assignmentCoverage(data,d);rows.push([d,dayLabel(d,true),names('accueil'),names('tpe'),names('mep'),names('arbitrage'),names('present'),present.length,c.filled,CORE_ROLE_KEYS.length,c.covered?'OK':'À pourvoir'])}return '\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n')+'\r\n'}
 function actionLabel(a){return ({inscription:'inscription',retrait:'retrait',membre_cree:'membre créé',membre_renomme:'membre renommé',membre_desactive:'membre désactivé',membre_reactive:'membre réactivé',lien_regenere:'nouveau lien',fermeture_exceptionnelle:'fermeture',ouverture_exceptionnelle:'ouverture',fermeture_periode:'fermeture de période',ouverture_periode:'ouverture de période',exception_supprimee:'exception supprimée',exceptions_periode_supprimees:'horaires habituels rétablis',minimum_modifie:'minimum modifié',admin_inscription:'présence ajoutée par admin',admin_retrait:'présence retirée par admin',sauvegarde_importee:'sauvegarde restaurée',presence_retiree_fermeture:'présence retirée lors d’une fermeture',presence_retiree_desactivation:'présence retirée lors d’une désactivation',role_inscription:'inscription à un rôle',role_retrait:'retrait d’un rôle',admin_role_inscription:'rôle ajouté par admin',admin_role_retrait:'rôle retiré par admin',role_retire_fermeture:'rôle retiré lors d’une fermeture',role_retire_desactivation:'rôle retiré lors d’une désactivation',sessions_membre_revoquees:'appareils membre déconnectés'})[a]||String(a||'').replaceAll('_',' ')}
 
 // --- Choix local / liens locaux ---
@@ -1071,6 +1073,13 @@ let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),lastMemberSyncAt=0,m
 const QUOTA_ACTIVE_POLL_MS=5*60*1000;
 const QUOTA_IDLE_POLL_MS=15*60*1000;
 const QUOTA_WAKE_STALE_MS=30*1000;
+const SHARED_SYNC_POLL_MS=2000;
+let sharedSyncVersion='',sharedSyncTimer=0,sharedSyncBusy=false;
+function noteSharedSyncVersion(payload){
+  const version=String(payload?.syncVersion||payload?.version||'');
+  if(version)sharedSyncVersion=version;
+  return version
+}
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
 function memberPollDelay(){return Date.now()-lastMemberActivityAt<10*60*1000?QUOTA_ACTIVE_POLL_MS:QUOTA_IDLE_POLL_MS}
 async function refreshMember({openIfSuccessful=false}={}){
@@ -2951,6 +2960,49 @@ window.addEventListener('popstate',()=>{
 q('#adminCorrectionClose').addEventListener('click',closeAdminCorrection);
 q('#adminCorrectionOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCorrection()});
 const backTop=q('#backTop');window.addEventListener('scroll',()=>backTop.classList.toggle('hidden',scrollY<650),{passive:true});backTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+async function pollSharedSync(){
+  clearTimeout(sharedSyncTimer);
+  if(LOCAL||GITHUB_PAGES){return}
+  if(sharedSyncBusy||document.visibilityState!=='visible'){
+    sharedSyncTimer=setTimeout(pollSharedSync,SHARED_SYNC_POLL_MS);
+    return
+  }
+
+  let view='';
+  if(activeRootView==='memberRoot'&&!memberPlanningHasWork()&&!memberRefreshBusy)view='member';
+  else if(activeRootView==='adminRoot'&&adminRefreshSafe())view='admin';
+  if(!view){
+    sharedSyncTimer=setTimeout(pollSharedSync,SHARED_SYNC_POLL_MS);
+    return
+  }
+
+  sharedSyncBusy=true;
+  try{
+    const j=await netApiRaw(`/api/sync?view=${view}&since=${encodeURIComponent(sharedSyncVersion)}`);
+    noteSharedSyncVersion(j);
+    if(j.changed&&j.snapshot){
+      if(view==='member'&&activeRootView==='memberRoot'&&!memberPlanningHasWork()){
+        memberData=memberPendingOverlay(j.snapshot);
+        lastMemberSyncAt=Date.now();
+        renderMember()
+      }else if(view==='admin'&&activeRootView==='adminRoot'&&adminRefreshSafe()){
+        adminSessionContext=j.snapshot.adminContext||adminSessionContext;
+        applyAdminServerSnapshot(j.snapshot);
+        lastAdminSyncAt=Date.now();
+        renderAdmin()
+      }
+    }
+  }catch(e){
+    if(e.status===401){
+      if(view==='member'&&activeRootView==='memberRoot')invalidMemberSession();
+      else if(view==='admin'&&activeRootView==='adminRoot')showAdminCodeLogin('Votre session administrateur a expiré.');
+    }
+  }finally{
+    sharedSyncBusy=false;
+    sharedSyncTimer=setTimeout(pollSharedSync,SHARED_SYNC_POLL_MS)
+  }
+}
+
 if(!LOCAL&&!GITHUB_PAGES){
   q('#memberRoot').addEventListener('pointerdown',markMemberActivity,{passive:true});
   q('#memberRoot').addEventListener('keydown',markMemberActivity);
@@ -2974,7 +3026,8 @@ if(!LOCAL&&!GITHUB_PAGES){
   window.addEventListener('pageshow',quotaSafeWakeRefresh,{passive:true});
   window.addEventListener('online',quotaSafeWakeRefresh,{passive:true});
   scheduleMemberPoll();
-  scheduleAdminPoll()
+  scheduleAdminPoll();
+  pollSharedSync()
 }
 boot();
 })();

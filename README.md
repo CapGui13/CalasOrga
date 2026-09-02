@@ -54,7 +54,7 @@ L’override peut aussi être piloté dans la console avec `CalasOrgaUiMode.set(
 - navigation admin fixe en bas : `Calendrier / Membres` ;
 - planning en tableau compact avec colonne Date fixe et balayage horizontal signalé ;
 - gestion des membres : vue d’ensemble compacte `Membre / Statut / Appareils`, puis **fiche membre en bottom sheet** au tap pour email, appareils, lien et actions ;
-- fenêtre `Modifier` : six colonnes conservées comme repère, colonne Membres fixe et barre rapide `Accueil / TPE / MEP / Arbitrage / Disponible` après sélection ;
+- fenêtre `Modifier` : six colonnes conservées comme repère, colonne Membres fixe et barre rapide `Accueil / TPE / Mise en place / Arbitrage / Disponible` après sélection ;
 - safe areas iOS/iPadOS et cibles tactiles >= 44 px.
 
 ## Modales et accessibilité
@@ -141,6 +141,10 @@ Trois chemins de mise en service existent :
 1. Restaurer temporairement l'accès au Blob et lancer `npm run migrate:blob:supabase`.
 2. Importer un backup JSON avec `npm run import:supabase -- <backup.json>`.
 3. Repartir volontairement à zéro en définissant temporairement `SUPABASE_ALLOW_EMPTY_INIT=1`, ouvrir l'application une fois, puis supprimer/repasser cette variable à `0`.
+
+## Synchronisation multi-appareils
+
+Quand un membre ou un administrateur enregistre une modification du planning, les autres appareils ouverts se mettent à jour automatiquement en environ 2 secondes, sans clic ni rechargement manuel. Le navigateur interroge seulement un numéro de version Supabase très léger ; le snapshot complet n'est rechargé que lorsqu'une modification réelle est détectée. La synchronisation est suspendue lorsque l'onglet n'est pas visible.
 
 ## Envoi des liens par email
 
