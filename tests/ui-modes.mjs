@@ -152,6 +152,8 @@ try{
   assert.equal(await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').innerText.trim()`),'Membres');
   assert.equal(await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').innerText.includes('Gestion des membres')`),false);
   assert.equal(await mobile.evalJs(`(()=>{const a=[...document.querySelectorAll('.admin-tabs a')].map(x=>x.getBoundingClientRect());return a.every((r,i)=>r.left>=0&&r.right<=innerWidth+1&&(i===0||r.left>=a[i-1].right-1))})()`),true,'mobile bottom nav must fit without overlap');
+  assert.equal(await mobile.evalJs(`document.querySelectorAll('.admin-tabs a').length`),2,'mobile admin nav must expose exactly two destinations');
+  assert.equal(await mobile.evalJs(`(()=>{const n=document.querySelector('.admin-tabs').getBoundingClientRect();return Math.abs(((n.left+n.right)/2)-(document.documentElement.clientWidth/2))<2})()`),true,'mobile admin nav must be centered');
   assert.equal(await mobile.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'mobile body must not overflow horizontally');
   assert.equal(await mobile.evalJs(`(()=>{const b=document.querySelector('#adminRoot .brand').getBoundingClientRect(),x=document.querySelector('#adminExit').getBoundingClientRect();return b.right<=x.left+1})()`),true,'mobile brand and logout must not overlap');
   assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminRoot .top-actions .btn')).minHeight)`))>=44);
@@ -171,9 +173,12 @@ try{
 
   await mobile.evalJs(`document.querySelector('[data-admin-page="calendar"]').click()`);await sleep(350);
   await mobile.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
-  await mobile.evalJs(`document.querySelector('#dayMemberPool .day-member-source-item')?.click()`);await sleep(40);
+  assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay .day-editor-columns').scrollWidth<=document.querySelector('#adminCorrectionOverlay .day-editor-columns').clientWidth+2`),true,'mobile day editor must not require horizontal swiping');
+  assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).gridTemplateColumns.split(' ').length`),2,'mobile day editor summary should use two compact columns');
+  await mobile.evalJs(`document.querySelector('#dayMemberPool .day-member-source-item')?.click()`);await sleep(80);
   assert.equal(await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles').classList.contains('hidden')`),false);
   assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#dayEditorQuickRoles button')).minHeight)`))>=44);
+  assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#dayEditorQuickRoles .day-editor-quick-buttons')).gridTemplateColumns.split(' ').length`),2,'mobile quick roles must avoid a horizontal button strip');
   await mobile.evalJs(`document.querySelector('#adminCorrectionClose').click()`);await sleep(40);
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay').contains(document.activeElement)`),false);
   await mobile.close();

@@ -7055,3 +7055,245 @@ html.ui-mobile #adminRoot .admin-schedule-mobile>.mobile-date-card>.admin-calend
   html.ui-mobile .mobile-role-button .role-chip,
   html.ui-mobile .mobile-role-empty{font-size:10.5px!important}
 }
+
+/* =========================================================
+   MOBILE PLANNING CARDS — refinement 2
+   - 2 admin tabs centered
+   - no horizontal swipe in full-day editor on phones
+   - touch-first member -> role assignment
+   Desktop/tablet intentionally unchanged.
+   ========================================================= */
+
+/* Two admin destinations only: compact, centered bottom navigation. */
+html.ui-mobile #adminRoot .admin-tabs{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:min(310px,calc(100vw - 32px))!important;
+  left:50%!important;
+  right:auto!important;
+  transform:translateX(-50%)!important;
+}
+html.ui-mobile #adminRoot .admin-tabs a{
+  width:100%!important;
+}
+
+/* The full-day editor becomes a vertical app sheet on phones. */
+html.ui-mobile #adminCorrectionOverlay{
+  align-items:end!important;
+  justify-items:stretch!important;
+  padding:0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
+  width:100%!important;
+  max-width:none!important;
+  max-height:94dvh!important;
+  margin:0!important;
+  padding:14px max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  border-radius:22px 22px 0 0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .section-head{
+  position:sticky!important;
+  top:-14px!important;
+  z-index:35!important;
+  margin:-14px -12px 8px!important;
+  padding:14px 12px 9px!important;
+  background:rgba(255,255,255,.98)!important;
+  border-bottom:1px solid #edf1ee!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-date{
+  margin:3px 0 8px!important;
+  font-size:16px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-touch-help{
+  margin:0 0 8px!important;
+  padding:8px 10px!important;
+  border:1px solid #dce7df!important;
+  border-radius:10px!important;
+  background:#f7faf8!important;
+  color:#506158!important;
+  font-size:11.5px!important;
+  line-height:1.35!important;
+  text-align:center!important;
+}
+
+/* Selection bar: no sideways scrolling; 2 x 2 + full-width Disponible. */
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-roles{
+  position:sticky!important;
+  top:52px!important;
+  bottom:auto!important;
+  z-index:32!important;
+  width:100%!important;
+  margin:0 0 8px!important;
+  padding:8px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+  overflow:visible!important;
+  padding:0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:46px!important;
+  padding:7px 8px!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button:nth-child(5){
+  grid-column:1/-1!important;
+}
+
+/* No horizontal carousel: members first, then a compact assignment summary. */
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+  margin:0!important;
+  overflow:hidden!important;
+  border:1px solid #dce4df!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members{
+  position:static!important;
+  grid-column:1/-1!important;
+  left:auto!important;
+  z-index:auto!important;
+  box-shadow:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-available{
+  grid-column:1/-1!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-head,
+html.ui-mobile #adminCorrectionOverlay .day-column-members .day-column-head{
+  position:static!important;
+  left:auto!important;
+  z-index:auto!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:8px 9px!important;
+  border-bottom:1px solid #dce4df!important;
+  background:#f5f8f6!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-panel-title,
+html.ui-mobile #adminCorrectionOverlay .day-role-card-title{
+  font-size:11px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+  flex:none!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:min(260px,34dvh)!important;
+  padding:6px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item{
+  min-height:44px!important;
+  padding:7px 9px!important;
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  touch-action:manipulation!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-grip{
+  display:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item.touch-selected{
+  border-color:#8dbda0!important;
+  background:#eaf7ef!important;
+  box-shadow:inset 3px 0 0 #3e9660!important;
+}
+
+/* Role boxes are summaries and tap targets, not swipe columns. */
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column,
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+  flex:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone-column{
+  height:auto!important;
+  min-height:74px!important;
+  max-height:none!important;
+  padding:8px!important;
+  overflow:visible!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-role-dropzone{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:auto!important;
+  min-height:74px!important;
+  max-height:none!important;
+  padding:8px!important;
+  touch-action:manipulation!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-drop-placeholder{
+  font-size:11px!important;
+  text-align:center!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-assignment-chip,
+html.ui-mobile #adminCorrectionOverlay .day-available-chip{
+  width:100%!important;
+  min-width:0!important;
+  min-height:44px!important;
+  font-size:11.5px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-available-chip-wrap{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  width:100%!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-warning{
+  margin:8px 0 0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:34!important;
+  margin:8px -2px -2px!important;
+  padding:8px 2px 2px!important;
+  background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 28%)!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions .btn{
+  min-height:50px!important;
+  border-radius:12px!important;
+}
+
+@media (orientation:landscape) and (max-height:560px){
+  html.ui-mobile #adminRoot .admin-tabs{
+    width:min(280px,calc(100vw - 28px))!important;
+  }
+  html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
+    max-height:96dvh!important;
+  }
+  html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+    max-height:150px!important;
+  }
+}

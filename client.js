@@ -1243,6 +1243,7 @@ function fillSingleChoiceList(container,currentIds,members,onChoose){
 
 let dayEditorDraft=null;
 let dayEditorTouchSelectedId='';
+let adminCorrectionReturnDate='';
 
 function dayEditorActiveMembers(){
   return sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active))
@@ -1268,7 +1269,13 @@ function dayEditorMemberStatus(id){
 }
 function toggleDayEditorMemberSelection(memberId){
   dayEditorTouchSelectedId=dayEditorTouchSelectedId===String(memberId)?'':String(memberId);
-  renderDayEditorDraft()
+  renderDayEditorDraft();
+  if(currentUiMode==='mobile'&&dayEditorTouchSelectedId){
+    requestAnimationFrame(()=>q('#dayEditorQuickRoles')?.scrollIntoView({
+      behavior:motionReduced()?'auto':'smooth',
+      block:'nearest'
+    }))
+  }
 }
 function makeDayMemberDraggable(el,id){
   const memberId=String(id);
@@ -1390,6 +1397,8 @@ function renderDayEditorDraft(){
     touchHelp.classList.remove('hidden');
     if(dayEditorTouchSelectedId){
       touchHelp.textContent=`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · choisissez un poste.`
+    }else if(currentUiMode==='mobile'){
+      touchHelp.textContent='Touchez un membre, puis choisissez son poste avec les boutons qui apparaissent. Les affectations restent résumées dessous.'
     }else if(isTouchUi()){
       touchHelp.textContent='Touchez un membre, puis un poste. Balayez horizontalement pour voir tous les postes.'
     }else{
@@ -1529,14 +1538,26 @@ function populateDayEditor(date){
   }
 }
 function openAdminCorrection(date){
+  adminCorrectionReturnDate=String(date||'');
   populateDayEditor(date);
   const overlay=q('#adminCorrectionOverlay');
   openModalOverlay(overlay,{focus:()=>q('#dayMemberPool .day-member-source-item')||q('#adminCorrectionClose')});
   wireHorizontalScrollAffordances()
 }
+function scrollAdminMobileDateIntoView(date){
+  if(currentUiMode!=='mobile'||!date)return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const card=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')]
+      .find(el=>el.dataset.date===String(date));
+    card?.scrollIntoView({behavior:motionReduced()?'auto':'smooth',block:'center'})
+  }))
+}
 function closeAdminCorrection(){
+  const returnDate=adminCorrectionReturnDate;
+  adminCorrectionReturnDate='';
   dayEditorTouchSelectedId='';
-  closeModalOverlay(q('#adminCorrectionOverlay'))
+  closeModalOverlay(q('#adminCorrectionOverlay'));
+  scrollAdminMobileDateIntoView(returnDate)
 }
 function adminCorrectionForDate(date){openAdminCorrection(date)}
 function populateAdminCellEditor(date,role){
@@ -1870,6 +1891,7 @@ function renderAdminCalendar(){
 
     const card=document.createElement('article');
     card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(!open?' day-closed':'');
+    card.dataset.date=date;
     const head=document.createElement('div');head.className='mobile-date-head';
     const left=document.createElement('div');
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
