@@ -103,7 +103,7 @@ BLOB_STATE_PATH=calasorga/store.json
 Le backend actuellement qualifié répond notamment avec :
 
 ```json
-{"ok":true,"appVersion":"0.15.47.2-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.47.3-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests
@@ -145,3 +145,12 @@ Trois chemins de mise en service existent :
 ## Envoi des liens par email
 
 En production, l’envoi utilise Gmail SMTP via `GMAIL_USER` et `GMAIL_APP_PASSWORD` (mot de passe d’application Google). `GMAIL_FROM_NAME` est optionnel. Les secrets restent exclusivement dans les variables Vercel et ne doivent jamais être commités.
+
+
+## V15.47.3 — compatibilité GitHub Pages /CalasOrga/
+
+- les assets frontend (`styles.css`, `client.js` et les améliorations desktop) utilisent des URL relatives au document ;
+- `https://capgui13.github.io/CalasOrga/` charge donc bien CSS et JavaScript depuis `/CalasOrga/` ;
+- les routes Vercel `/calendar`, `/admin`, `/admin-login` et `/admin/membres` restent compatibles ;
+- les alias `/admin/*` des scripts desktop sont servis en local/Docker et réécrits sur Vercel ;
+- un invariant de test vérifie explicitement que les assets restent sous `/CalasOrga/`.

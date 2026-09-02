@@ -90,7 +90,7 @@ let child=spawnApp(appPort);
 try{
   const health=await waitReady(appPort,child);
   assert.equal(health.storage,'supabase-postgres');
-  assert.equal(health.appVersion,'0.15.47.2-stabilized');
+  assert.equal(health.appVersion,'0.15.47.3-stabilized');
   assert.ok(rows.has('main'),'main row must be created');
   assert.ok(rows.has('main.good'),'good snapshot must be created');
   const initialVersion=rows.get('main').version;

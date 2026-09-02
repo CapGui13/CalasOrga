@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.47.2-stabilized');
+  assert.equal(health.appVersion,'0.15.47.3-stabilized');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -169,8 +169,8 @@ try{
   assert.match(indexText,/nav-label-mobile/);
   assert.doesNotMatch(stylesText,/a\[data-admin-page="members"\]::after\{content:"Membres"/);
   assert.match(appText,/shortSide>=800&&\(uiPrecisePointerActive\(\)\|\|uiDesktopPlatformHint\(\)\)/);
-  assert.match(indexText,/<link rel="stylesheet" href="\/styles\.css(?:\?v=[^"]+)?">/);
-  assert.match(indexText,/<script src="\/client\.js(?:\?v=[^"]+)?"><\/script>/);
+  assert.match(indexText,/<link rel="stylesheet" href="\.\/styles\.css(?:\?v=[^"]+)?">/);
+  assert.match(indexText,/<script src="\.\/client\.js(?:\?v=[^"]+)?"><\/script>/);
   // V15.45.7 : contrat strict de trois modes, stable en orientation.
   assert.match(appText,/UI MODE CONTRACT/);
   assert.match(appText,/UI_MODE_CLASSES=\['ui-desktop','ui-tablet','ui-mobile'\]/);
@@ -180,9 +180,9 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/\/styles\.css\?v=1547-stabilized/);
-  assert.match(indexText,/\/client\.js\?v=1547-stabilized/);
-  assert.match(indexText,/\/admin-desktop-enhancements\.js\?v=1548-stabilized/);
+  assert.match(indexText,/\.\/styles\.css\?v=15473-github-pages/);
+  assert.match(indexText,/\.\/client\.js\?v=15473-github-pages/);
+  assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15473-github-pages/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
   assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
@@ -190,12 +190,22 @@ try{
   assert.doesNotMatch(vercelText,/sha256-/i);
   assert.match(vercelText,/\/admin\/styles\.css/);
   assert.match(vercelText,/\/admin\/client\.js/);
+  assert.match(vercelText,/\/admin\/admin-desktop-enhancements\.js/);
+  assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
+  // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
+  const ghBase='https://capgui13.github.io/CalasOrga/';
+  for (const ref of ['./styles.css?v=15473-github-pages','./client.js?v=15473-github-pages','./admin-desktop-enhancements.js?v=15473-github-pages']) {
+    assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
+  }
+  assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);
   const cssRes=await fetch(`${origin}/styles.css`); assert.equal(cssRes.status,200); assert.match(cssRes.headers.get('content-type')||'',/text\/css/);
   const jsRes=await fetch(`${origin}/client.js`); assert.equal(jsRes.status,200); assert.match(jsRes.headers.get('content-type')||'',/text\/javascript/);
   const nestedCssRes=await fetch(`${origin}/admin/styles.css`); assert.equal(nestedCssRes.status,200);
   const nestedJsRes=await fetch(`${origin}/admin/client.js`); assert.equal(nestedJsRes.status,200);
   const enhRes=await fetch(`${origin}/admin-desktop-enhancements.js`); assert.equal(enhRes.status,200);
   const enhCoreRes=await fetch(`${origin}/admin-desktop-enhancements-core.js`); assert.equal(enhCoreRes.status,200);
+  const nestedEnhRes=await fetch(`${origin}/admin/admin-desktop-enhancements.js`); assert.equal(nestedEnhRes.status,200);
+  const nestedEnhCoreRes=await fetch(`${origin}/admin/admin-desktop-enhancements-core.js`); assert.equal(nestedEnhCoreRes.status,200);
 
   // Hotfix Vercel 2 : l'import/démarrage backend ne doit dépendre d'AUCUN fichier frontend.
   // Ce mini-bundle reproduit une fonction ne contenant que server.mjs.
@@ -224,7 +234,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.47.2-stabilized');
+    assert.equal(bundleHealth.appVersion,'0.15.47.3-stabilized');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));

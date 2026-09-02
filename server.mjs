@@ -3184,7 +3184,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.47.2-stabilized';
+const APP_VERSION = '0.15.47.3-stabilized';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3429,8 +3429,8 @@ export async function requestHandler(req, res) {
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
     if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveLocalStaticFile(res, 'styles.css', 'text/css; charset=utf-8');
     if ((pathname === '/client.js' || pathname === '/admin/client.js') && req.method === 'GET') return serveLocalStaticFile(res, 'client.js', 'text/javascript; charset=utf-8');
-    if (pathname === '/admin-desktop-enhancements.js' && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements.js', 'text/javascript; charset=utf-8');
-    if (pathname === '/admin-desktop-enhancements-core.js' && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements-core.js', 'text/javascript; charset=utf-8');
+    if ((pathname === '/admin-desktop-enhancements.js' || pathname === '/admin/admin-desktop-enhancements.js') && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements.js', 'text/javascript; charset=utf-8');
+    if ((pathname === '/admin-desktop-enhancements-core.js' || pathname === '/admin/admin-desktop-enhancements-core.js') && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements-core.js', 'text/javascript; charset=utf-8');
     if ((pathname === '/admin/historique' || pathname === '/admin/historique/') && req.method === 'GET') { res.statusCode = 302; res.setHeader('Location', '/admin'); res.end(); return; }
     if (pathname === '/' && req.method === 'GET') {
       if (demoMode) demoRootHits += 1;
