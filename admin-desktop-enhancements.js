@@ -415,6 +415,38 @@ if(confirmOverlay){
   new MutationObserver(normalizeRenewButton).observe(confirmOverlay,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }
 
+/* Un envoi d'email n'est pas une sauvegarde du planning : le bouton possède déjà
+   son propre état « Envoi… ». On neutralise donc uniquement l'indicateur global
+   « Enregistrement… / Enregistré ✓ » pendant cette opération. */
+document.addEventListener('click',e=>{
+  const target=e.target instanceof Element?e.target:null;
+  const button=target?.closest('.member-link-send,#memberQuickSend');
+  if(!button||button.disabled)return;
+  const state=$('#adminSaveState');
+  if(!state)return;
+
+  const hide=()=>{
+    state.classList.add('hidden');
+    state.textContent='';
+  };
+  hide();
+  const observer=new MutationObserver(hide);
+  observer.observe(state,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+
+  const wait=setInterval(()=>{
+    hide();
+    if(button.classList.contains('is-busy'))return;
+    clearInterval(wait);
+    observer.disconnect();
+    hide();
+  },50);
+  setTimeout(()=>{
+    clearInterval(wait);
+    observer.disconnect();
+    hide();
+  },20000);
+},true);
+
 window.addEventListener('popstate',hideHistory);
 hideHistory();
 normalizeRenewButton();
