@@ -161,7 +161,13 @@ try{
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).display`),'grid');
   assert.ok(Number(await mobile.evalJs(`document.querySelectorAll('#adminScheduleMobile .mobile-date-card').length`))>0,'mobile admin planning must render date cards');
   assert.ok(Number(await mobile.evalJs(`document.querySelectorAll('#adminScheduleMobile .mobile-date-status').length`))>0,'mobile date cards must expose coverage status');
+  assert.ok(Number(await mobile.evalJs(`document.querySelectorAll('#adminScheduleMobile .mobile-date-missing').length`))>0,'incomplete mobile cards must name missing roles');
+  assert.match(await mobile.evalJs(`document.querySelector('#adminScheduleMobile .mobile-date-missing')?.textContent||''`),/Manque\s*:/);
   assert.equal(await mobile.evalJs(`document.querySelector('#adminScheduleMobile .mobile-role-button')?.getBoundingClientRect().width<=document.querySelector('#adminScheduleMobile .mobile-date-card')?.getBoundingClientRect().width`),true,'mobile role rows must fit inside cards');
+  await mobile.evalJs(`document.querySelector('#adminScheduleMobile .admin-mobile-role:not(:disabled)')?.click()`);await sleep(60);
+  assert.equal(await mobile.evalJs(`document.querySelector('#adminCellOverlay').classList.contains('hidden')`),false,'tapping a role row must open direct role editing');
+  assert.ok((await mobile.evalJs(`document.querySelector('#adminCellContext')?.textContent||''`)).length>0);
+  await mobile.evalJs(`document.querySelector('#adminCellClose').click()`);await sleep(40);
 
   await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').click()`);await sleep(350);
   assert.equal(await mobile.evalJs(`document.querySelector('[data-admin-view="members"]').classList.contains('hidden')`),false);
@@ -175,8 +181,14 @@ try{
   await mobile.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay .day-editor-columns').scrollWidth<=document.querySelector('#adminCorrectionOverlay .day-editor-columns').clientWidth+2`),true,'mobile day editor must not require horizontal swiping');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).gridTemplateColumns.split(' ').length`),2,'mobile day editor summary should use two compact columns');
+  assert.equal(await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles').classList.contains('hidden')`),false,'mobile editor must show current assignments before member selection');
+  assert.match(await mobile.evalJs(`document.querySelector('#dayEditorQuickSelected')?.textContent||''`),/Affectations actuelles/);
+  assert.equal(await mobile.evalJs(`document.querySelectorAll('#dayEditorQuickRoles [data-quick-role] .quick-role-state').length`),5,'every quick role must show its current state');
+  assert.ok((await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles .quick-role-state')?.textContent||''`)).length>0);
   await mobile.evalJs(`document.querySelector('#dayMemberPool .day-member-source-item')?.click()`);await sleep(80);
   assert.equal(await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles').classList.contains('hidden')`),false);
+  assert.match(await mobile.evalJs(`document.querySelector('#dayEditorQuickSelected')?.textContent||''`),/sélectionné/);
+  assert.match(await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles [data-quick-role] .quick-role-state')?.textContent||''`),/Libre|Actuel|Remplace|Indisponible|Ajouter/);
   assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#dayEditorQuickRoles button')).minHeight)`))>=44);
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#dayEditorQuickRoles .day-editor-quick-buttons')).gridTemplateColumns.split(' ').length`),2,'mobile quick roles must avoid a horizontal button strip');
   await mobile.evalJs(`document.querySelector('#adminCorrectionClose').click()`);await sleep(40);

@@ -1056,8 +1056,13 @@ function renderMember(){
     const head=document.createElement('div');head.className='mobile-date-head';
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
     const status=document.createElement('span');status.className='mobile-date-status '+(covered?'ok':'alert');
-    status.textContent=covered?'Complet':`${coverageState.missing.length} poste${coverageState.missing.length>1?'s':''} à pourvoir`;
+    status.textContent=covered?'Complet':`${coverageState.missing.length} à pourvoir`;
     head.append(title,status);card.append(head);
+    if(!covered&&coverageState.missing.length){
+      const missing=document.createElement('div');missing.className='mobile-date-missing';
+      missing.textContent=`Manque : ${coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · ')}`;
+      card.append(missing)
+    }
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));
     card.append(roles);mobile.append(card)
@@ -1353,6 +1358,56 @@ function dayEditorTouchAssign(role){
     renderDayEditorDraft()
   }
 }
+function renderDayEditorQuickRoles(){
+  const quickRoles=q('#dayEditorQuickRoles'),quickSelected=q('#dayEditorQuickSelected');
+  if(!quickRoles)return;
+  const selected=String(dayEditorTouchSelectedId||'');
+  const show=isTouchUi()&&(currentUiMode==='mobile'||!!selected);
+  quickRoles.classList.toggle('hidden',!show);
+  quickRoles.classList.toggle('is-overview',show&&!selected);
+  if(!show)return;
+  if(quickSelected){
+    quickSelected.textContent=selected
+      ?`${dayEditorMemberName(selected)} sélectionné · choisissez le poste`
+      :'Affectations actuelles · touchez un membre pour le déplacer'
+  }
+  const selectedCoreRoles=selected?CORE_ROLE_KEYS.filter(r=>String(dayEditorDraft?.roles?.[r]||'')===selected):[];
+  for(const btn of quickRoles.querySelectorAll('[data-quick-role]')){
+    const role=String(btn.dataset.quickRole||'');
+    btn.classList.remove('is-free','is-occupied','is-current','is-blocked');
+    btn.disabled=!selected;
+    let state='Libre',kind='is-free';
+    if(role==='present'){
+      const ids=(dayEditorDraft?.present||[]).map(String);
+      const names=ids.map(dayEditorMemberName).filter(Boolean);
+      if(selected&&ids.includes(selected)){
+        state='Actuel';kind='is-current'
+      }else if(selected&&selectedCoreRoles.length){
+        state=`Indisponible · ${selectedCoreRoles.map(r=>ROLE_LABELS[r]).join(' + ')}`;
+        kind='is-blocked';btn.disabled=true
+      }else if(ids.length){
+        state=selected?`Ajouter · ${names.join(', ')}`:names.join(', ');
+        kind='is-occupied'
+      }
+    }else{
+      const occupant=String(dayEditorDraft?.roles?.[role]||'');
+      if(selected&&occupant===selected){
+        state='Actuel';kind='is-current'
+      }else if(occupant){
+        const name=dayEditorMemberName(occupant)||'Occupé';
+        state=selected?`Remplace ${name}`:name;
+        kind='is-occupied'
+      }
+    }
+    btn.classList.add(kind);
+    btn.replaceChildren();
+    const name=document.createElement('span');name.className='quick-role-name';name.textContent=ROLE_LABELS[role]||role;
+    const detail=document.createElement('span');detail.className='quick-role-state';detail.textContent=state;
+    btn.append(name,detail);
+    btn.title=selected?`${ROLE_LABELS[role]} · ${state}`:`${ROLE_LABELS[role]} · ${state}`;
+    btn.setAttribute('aria-label',btn.title)
+  }
+}
 
 function dayEditorWireDropzone(zone,role){
   zone.onclick=e=>{
@@ -1396,21 +1451,16 @@ function renderDayEditorDraft(){
   if(touchHelp){
     touchHelp.classList.remove('hidden');
     if(dayEditorTouchSelectedId){
-      touchHelp.textContent=`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · choisissez un poste.`
+      touchHelp.textContent=`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · les boutons indiquent ce qui est libre, actuel ou sera remplacé.`
     }else if(currentUiMode==='mobile'){
-      touchHelp.textContent='Touchez un membre, puis choisissez son poste avec les boutons qui apparaissent. Les affectations restent résumées dessous.'
+      touchHelp.textContent='Les postes et leurs titulaires sont visibles juste dessous. Touchez un membre : chaque bouton indiquera Libre, Actuel ou qui sera remplacé.'
     }else if(isTouchUi()){
       touchHelp.textContent='Touchez un membre, puis un poste. Balayez horizontalement pour voir tous les postes.'
     }else{
       touchHelp.textContent='Cliquez un membre puis un poste, ou glissez-déposez le membre vers le poste.'
     }
   }
-  const quickRoles=q('#dayEditorQuickRoles'),quickSelected=q('#dayEditorQuickSelected');
-  if(quickRoles){
-    const show=isTouchUi()&&!!dayEditorTouchSelectedId;
-    quickRoles.classList.toggle('hidden',!show);
-    if(quickSelected)quickSelected.textContent=show?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné`:''
-  }
+  renderDayEditorQuickRoles();
   const members=dayEditorActiveMembers();
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
@@ -1898,8 +1948,13 @@ function renderAdminCalendar(){
     left.append(title);
     const status=document.createElement('span');
     status.className='mobile-date-status '+(!open?'closed':coverageState.covered?'ok':'alert');
-    status.textContent=!open?'Fermé':coverageState.covered?'Complet':`${coverageState.missing.length} poste${coverageState.missing.length>1?'s':''} à pourvoir`;
+    status.textContent=!open?'Fermé':coverageState.covered?'Complet':`${coverageState.missing.length} à pourvoir`;
     head.append(left,status);card.append(head);
+    if(open&&!coverageState.covered&&coverageState.missing.length){
+      const missing=document.createElement('div');missing.className='mobile-date-missing';
+      missing.textContent=`Manque : ${coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · ')}`;
+      card.append(missing)
+    }
 
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS){
