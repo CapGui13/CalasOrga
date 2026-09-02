@@ -1055,7 +1055,9 @@ function renderMember(){
     card.id='mobile-date-'+date;
     const head=document.createElement('div');head.className='mobile-date-head';
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
-    head.append(title);card.append(head);
+    const status=document.createElement('span');status.className='mobile-date-status '+(covered?'ok':'alert');
+    status.textContent=covered?'Complet':`${coverageState.missing.length} poste${coverageState.missing.length>1?'s':''} à pourvoir`;
+    head.append(title,status);card.append(head);
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS)roles.append(mobileRoleButton(date,role,assignments,open,past,outside,map));
     card.append(roles);mobile.append(card)
@@ -1866,12 +1868,16 @@ function renderAdminCalendar(){
     }
     body.append(row);
 
-    const card=document.createElement('article');card.className='mobile-date-card'+(open&&coverageState.covered?' day-complete':'');
+    const card=document.createElement('article');
+    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(!open?' day-closed':'');
     const head=document.createElement('div');head.className='mobile-date-head';
     const left=document.createElement('div');
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
     left.append(title);
-    head.append(left);card.append(head);
+    const status=document.createElement('span');
+    status.className='mobile-date-status '+(!open?'closed':coverageState.covered?'ok':'alert');
+    status.textContent=!open?'Fermé':coverageState.covered?'Complet':`${coverageState.missing.length} poste${coverageState.missing.length>1?'s':''} à pourvoir`;
+    head.append(left,status);card.append(head);
 
     const roles=document.createElement('div');roles.className='mobile-roles';
     for(const role of ROLE_KEYS){
