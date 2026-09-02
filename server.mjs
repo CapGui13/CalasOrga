@@ -506,30 +506,54 @@ async function sendMemberPersonalLinkEmail({
   email,
   personalUrl
 } = {}) {
-  const message = {
-    kind: 'member_personal_link',
-    memberId: String(memberId || ''),
-    memberName: String(memberName || ''),
-    email: String(email || ''),
-    personalUrl: String(personalUrl || ''),
-    subject: 'CalasOrga — Votre lien personnel',
-    text: `Bonjour ${String(memberName || '').trim()},\n\nVoici votre lien personnel CalasOrga :\n${String(personalUrl || '')}\n\nConservez ce lien pour accéder à votre planning.`
-  };
+  const user = String(process.env.GMAIL_USER || '').trim();
+  const pass = String(process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+  const fromName = String(process.env.GMAIL_FROM_NAME || 'Planning Bridge').trim().slice(0, 80) || 'Planning Bridge';
+  if (!user || !pass) {
+    return { ok: true, sent: false, prepared: true, reason: 'gmail_not_configured' };
+  }
 
-  // TODO MAIL :
-  // await mailProvider.send({
-  //   to: message.email,
-  //   subject: message.subject,
-  //   text: message.text
-  // });
+  const cleanName = String(memberName || '').trim() || 'Membre';
+  const url = String(personalUrl || '').trim();
+  const recipient = String(email || '').trim();
+  if (!recipient || !url) throw Object.assign(new Error('Destinataire ou lien personnel manquant.'), { code: 'MAIL_PAYLOAD_INVALID' });
 
-  return {
-    ok: true,
-    sent: false,
-    prepared: true,
-    reason: 'mail_provider_not_configured',
-    message
-  };
+  const escapeHtml = (value) => String(value || '')
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  const safeUrl = escapeHtml(url);
+  const subject = 'Planning du club — votre accès';
+  const text = `Bonjour ${cleanName},\n\nLe club vous envoie votre accès personnel au planning des permanences.\n\nVotre lien personnel :\n${url}\n\nCe lien est associé à votre compte. Vous pouvez le conserver pour ouvrir directement votre planning.\n\nVous recevez ce message car votre adresse e-mail est enregistrée dans le planning du club. Si vous n’attendiez pas ce message, vous pouvez simplement l’ignorer.\n\nBien cordialement,\nPlanning Bridge`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#17251e"><p>Bonjour ${escapeHtml(cleanName)},</p><p>Le club vous envoie votre accès personnel au planning des permanences.</p><p><strong>Votre lien personnel :</strong><br><a href="${safeUrl}">${safeUrl}</a></p><p>Ce lien est associé à votre compte. Vous pouvez le conserver pour ouvrir directement votre planning.</p><p style="font-size:13px;color:#5b665f">Vous recevez ce message car votre adresse e-mail est enregistrée dans le planning du club. Si vous n’attendiez pas ce message, vous pouvez simplement l’ignorer.</p><p>Bien cordialement,<br>Planning Bridge</p></body></html>`;
+
+  try {
+    const module = await import('nodemailer');
+    const nodemailer = module.default || module;
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+      connectionTimeout: 8_000,
+      greetingTimeout: 8_000,
+      socketTimeout: 12_000
+    });
+    const info = await transporter.sendMail({
+      from: { name: fromName, address: user },
+      to: recipient,
+      replyTo: user,
+      subject,
+      text,
+      html
+    });
+    return { ok: true, sent: true, prepared: true, reason: null, messageId: String(info?.messageId || '') };
+  } catch (err) {
+    const code = String(err?.code || '');
+    const safe = code === 'EAUTH'
+      ? 'Gmail a refusé l’authentification. Vérifiez le mot de passe d’application CalasOrga.'
+      : 'Envoi Gmail impossible pour le moment.';
+    throw Object.assign(new Error(safe), { code: code || 'GMAIL_SEND_FAILED' });
+  }
 }
 
 async function notifyMemberRoleAssignment({
@@ -3160,7 +3184,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.47.1-supabase-storage';
+const APP_VERSION = '0.15.47.2-stabilized';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3405,14 +3429,17 @@ export async function requestHandler(req, res) {
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
     if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveLocalStaticFile(res, 'styles.css', 'text/css; charset=utf-8');
     if ((pathname === '/client.js' || pathname === '/admin/client.js') && req.method === 'GET') return serveLocalStaticFile(res, 'client.js', 'text/javascript; charset=utf-8');
+    if (pathname === '/admin-desktop-enhancements.js' && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements.js', 'text/javascript; charset=utf-8');
+    if (pathname === '/admin-desktop-enhancements-core.js' && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements-core.js', 'text/javascript; charset=utf-8');
+    if ((pathname === '/admin/historique' || pathname === '/admin/historique/') && req.method === 'GET') { res.statusCode = 302; res.setHeader('Location', '/admin'); res.end(); return; }
     if (pathname === '/' && req.method === 'GET') {
       if (demoMode) demoRootHits += 1;
       return serveIndex(res);
     }
     if (
       (
-        ['/calendar','/join','/join-short','/admin-login','/admin','/admin/membres','/admin/historique','/invalid'].includes(pathname)
-        || /^\/admin\/(?:membres|historique)\/$/.test(pathname)
+        ['/calendar','/join','/join-short','/admin-login','/admin','/admin/membres','/invalid'].includes(pathname)
+        || /^\/admin\/membres\/$/.test(pathname)
       )
       && req.method === 'GET'
     ) return serveIndex(res);
@@ -3786,6 +3813,9 @@ export async function requestHandler(req, res) {
       }
 
       const memberId = decodeURIComponent(memberSendLinkMatch[1]);
+      if (limited(`admin-mail:${tokenHash(a.rawSession).slice(0, 24)}:${tokenHash(memberId).slice(0, 16)}`, 5, 10 * 60_000)) {
+        return json(res, 429, { error: 'Trop d’envois pour ce membre. Réessayez dans quelques minutes.' });
+      }
       const payload = store.memberPersonalLinkPayload(memberId);
       if (!payload.ok) return json(res, payload.status || 400, { error: payload.error });
 

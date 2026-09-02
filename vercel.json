@@ -15,6 +15,14 @@
       "destination": "/client.js"
     },
     {
+      "source": "/admin/admin-desktop-enhancements-core.js",
+      "destination": "/admin-desktop-enhancements-core.js"
+    },
+    {
+      "source": "/admin/admin-desktop-enhancements.js",
+      "destination": "/admin-desktop-enhancements.js"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/index?__path=api/:path*"
     },
@@ -44,10 +52,6 @@
     },
     {
       "source": "/admin/membres",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/historique",
       "destination": "/index.html"
     },
     {
@@ -102,5 +106,17 @@
       ]
     }
   ],
-  "framework": null
+  "framework": null,
+  "redirects": [
+    {
+      "source": "/admin/historique",
+      "destination": "/admin",
+      "permanent": false
+    },
+    {
+      "source": "/admin/historique/",
+      "destination": "/admin",
+      "permanent": false
+    }
+  ]
 }

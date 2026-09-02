@@ -9,6 +9,9 @@ services:
       ADMIN_TOKEN_SHA256: "${ADMIN_TOKEN_SHA256:-}"
       ADMIN_CODE: "${ADMIN_CODE:-}"
       MEMBER_SHORT_SECRET: "${MEMBER_SHORT_SECRET:-}"
+      GMAIL_USER: "${GMAIL_USER:-}"
+      GMAIL_APP_PASSWORD: "${GMAIL_APP_PASSWORD:-}"
+      GMAIL_FROM_NAME: "${GMAIL_FROM_NAME:-Planning Bridge}"
       DATA_FILE: /app/data/store.json
       PORT: 3000
       TRUST_PROXY: "${TRUST_PROXY:-0}"

@@ -226,7 +226,7 @@ function adminPageSurface(page){
   return view?.querySelector('section.card')||view?.firstElementChild||view
 }
 async function microAdminPageTransition(page,{push=false,scroll=false,preservedScrollY=window.scrollY}={}){
-  if(!['calendar','members','history'].includes(page))page='calendar';
+  if(!['calendar','members'].includes(page))page='calendar';
 
   /* Pendant une transition, on ne perd plus les clics :
      seule la dernière intention est conservée. */
@@ -361,14 +361,13 @@ function showOnly(id){
 }
 function adminPageFromPath(path=location.pathname){
   if(path==='/admin/membres')return'members';
-  if(path==='/admin/historique')return'history';
   return'calendar'
 }
 function adminPathForPage(page){
-  return page==='members'?'/admin/membres':page==='history'?'/admin/historique':'/admin'
+  return page==='members'?'/admin/membres':'/admin'
 }
 function showAdminPage(page,{push=false,scroll=true}={}){
-  if(!['calendar','members','history'].includes(page))page='calendar';
+  if(!['calendar','members'].includes(page))page='calendar';
   currentAdminPage=page;
   for(const view of document.querySelectorAll('[data-admin-view]')){
     const active=view.dataset.adminView===page;
@@ -380,7 +379,7 @@ function showAdminPage(page,{push=false,scroll=true}={}){
     if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current')
   }
   const subtitle=q('#adminSubtitle');
-  if(subtitle)subtitle.textContent=page==='members'?'Liste des membres':page==='history'?'Historique des modifications':'Calendrier des permanences';
+  if(subtitle)subtitle.textContent=page==='members'?'Liste des membres':'Calendrier des permanences';
   if(push&&!LOCAL){
     const target=adminPathForPage(page);
     if(location.pathname!==target)history.pushState({adminPage:page},'',target)
@@ -1942,31 +1941,26 @@ async function copyMemberLink(url,memberName='',btn=null){
 
 async function sendMemberLinkEmail(memberId,memberName='',btn=null){
   if(LOCAL){
-    toast('Envoi préparé · service email non configuré');
+    toast('Envoi email indisponible en mode local');
     return
   }
 
   setButtonBusy(btn,true,'Envoi…');
-  beginAdminSave();
-  let saveOk=false;
+  setAdminSaveState('saving','Envoi…');
   try{
     const j=await netApi(`/api/admin/members/${encodeURIComponent(memberId)}/send-link`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:'{}'
     });
-    saveOk=true;
-
-    if(j.sent===true){
-      toast(`Lien envoyé à ${memberName||'ce membre'}`)
-    }else{
-      toast('Envoi préparé · service email non configuré')
-    }
+    if(j.sent!==true)throw new Error(j.error||'Envoi Gmail non configuré.');
+    setAdminSaveState('saved','Lien envoyé ✓');
+    toast(`Lien envoyé à ${memberName||'ce membre'}`)
   }catch(e){
+    setAdminSaveState('error','Échec de l’envoi');
     setNotice(q('#adminError'),e.message);
     toast('Échec : '+e.message)
   }finally{
-    endAdminSave(saveOk);
     setButtonBusy(btn,false)
   }
 }
@@ -2224,7 +2218,7 @@ function renderDayEditorMembers(){
   if(date&&!q('#adminCorrectionOverlay').classList.contains('hidden'))populateDayEditor(date)
 }
 
-function renderAudit(){const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`;wireHorizontalScrollAffordances()}
+function renderAudit(){if(!q('#auditSearch')||!q('#auditAction')||!q('#logsTable'))return;const search=(q('#auditSearch').value||'').trim().toLowerCase(),selected=q('#auditAction').value,all=adminData.auditLog||[],actions=[...new Set(all.map(x=>x.action).filter(Boolean))].sort(),sel=q('#auditAction'),prev=sel.value;sel.innerHTML='<option value="">Toutes les actions</option>';for(const a of actions){const o=document.createElement('option');o.value=a;o.textContent=actionLabel(a);sel.append(o)}if([...sel.options].some(o=>o.value===prev))sel.value=prev;const rows=all.filter(l=>(!selected||l.action===selected)&&(!search||`${l.actor} ${actionLabel(l.action)} ${l.date||''}`.toLowerCase().includes(search)));const body=q('#logsTable');body.innerHTML='';for(const l of rows){const tr=document.createElement('tr');for(const v of [new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(l.at)),l.actor,actionLabel(l.action),l.date||'—']){const td=document.createElement('td');td.textContent=v;tr.append(td)}body.append(tr)}q('#auditShown').textContent=`${rows.length}/${all.length} affiché(s)`;wireHorizontalScrollAffordances()}
 let adminRefreshBusy=false,lastAdminActivityAt=Date.now(),lastAdminSyncAt=0,adminPollTimer=0;
 function markAdminActivity(){
   lastAdminActivityAt=Date.now();
@@ -2795,7 +2789,7 @@ async function boot(){
   if(path==='/join-short'&&token){history.replaceState(null,'',path);await serverJoin('short',token);return}
   if(path==='/join'&&token){history.replaceState(null,'',path);await serverJoin('member',token);return}
   if(path==='/admin-login'&&token){history.replaceState(null,'',path);await serverJoin('admin',token);return}
-  if(path==='/admin'||path==='/admin/membres'||path==='/admin/historique'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
+  if(path==='/admin'||path==='/admin/membres'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
   if(path==='/calendar'){await refreshMember({openIfSuccessful:true});return}
   if(path==='/join'||path==='/join-short'||path==='/'){showMemberLinkRequired();return}
   if(path==='/admin-login'){showAdminCodeLogin();return}
@@ -2944,8 +2938,8 @@ document.addEventListener('keydown',trapModalFocus);
 q('#adminDayForm').addEventListener('submit',e=>{e.preventDefault();saveAdminDay(e.submitter)});
 q('#adminCellForm').addEventListener('submit',e=>{e.preventDefault();saveAdminCell(e.submitter)});
 q('#adminCellClose').addEventListener('click',closeAdminCellEditor);
-q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch').addEventListener('input',renderAudit);q('#auditAction').addEventListener('change',renderAudit);q('#auditClear').addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
-q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit').addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});applyAdminServerSnapshot(j.snapshot);renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
+q('#adminCellOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAdminCellEditor()});q('#exceptionForm').addEventListener('submit',e=>{e.preventDefault();setException(q('#exceptionDate').value,q('#exceptionState').value==='open',q('#exceptionNote').value,e.submitter)});q('#bulkExceptionForm').addEventListener('submit',e=>{e.preventDefault();bulkException(q('#bulkFrom').value,q('#bulkTo').value,q('#bulkState').value,q('#bulkNote').value,e.submitter)});q('#auditSearch')?.addEventListener('input',renderAudit);q('#auditAction')?.addEventListener('change',renderAudit);q('#auditClear')?.addEventListener('click',()=>{q('#auditSearch').value='';q('#auditAction').value='';renderAudit()});
+q('#downloadPlanning').addEventListener('click',()=>{if(LOCAL)downloadBlob(`planning-presences-${parisToday()}.csv`,'text/csv;charset=utf-8',localPlanningCsv());else location.href='/api/admin/planning.csv'});q('#downloadAudit')?.addEventListener('click',()=>{if(LOCAL){const rows=[['Quand','Acteur','Action','Date'],...localState.auditLog.map(l=>[l.at,l.actor,actionLabel(l.action),l.date||''])];downloadBlob(`historique-${parisToday()}.csv`,'text/csv;charset=utf-8','\ufeff'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n'))}else location.href='/api/admin/audit.csv'});q('#downloadBackup').addEventListener('click',()=>{if(LOCAL)downloadBlob(`club-presences-backup-local-${parisToday()}.json`,'application/json',JSON.stringify(localBackup(),null,2));else location.href='/api/admin/backup'});q('#restoreBackup').addEventListener('click',e=>{const f=q('#backupFile').files?.[0];if(f)restoreBackup(f,e.currentTarget);else setNotice(q('#adminError'),'Choisissez d’abord un fichier JSON.')});q('#revokeOtherAdmins').addEventListener('click',async e=>{if(!await confirmModal('Déconnecter toutes les autres sessions administrateur ?',{title:'Sessions administrateur',confirmText:'Déconnecter',danger:true}))return;const btn=e.currentTarget;setButtonBusy(btn,true,'Déconnexion…');try{const j=await netApi('/api/admin/sessions/revoke-others',{method:'POST'});applyAdminServerSnapshot(j.snapshot);renderAdmin();toast(`${j.revoked} session(s) déconnectée(s)`)}catch(e){setNotice(q('#adminError'),e.message)}finally{setButtonBusy(btn,false)}});
 q('#confirmCancel').addEventListener('click',()=>closeConfirmModal(false));q('#confirmAccept').addEventListener('click',()=>closeConfirmModal(true));q('#confirmOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal(false)});document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(confirmResolve){closeConfirmModal(false);return}if(!q('#memberQuickPanel')?.classList.contains('hidden')){closeMemberQuick();return}if(!q('#memberCreatePanel')?.classList.contains('hidden')||!q('#memberModifyPanel')?.classList.contains('hidden')){closeMemberManagement();return}if(!q('#adminCellOverlay').classList.contains('hidden')){closeAdminCellEditor();return}if(!q('#adminCorrectionOverlay').classList.contains('hidden'))closeAdminCorrection()});
 for(const tab of document.querySelectorAll('.admin-tabs [data-admin-page]'))tab.addEventListener('click',e=>{
   e.preventDefault();

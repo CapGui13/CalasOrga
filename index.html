@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#216c4a">
 <meta name="robots" content="noindex,nofollow">
 <title>Planning Bridge</title>
-<link rel="stylesheet" href="styles.css?v=1547-supabase">
+<link rel="stylesheet" href="/styles.css?v=1547-stabilized">
 </head>
 <body>
 <main class="shell" id="appRoot">
-  <div id="localBanner" class="prefinal-banner hidden"><strong>V15.47 · interface 3 modes · stockage Supabase · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Le mode local ne synchronise pas les appareils. La production partagée utilise Vercel et son backend <code>api/index.mjs</code>.</div>
+  <div id="localBanner" class="prefinal-banner hidden"><strong>V15.47.2 · interface 3 modes · stockage Supabase · mode test local.</strong> En fichier local, les données restent dans ce navigateur. Le mode local ne synchronise pas les appareils. La production partagée utilise Vercel et son backend <code>api/index.mjs</code>.</div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
   <div id="memberCreatePanel" class="confirm-overlay hidden" aria-hidden="true">
     <div class="confirm-dialog member-management-dialog" role="dialog" aria-modal="true" aria-labelledby="memberCreateTitle">
@@ -143,7 +143,7 @@
       <div class="top-actions">
         <span class="admin-save-state hidden" id="lastRefresh" role="status" aria-live="polite"></span>
         <button class="btn primary hidden" type="button" id="memberToAdmin">Administration</button>
-        <button class="btn" type="button" id="memberExit">Déconnexion</button>
+        <button class="btn hidden" type="button" id="memberExit" aria-hidden="true" tabindex="-1">Déconnexion</button>
       </div>
     </header>
     <div class="notice error hidden" id="memberError" aria-live="assertive"></div>
@@ -187,7 +187,6 @@
     <nav class="admin-tabs" aria-label="Pages de l’administration">
       <a href="/admin" data-admin-page="calendar">Calendrier</a>
       <a href="/admin/membres" data-admin-page="members"><span class="nav-label-desktop">Gestion des membres</span><span class="nav-label-mobile" aria-hidden="true">Membres</span></a>
-      <a href="/admin/historique" data-admin-page="history">Historique</a>
     </nav>
 
     
@@ -254,11 +253,6 @@
           </div>
         </section>
       </div>
-    </div>
-
-    
-    <div class="admin-page hidden" data-admin-view="history">
-      <div class="admin-history-page"><section class="card spaced" id="adminHistory"><div class="section-head"><div><h2>Historique récent</h2><div class="muted small">Les dernières modifications enregistrées.</div></div><button class="btn" type="button" id="downloadAudit">Historique CSV</button></div><div class="audit-tools spaced"><div class="field"><label for="auditSearch">Rechercher</label><input id="auditSearch" type="search" autocomplete="off" placeholder="Nom, action ou date"></div><div class="field"><label for="auditAction">Type d’action</label><select id="auditAction"><option value="">Toutes les actions</option></select></div><button class="btn" type="button" id="auditClear">Effacer les filtres</button><span class="muted small" id="auditShown"></span></div><div class="table-wrap spaced"><table class="table"><thead><tr><th>Quand</th><th>Acteur</th><th>Action</th><th>Date</th></tr></thead><tbody id="logsTable"></tbody></table></div></section></div>
     </div>
 
     
@@ -353,5 +347,6 @@
   </section>
 
 </main>
-<script src="client.js?v=1547-supabase"></script>
+<script src="/client.js?v=1547-stabilized"></script>
+<script src="/admin-desktop-enhancements.js?v=1548-stabilized"></script>
 </body></html>

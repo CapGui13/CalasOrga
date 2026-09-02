@@ -14,7 +14,8 @@ const payload=JSON.parse(await fs.readFile(filename,'utf8'));
 const state=payload?.format==='club-presences-backup'&&payload?.state ? payload.state : payload;
 if(!state||typeof state!=='object'||Array.isArray(state))throw new Error('Sauvegarde invalide.');
 
-const headers={apikey:supabaseKey,Authorization:`Bearer ${supabaseKey}`,'Content-Type':'application/json',Accept:'application/json'};
+const headers={apikey:supabaseKey,'Content-Type':'application/json',Accept:'application/json'};
+if(!/^sb_(?:secret|publishable)_/i.test(supabaseKey))headers.Authorization=`Bearer ${supabaseKey}`;
 const rest=(query='')=>`${supabaseUrl}/rest/v1/${encodeURIComponent(table)}${query}`;
 async function jsonFetch(url,options={}){const r=await fetch(url,options);const raw=await r.text();let body=null;if(raw){try{body=JSON.parse(raw)}catch{body=raw}}if(!r.ok)throw new Error(`Supabase ${r.status}: ${typeof body==='string'?body:JSON.stringify(body)}`);return body}
 const existing=await jsonFetch(rest(`?id=eq.${encodeURIComponent(rowId)}&select=id,version&limit=1`),{headers});

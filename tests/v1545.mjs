@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.47-supabase-storage');
+  assert.equal(health.appVersion,'0.15.47.2-stabilized');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -100,12 +100,15 @@ try{
   const appText=await fs.readFile(path.join(root,'client.js'),'utf8');
   const serverText=await fs.readFile(path.join(root,'server.mjs'),'utf8');
   const vercelText=await fs.readFile(path.join(root,'vercel.json'),'utf8');
+  const desktopEnhancements=await fs.readFile(path.join(root,'admin-desktop-enhancements.js'),'utf8');
+  const desktopEnhancementsCore=await fs.readFile(path.join(root,'admin-desktop-enhancements-core.js'),'utf8');
   assert.equal(await fs.stat(path.join(root,'client.js')).then(()=>true),true);
   assert.equal(await fs.access(path.join(root,'app.js')).then(()=>true).catch(()=>false),false,'app.js racine interdit: Vercel peut l’auto-détecter comme entrée serveur');
   assert.match(vercelText,/\"framework\"\s*:\s*null/,'framework preset must stay Other to disable framework auto-detection');
   // V15.45 conserve le hardening V15.44 : pas de PII réelle dans les sources distribuées.
-  assert.doesNotMatch(indexText+appText+stylesText,/(?:gmail\.com|yahoo\.fr|wanadoo\.fr|laposte\.net|orange\.fr|free\.fr)/i);
-  assert.doesNotMatch(serverText,/(?:gmail\.com|yahoo\.fr|wanadoo\.fr|laposte\.net|orange\.fr|free\.fr)/i);
+  const realEmailPattern=/[A-Z0-9._%+-]+@(?:gmail\.com|yahoo\.fr|wanadoo\.fr|laposte\.net|orange\.fr|free\.fr)/i;
+  assert.doesNotMatch(indexText+appText+stylesText,realEmailPattern);
+  assert.doesNotMatch(serverText,realEmailPattern);
   // Multi-input : toucher/stylet/clavier = activation simple, souris = double-clic.
   assert.match(appText,/function usesSingleActivation\(event\)/);
   assert.match(appText,/event\?\.detail===0/);
@@ -166,8 +169,8 @@ try{
   assert.match(indexText,/nav-label-mobile/);
   assert.doesNotMatch(stylesText,/a\[data-admin-page="members"\]::after\{content:"Membres"/);
   assert.match(appText,/shortSide>=800&&\(uiPrecisePointerActive\(\)\|\|uiDesktopPlatformHint\(\)\)/);
-  assert.match(indexText,/<link rel="stylesheet" href="styles\.css(?:\?v=[^"]+)?">/);
-  assert.match(indexText,/<script src="client\.js(?:\?v=[^"]+)?"><\/script>/);
+  assert.match(indexText,/<link rel="stylesheet" href="\/styles\.css(?:\?v=[^"]+)?">/);
+  assert.match(indexText,/<script src="\/client\.js(?:\?v=[^"]+)?"><\/script>/);
   // V15.45.7 : contrat strict de trois modes, stable en orientation.
   assert.match(appText,/UI MODE CONTRACT/);
   assert.match(appText,/UI_MODE_CLASSES=\['ui-desktop','ui-tablet','ui-mobile'\]/);
@@ -177,8 +180,11 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/styles\.css\?v=1547-supabase/);
-  assert.match(indexText,/client\.js\?v=1547-supabase/);
+  assert.match(indexText,/\/styles\.css\?v=1547-stabilized/);
+  assert.match(indexText,/\/client\.js\?v=1547-stabilized/);
+  assert.match(indexText,/\/admin-desktop-enhancements\.js\?v=1548-stabilized/);
+  assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
+  assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
   assert.doesNotMatch(indexText,/<script>(?:.|\n)*?<\/script>/i);
   assert.doesNotMatch(vercelText,/sha256-/i);
@@ -188,6 +194,8 @@ try{
   const jsRes=await fetch(`${origin}/client.js`); assert.equal(jsRes.status,200); assert.match(jsRes.headers.get('content-type')||'',/text\/javascript/);
   const nestedCssRes=await fetch(`${origin}/admin/styles.css`); assert.equal(nestedCssRes.status,200);
   const nestedJsRes=await fetch(`${origin}/admin/client.js`); assert.equal(nestedJsRes.status,200);
+  const enhRes=await fetch(`${origin}/admin-desktop-enhancements.js`); assert.equal(enhRes.status,200);
+  const enhCoreRes=await fetch(`${origin}/admin-desktop-enhancements-core.js`); assert.equal(enhCoreRes.status,200);
 
   // Hotfix Vercel 2 : l'import/démarrage backend ne doit dépendre d'AUCUN fichier frontend.
   // Ce mini-bundle reproduit une fonction ne contenant que server.mjs.
@@ -216,7 +224,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.47-supabase-storage');
+    assert.equal(bundleHealth.appVersion,'0.15.47.2-stabilized');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));

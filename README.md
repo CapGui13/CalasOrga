@@ -1,6 +1,6 @@
 # CalasOrga — UX hardening 3 modes
 
-Calendrier partagé du club, qualifié pour un usage **desktop, tablette et mobile**. Production : **Vercel + Vercel Blob privé**. GitHub Pages reste la porte d’entrée stable des membres et de l’administration.
+Calendrier partagé du club, qualifié pour un usage **desktop, tablette et mobile**. Production : **Vercel + Supabase Postgres privé**. GitHub Pages reste la porte d’entrée stable des membres et de l’administration.
 
 ## Accès membre
 
@@ -8,7 +8,7 @@ Les liens personnels courts conservent la forme `https://capgui13.github.io/Cala
 
 ## Administration
 
-Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’administration gère membres, appareils, planning, rôles, historique, exports et sauvegardes.
+Porte d’entrée stable : `https://capgui13.github.io/CalasOrga/Admin/`. L’administration gère membres, appareils, planning, rôles, exports et sauvegardes. L’historique n’est plus exposé dans l’interface.
 
 ## Contrat UI : exactement 3 modes
 
@@ -35,7 +35,7 @@ L’override peut aussi être piloté dans la console avec `CalasOrgaUiMode.set(
 
 ### Desktop
 
-- planning, membres et historique restent les vues de référence ;
+- planning et membres restent les vues de référence ;
 - dans la grande fenêtre `Modifier`, un membre peut maintenant être **cliqué puis affecté à un poste**, en plus du drag & drop ;
 - une aide explicite rappelle les deux gestes ;
 - les interactions clavier existantes sont conservées.
@@ -51,10 +51,9 @@ L’override peut aussi être piloté dans la console avec `CalasOrgaUiMode.set(
 
 ### Mobile
 
-- navigation admin fixe en bas : `Calendrier / Membres / Historique` ;
+- navigation admin fixe en bas : `Calendrier / Membres` ;
 - planning en tableau compact avec colonne Date fixe et balayage horizontal signalé ;
 - gestion des membres : vue d’ensemble compacte `Membre / Statut / Appareils`, puis **fiche membre en bottom sheet** au tap pour email, appareils, lien et actions ;
-- historique transformé en feed compact lisible sans swipe horizontal ;
 - fenêtre `Modifier` : six colonnes conservées comme repère, colonne Membres fixe et barre rapide `Accueil / TPE / MEP / Arbitrage / Disponible` après sélection ;
 - safe areas iOS/iPadOS et cibles tactiles >= 44 px.
 
@@ -86,7 +85,7 @@ Le frontend reste séparé :
 - le roster réel reste dans le stockage privé ;
 - la migration du roster reste non destructive ;
 - désactiver un membre demande une confirmation explicite ;
-- stockage Vercel Blob privé, CSRF/origine/CSP et cookies sécurisés conservés.
+- stockage Supabase privé, CSRF/origine/CSP et cookies sécurisés conservés.
 
 ## Variables Vercel
 
@@ -104,7 +103,7 @@ BLOB_STATE_PATH=calasorga/store.json
 Le backend actuellement qualifié répond notamment avec :
 
 ```json
-{"ok":true,"appVersion":"0.15.45.3-cleanup-vercel-autodetect-fix","storage":"vercel-blob","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.47.2-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests
@@ -142,3 +141,7 @@ Trois chemins de mise en service existent :
 1. Restaurer temporairement l'accès au Blob et lancer `npm run migrate:blob:supabase`.
 2. Importer un backup JSON avec `npm run import:supabase -- <backup.json>`.
 3. Repartir volontairement à zéro en définissant temporairement `SUPABASE_ALLOW_EMPTY_INIT=1`, ouvrir l'application une fois, puis supprimer/repasser cette variable à `0`.
+
+## Envoi des liens par email
+
+En production, l’envoi utilise Gmail SMTP via `GMAIL_USER` et `GMAIL_APP_PASSWORD` (mot de passe d’application Google). `GMAIL_FROM_NAME` est optionnel. Les secrets restent exclusivement dans les variables Vercel et ne doivent jamais être commités.

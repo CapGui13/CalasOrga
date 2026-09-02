@@ -2,33 +2,24 @@ export const config = { maxDuration: 15 };
 
 let requestHandlerPromise = null;
 
+function safeErrorMessage(error) {
+  return String(error?.message || error || 'Erreur inconnue')
+    .replace(/sb_secret_[A-Za-z0-9_-]+/g, '[SECRET_REDACTED]')
+    .replace(/(?:GMAIL_APP_PASSWORD|SUPABASE_SECRET_KEY)\s*[=:]\s*\S+/gi, '$1=[SECRET_REDACTED]')
+    .slice(0, 500);
+}
+
 function startupCode(error) {
   const text = [error?.code, error?.name, error?.message]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
-
-  if (text.includes('vercel blob n’est pas connecté') || text.includes('vercel blob n\'est pas connecté')) {
-    return 'STARTUP_BLOB_CONFIG';
-  }
-  if (text.includes('admin_token') || text.includes('admin_code')) {
-    return 'STARTUP_ADMIN_CONFIG';
-  }
-  if (text.includes('member_short_secret')) {
-    return 'STARTUP_MEMBER_SECRET_CONFIG';
-  }
-  if (text.includes('err_module_not_found') || text.includes('cannot find package') || text.includes('cannot find module')) {
-    return 'STARTUP_MODULE_MISSING';
-  }
-  if (text.includes('enoent')) {
-    return 'STARTUP_FILE_MISSING';
-  }
-  if (text.includes('@vercel/blob') || text.includes('blob') || text.includes('fetch failed') || text.includes('econn')) {
-    return 'STARTUP_STORAGE';
-  }
-  if (text.includes('unsupported_schema') || text.includes('stockage créé par une version plus récente')) {
-    return 'STARTUP_STORAGE_SCHEMA';
-  }
+  if (text.includes('admin_token') || text.includes('admin_code')) return 'STARTUP_ADMIN_CONFIG';
+  if (text.includes('member_short_secret')) return 'STARTUP_MEMBER_SECRET_CONFIG';
+  if (text.includes('err_module_not_found') || text.includes('cannot find package') || text.includes('cannot find module')) return 'STARTUP_MODULE_MISSING';
+  if (text.includes('enoent')) return 'STARTUP_FILE_MISSING';
+  if (text.includes('unsupported_schema') || text.includes('stockage créé par une version plus récente')) return 'STARTUP_STORAGE_SCHEMA';
+  if (text.includes('supabase') || text.includes('blob') || text.includes('fetch failed') || text.includes('econn')) return 'STARTUP_STORAGE';
   return 'STARTUP_UNKNOWN';
 }
 
@@ -42,8 +33,6 @@ async function getRequestHandler() {
         return module.requestHandler;
       })
       .catch((error) => {
-        // Ne pas mémoriser définitivement un cold-start raté : une invocation ultérieure
-        // doit pouvoir retenter après un incident transitoire de stockage/réseau.
         requestHandlerPromise = null;
         throw error;
       });
@@ -53,7 +42,11 @@ async function getRequestHandler() {
 
 function startupFailure(res, error) {
   const code = startupCode(error);
-  console.error('CALASORGA_STARTUP_ERROR', code, error);
+  console.error('CALASORGA_STARTUP_ERROR', code, {
+    name: String(error?.name || 'Error').slice(0, 80),
+    code: String(error?.code || '').slice(0, 80),
+    message: safeErrorMessage(error)
+  });
   res.statusCode = 500;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');

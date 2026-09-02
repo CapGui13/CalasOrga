@@ -1,17 +1,18 @@
 {
   "name": "calendrier-club-presences",
-  "version": "0.15.47",
+  "version": "0.15.47.2",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@vercel/blob": "2.8.0"
+    "@vercel/blob": "2.8.0",
+    "nodemailer": "9.1.1"
   },
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check api/index.mjs && node --check client.js && node --check tests/v1545.mjs && node --check tests/ui-modes.mjs && node --check tests/supabase-storage.mjs && node --check scripts/migrate-blob-to-supabase.mjs && node --check scripts/import-backup-to-supabase.mjs",
+    "check": "node --check server.mjs && node --check api/index.mjs && node --check client.js && node --check admin-desktop-enhancements.js && node --check admin-desktop-enhancements-core.js && node --check tests/v1545.mjs && node --check tests/ui-modes.mjs && node --check tests/supabase-storage.mjs && node --check scripts/migrate-blob-to-supabase.mjs && node --check scripts/import-backup-to-supabase.mjs",
     "test": "node tests/v1545.mjs && node tests/ui-modes.mjs && node tests/supabase-storage.mjs",
     "migrate:blob:supabase": "node scripts/migrate-blob-to-supabase.mjs",
     "import:supabase": "node scripts/import-backup-to-supabase.mjs"

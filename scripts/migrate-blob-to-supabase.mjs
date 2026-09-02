@@ -11,7 +11,8 @@ const force=process.argv.includes('--force');
 if(!supabaseUrl||!supabaseKey)throw new Error('SUPABASE_URL et SUPABASE_SECRET_KEY sont requis.');
 if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.BLOB_STORE_ID)throw new Error('Le stockage Blob source n’est pas configuré.');
 
-const headers={apikey:supabaseKey,Authorization:`Bearer ${supabaseKey}`,'Content-Type':'application/json',Accept:'application/json'};
+const headers={apikey:supabaseKey,'Content-Type':'application/json',Accept:'application/json'};
+if(!/^sb_(?:secret|publishable)_/i.test(supabaseKey))headers.Authorization=`Bearer ${supabaseKey}`;
 const rest=(query='')=>`${supabaseUrl}/rest/v1/${encodeURIComponent(table)}${query}`;
 
 async function jsonFetch(url,options={}){
