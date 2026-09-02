@@ -201,19 +201,35 @@ try{
 
   const tabletLandscape=await newPage({mode:'tablet',width:1138,height:712});
   assert.equal(await tabletLandscape.evalJs(`document.documentElement.dataset.uiMode`),'tablet');
-  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-wrap')).display`),'block','tablet landscape keeps the efficient table');
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-wrap')).display`),'none','tablet landscape uses the master/detail planning workspace');
   assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).display`),'none');
-  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminRoot .admin-schedule-wrap').scrollWidth<=document.querySelector('#adminRoot .admin-schedule-wrap').clientWidth+2`),true,'tablet landscape planning should fit without horizontal swipe');
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#tabletCalendarSplit')).display`),'grid');
+  assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletCalendarDateList .tablet-date-item').length`))>0,'tablet landscape must list planning dates');
+  assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarInspector h3')?.textContent||''`)).length>0,'tablet landscape must show selected day details');
   assert.equal(await tabletLandscape.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet landscape body must fit viewport');
+  await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarInspector .tablet-inspector-role:not(:disabled)')?.click()`);await sleep(60);
+  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminCellOverlay').classList.contains('hidden')`),true,'tablet landscape quick role edit must stay inline');
+  assert.notEqual(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#tabletCalendarRoleEditor')).display`),'none','tablet landscape must expose inline role editor');
+  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarRoleEditor .tablet-inline-editor-search')!==null`),true);
+  assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletCalendarRoleEditor .tablet-inline-choice').length`))>0);
+
   await tabletLandscape.evalJs(`document.querySelector('[data-admin-page="members"]').click()`);await sleep(300);
-  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminMembers .members-table thead')).display`),'table-header-group','tablet landscape keeps member table');
   assert.notEqual(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#mobileMembersSearchWrap')).display`),'none','tablet landscape still offers member search');
-  await tabletLandscape.evalJs(`document.querySelector('#membersTable .member-state-pill')?.click()`);await sleep(60);
-  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#memberQuickPanel').classList.contains('hidden')`),false);
-  await tabletLandscape.evalJs(`document.querySelector('#memberQuickClose').click()`);await sleep(30);
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminMembers .members-table-wrap')).display`),'none','tablet landscape members use master/detail instead of the wide table');
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#tabletMembersSplit')).display`),'grid');
+  assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMembersFilters .tablet-member-filter').length`),3,'tablet member workspace must expose status filters');
+  assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMembersList .tablet-member-list-item').length`))>0);
+  assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletMemberDetail h3')?.textContent||''`)).length>0,'tablet member detail must stay visible');
+  assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMemberDetail .tablet-member-detail-actions .btn').length`))>=4);
+  const firstTabletMember=await tabletLandscape.evalJs(`document.querySelector('#tabletMembersList .tablet-member-list-item')?.dataset.memberId||''`);
+  await tabletLandscape.evalJs(`(()=>{const xs=[...document.querySelectorAll('#tabletMembersList .tablet-member-list-item')];(xs[1]||xs[0])?.click();return true})()`);await sleep(40);
+  assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletMemberDetail h3')?.textContent||''`)).length>0);
+  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#memberQuickPanel').classList.contains('hidden')`),true,'tablet landscape list selection must not open a modal');
+
   await tabletLandscape.evalJs(`document.querySelector('[data-admin-page="calendar"]').click()`);await sleep(300);
-  await tabletLandscape.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(70);
-  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).gridTemplateColumns.split(' ').length`),6,'tablet landscape editor keeps all six columns');
+  await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarInspector .tablet-inspector-actions .btn')?.click()`);await sleep(70);
+  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminCorrectionOverlay').classList.contains('hidden')`),false,'full-day edit remains available from the inspector');
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).gridTemplateColumns.split(' ').length`),6,'tablet landscape full editor keeps all six columns');
   assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminCorrectionOverlay .day-editor-columns').scrollWidth<=document.querySelector('#adminCorrectionOverlay .day-editor-columns').clientWidth+2`),true,'tablet landscape editor should fit without horizontal swipe');
   assert.notEqual(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-column-role')).display`),'none');
   assert.equal(await tabletLandscape.evalJs(`document.querySelector('#dayEditorMobileSearch')!==null`),true);

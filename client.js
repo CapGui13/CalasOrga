@@ -136,6 +136,7 @@ window.addEventListener('resize',scheduleUiModeRefresh,{passive:true});
 globalThis.visualViewport?.addEventListener?.('resize',scheduleUiModeRefresh,{passive:true});
 function isTouchUi(){return currentUiMode!=='desktop'}
 function isTabletPortrait(){return currentUiMode==='tablet'&&window.matchMedia?.('(orientation: portrait)').matches===true}
+function isTabletLandscape(){return currentUiMode==='tablet'&&window.matchMedia?.('(orientation: landscape)').matches===true}
 function usesCompactTouchEditor(){return currentUiMode==='mobile'||isTabletPortrait()}
 function usesSingleActivation(event){
   if(event?.detail===0)return true; // clavier / activation assistive
@@ -1268,6 +1269,11 @@ let dayEditorMobileQuery='';
 let adminCorrectionReturnDate='';
 let adminCellMobileQuery='';
 let membersMobileQuery='';
+let tabletCalendarSelectedDate='';
+let tabletCalendarEditRole='';
+let tabletCalendarRoleQuery='';
+let tabletMembersSelectedId='';
+let tabletMembersFilter='all';
 
 function dayEditorActiveMembers(){
   return sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active))
@@ -1957,6 +1963,133 @@ function makeAdminChipDraggable(chip,date,role,memberId){
   })
 }
 
+
+function tabletPlanningDateState(date){
+  const open=adminIsOpen(date);
+  const coverageState=assignmentCoverage(adminData,date);
+  return {open,coverageState}
+}
+function tabletRoleNames(date,role,nameMap){
+  const assignments=adminData?.assignments?.[date]||{};
+  const ids=sortMemberIds((assignments[role]||[]),nameMap);
+  return ids.map(id=>nameMap[id]||'Membre')
+}
+function ensureTabletCalendarSplit(){
+  const card=q('#adminCalendar'),schedule=q('#adminRoot .admin-schedule-wrap');
+  if(!card||!schedule)return null;
+  let split=q('#tabletCalendarSplit');
+  if(!split){
+    split=document.createElement('div');
+    split.id='tabletCalendarSplit';
+    split.className='tablet-calendar-split';
+    const list=document.createElement('div');list.id='tabletCalendarDateList';list.className='tablet-calendar-date-list';list.setAttribute('aria-label','Dates du planning');
+    const inspector=document.createElement('aside');inspector.id='tabletCalendarInspector';inspector.className='tablet-calendar-inspector';inspector.setAttribute('aria-live','polite');
+    split.append(list,inspector);
+    schedule.insertAdjacentElement('beforebegin',split)
+  }
+  return split
+}
+function renderTabletCalendarRoleEditor(date,role,nameMap){
+  const host=q('#tabletCalendarRoleEditor');
+  if(!host)return;
+  host.innerHTML='';
+  if(!role||!ROLE_KEYS.includes(role))return;
+  const assignments=adminData?.assignments?.[date]||{};
+  const active=sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active));
+  const selected=(assignments[role]||[]).map(String);
+  const coreAssigned=new Set(CORE_ROLE_KEYS.flatMap(r=>(assignments[r]||[]).map(String)));
+
+  const head=document.createElement('div');head.className='tablet-inline-editor-head';
+  const title=document.createElement('strong');title.textContent=`Modifier · ${ROLE_LABELS[role]}`;
+  const close=document.createElement('button');close.type='button';close.className='tablet-inline-editor-close';close.textContent='Fermer';
+  close.addEventListener('click',()=>{tabletCalendarEditRole='';tabletCalendarRoleQuery='';renderTabletCalendarSplit()});
+  head.append(title,close);host.append(head);
+
+  const search=document.createElement('input');search.type='search';search.className='tablet-inline-editor-search';search.placeholder='Rechercher un membre';search.value=tabletCalendarRoleQuery;search.setAttribute('aria-label','Rechercher un membre');
+  search.addEventListener('input',e=>{tabletCalendarRoleQuery=String(e.currentTarget.value||'');renderTabletCalendarSplit();requestAnimationFrame(()=>{const i=q('#tabletCalendarRoleEditor .tablet-inline-editor-search');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}})});
+  host.append(search);
+
+  const query=tabletCalendarRoleQuery.trim().toLocaleLowerCase('fr-FR');
+  const shown=active.filter(m=>!query||`${m.name||''} ${m.email||''}`.toLocaleLowerCase('fr-FR').includes(query));
+  const list=document.createElement('div');list.className='tablet-inline-editor-list';
+  if(role!=='present'){
+    const empty=document.createElement('button');empty.type='button';empty.className='tablet-inline-choice'+(!selected.length?' selected':'');empty.textContent='À pourvoir';
+    empty.addEventListener('click',()=>{queueAdminPlanningChanges([{date,role,ids:[]}]);tabletCalendarEditRole=''});list.append(empty)
+  }
+  for(const m of shown){
+    const id=String(m.id);
+    const disabled=role==='present'&&coreAssigned.has(id)&&!selected.includes(id);
+    const checked=selected.includes(id);
+    const b=document.createElement('button');b.type='button';b.className='tablet-inline-choice'+(checked?' selected':'')+(disabled?' blocked':'');b.disabled=disabled;
+    const name=document.createElement('span');name.textContent=m.name;
+    const state=document.createElement('span');state.className='tablet-inline-choice-state';state.textContent=disabled?'Déjà affecté':checked?(role==='present'?'Disponible ✓':'Actuel ✓'):'';
+    b.append(name,state);
+    b.addEventListener('click',()=>{
+      if(role==='present'){
+        const next=checked?selected.filter(x=>x!==id):[...selected,id];
+        queueAdminPlanningChanges([{date,role,ids:next}])
+      }else{
+        queueAdminPlanningChanges([{date,role,ids:[id]}]);tabletCalendarEditRole=''
+      }
+    });list.append(b)
+  }
+  if(!shown.length){const e=document.createElement('div');e.className='tablet-inline-empty';e.textContent='Aucun membre trouvé';list.append(e)}
+  host.append(list)
+}
+function renderTabletCalendarInspector(date,nameMap){
+  const inspector=q('#tabletCalendarInspector');
+  if(!inspector)return;
+  inspector.innerHTML='';
+  if(!date){inspector.innerHTML='<div class="tablet-split-empty">Sélectionnez une date.</div>';return}
+  const {open,coverageState}=tabletPlanningDateState(date);
+  const head=document.createElement('div');head.className='tablet-inspector-head';
+  const text=document.createElement('div');
+  const title=document.createElement('h3');title.textContent=dayLabel(date);
+  const sub=document.createElement('div');sub.className='tablet-inspector-status '+(!open?'closed':coverageState.covered?'ok':'alert');
+  sub.textContent=!open?'Fermé':coverageState.covered?'Journée complète':`Manque : ${coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · ')}`;
+  text.append(title,sub);head.append(text);inspector.append(head);
+
+  const roles=document.createElement('div');roles.className='tablet-inspector-roles';
+  for(const role of ROLE_KEYS){
+    const b=document.createElement('button');b.type='button';b.className='tablet-inspector-role'+(tabletCalendarEditRole===role?' selected':'');b.disabled=!open;
+    const label=document.createElement('span');label.className='tablet-inspector-role-label';label.textContent=ROLE_LABELS[role];
+    const names=tabletRoleNames(date,role,nameMap);
+    const value=document.createElement('span');value.className='tablet-inspector-role-value'+(!names.length?' empty':'');value.textContent=names.length?names.join(', '):(role==='present'?'Personne disponible':'À pourvoir');
+    const chevron=document.createElement('span');chevron.className='tablet-inspector-role-chevron';chevron.textContent='›';
+    b.append(label,value,chevron);
+    if(open)b.addEventListener('click',()=>{tabletCalendarEditRole=tabletCalendarEditRole===role?'':role;tabletCalendarRoleQuery='';renderTabletCalendarSplit()});
+    roles.append(b)
+  }
+  inspector.append(roles);
+  const editor=document.createElement('div');editor.id='tabletCalendarRoleEditor';editor.className='tablet-calendar-role-editor'+(tabletCalendarEditRole?'':' hidden');inspector.append(editor);
+  if(tabletCalendarEditRole)renderTabletCalendarRoleEditor(date,tabletCalendarEditRole,nameMap);
+
+  const actions=document.createElement('div');actions.className='tablet-inspector-actions';
+  const full=document.createElement('button');full.type='button';full.className='btn primary';full.textContent='Modifier toute la journée';full.disabled=!open;full.addEventListener('click',()=>adminCorrectionForDate(date));
+  actions.append(full);inspector.append(actions)
+}
+function renderTabletCalendarSplit(datesArg=null,nameMapArg=null){
+  const split=ensureTabletCalendarSplit();
+  if(!split||!adminData)return;
+  const today=parisToday();
+  const effectiveMode=adminCalendarMode==='auto'?adminHomeMode(today):adminCalendarMode;
+  const nextOpen=nextAdminOpenDate(today);
+  const dates=(datesArg||((effectiveMode==='upcoming')?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth||adminHomeMonth(today))))
+    .filter(date=>adminIsOpen(date)||adminData.scheduleExceptions?.[date]?.isOpen===false);
+  const nameMap=nameMapArg||Object.fromEntries((adminData.membersAdmin||adminData.members||[]).map(m=>[m.id,m.name]));
+  if(!dates.includes(tabletCalendarSelectedDate))tabletCalendarSelectedDate=dates.find(d=>adminIsOpen(d))||dates[0]||'';
+  const list=q('#tabletCalendarDateList');list.innerHTML='';
+  for(const date of dates){
+    const {open,coverageState}=tabletPlanningDateState(date);
+    const b=document.createElement('button');b.type='button';b.className='tablet-date-item'+(date===tabletCalendarSelectedDate?' selected':'')+(open&&coverageState.covered?' complete':'')+(!open?' closed':'');b.dataset.date=date;
+    const main=document.createElement('span');main.className='tablet-date-item-main';main.textContent=compactDayLabel(date);
+    const status=document.createElement('span');status.className='tablet-date-item-status';status.textContent=!open?'Fermé':coverageState.covered?'Complet':`${coverageState.missing.length} à pourvoir`;
+    const missing=document.createElement('span');missing.className='tablet-date-item-missing';missing.textContent=open&&!coverageState.covered?coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · '):'';
+    b.append(main,status,missing);b.addEventListener('click',()=>{tabletCalendarSelectedDate=date;tabletCalendarEditRole='';tabletCalendarRoleQuery='';renderTabletCalendarSplit()});list.append(b)
+  }
+  renderTabletCalendarInspector(tabletCalendarSelectedDate,nameMap)
+}
+
 function renderAdminCalendar(){
   if(!adminData)return;
   const today=parisToday();
@@ -2122,6 +2255,7 @@ function renderAdminCalendar(){
     card.append(mobileEdit);
     mobile.append(card)
   }
+  renderTabletCalendarSplit(dates,nameMap);
   animateAdminCalendarIfNeeded()
 }
 
@@ -2304,7 +2438,8 @@ function ensureMobileMembersSearch(){
     input.setAttribute('aria-label','Rechercher un membre');
     input.addEventListener('input',e=>{
       membersMobileQuery=String(e.currentTarget.value||'');
-      applyMobileMembersFilter()
+      applyMobileMembersFilter();
+      renderTabletMembersWorkspace()
     });
     const count=document.createElement('span');
     count.id='mobileMembersSearchCount';
@@ -2316,6 +2451,69 @@ function ensureMobileMembersSearch(){
   const input=q('#mobileMembersSearch');
   if(input&&input.value!==membersMobileQuery)input.value=membersMobileQuery;
   applyMobileMembersFilter()
+}
+
+
+function ensureTabletMembersSplit(){
+  const card=q('#adminMembers'),tableWrap=q('#adminMembers .members-table-wrap');
+  if(!card||!tableWrap)return null;
+  let split=q('#tabletMembersSplit');
+  if(!split){
+    split=document.createElement('div');split.id='tabletMembersSplit';split.className='tablet-members-split';
+    const master=document.createElement('div');master.className='tablet-members-master';
+    const filters=document.createElement('div');filters.id='tabletMembersFilters';filters.className='tablet-members-filters';
+    const list=document.createElement('div');list.id='tabletMembersList';list.className='tablet-members-list';list.setAttribute('aria-label','Liste des membres');
+    master.append(filters,list);
+    const detail=document.createElement('aside');detail.id='tabletMemberDetail';detail.className='tablet-member-detail';
+    split.append(master,detail);tableWrap.insertAdjacentElement('beforebegin',split)
+  }
+  return split
+}
+function tabletMembersVisibleList(){
+  const query=String(membersMobileQuery||'').trim().toLocaleLowerCase('fr-FR');
+  return sortMembersAlpha(adminData?.membersAdmin||[]).filter(m=>{
+    if(tabletMembersFilter==='active'&&!m.active)return false;
+    if(tabletMembersFilter==='inactive'&&m.active)return false;
+    return !query||`${m.name||''} ${m.email||''} ${(m.devices||[]).map(formatMemberDeviceLabel).join(' ')}`.toLocaleLowerCase('fr-FR').includes(query)
+  })
+}
+function renderTabletMemberDetail(id){
+  const detail=q('#tabletMemberDetail');if(!detail)return;
+  const m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));detail.innerHTML='';
+  if(!m){detail.innerHTML='<div class="tablet-split-empty">Sélectionnez un membre.</div>';return}
+  const head=document.createElement('div');head.className='tablet-member-detail-head';
+  const titleWrap=document.createElement('div');const title=document.createElement('h3');title.textContent=m.name;const email=document.createElement('a');email.className='tablet-member-detail-email';email.textContent=m.email||'Aucun email';if(m.email)email.href=`mailto:${m.email}`;titleWrap.append(title,email);
+  const badge=document.createElement('span');badge.className='member-state-pill '+(m.active?'active':'inactive');badge.textContent=m.active?'Actif':'Inactif';head.append(titleWrap,badge);detail.append(head);
+
+  const stats=document.createElement('div');stats.className='tablet-member-stats';
+  const devices=(m.devices||[]).filter(Boolean);const stat=document.createElement('div');stat.className='tablet-member-stat';stat.innerHTML=`<strong>${Number(m.deviceCount||0)}</strong><span>appareil${Number(m.deviceCount||0)>1?'s':''}</span>`;
+  const priv=document.createElement('div');priv.className='tablet-member-stat';priv.innerHTML=`<strong>${m.adminPrivilege?'Oui':'Non'}</strong><span>administrateur</span>`;stats.append(stat,priv);detail.append(stats);
+
+  const deviceBox=document.createElement('div');deviceBox.className='tablet-member-device-box';const deviceTitle=document.createElement('strong');deviceTitle.textContent='Appareils';deviceBox.append(deviceTitle);
+  if(!devices.length){const e=document.createElement('div');e.className='muted small';e.textContent='Aucun appareil connecté.';deviceBox.append(e)}
+  else for(const d of devices){const row=document.createElement('div');row.className='tablet-member-device-row';const t=document.createElement('span');t.textContent=formatMemberDeviceLabel(d);const when=document.createElement('small');when.textContent=d.createdAt?new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(d.createdAt)):'';row.append(t,when);deviceBox.append(row)}
+  detail.append(deviceBox);
+
+  const url=memberCurrentUrl(m);const linkBox=document.createElement('div');linkBox.className='tablet-member-link-box';const linkTitle=document.createElement('strong');linkTitle.textContent='Lien personnel';const link=document.createElement('div');link.className='tablet-member-link';link.textContent=url||'Aucun lien actif';link.title=url;linkBox.append(linkTitle,link);detail.append(linkBox);
+
+  const actions=document.createElement('div');actions.className='tablet-member-detail-actions';
+  const edit=document.createElement('button');edit.type='button';edit.className='btn';edit.textContent='Modifier';edit.addEventListener('click',()=>setMemberManagementMode('modify',{selectedId:m.id}));
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='btn'+(m.active?' danger':'');toggle.textContent=m.active?'Désactiver':'Activer';toggle.addEventListener('click',()=>toggleMemberActiveDirect(m.id,!m.active,m.name,toggle));
+  const rotate=document.createElement('button');rotate.type='button';rotate.className='btn';rotate.textContent='Renouveler le lien';rotate.disabled=!m.active;rotate.addEventListener('click',()=>rotateMember(m.id,m.name,rotate,{showResult:false,scrollResult:false}));
+  const copy=document.createElement('button');copy.type='button';copy.className='btn';copy.textContent='Copier';copy.disabled=!url;if(url)copy.addEventListener('click',()=>copyMemberLink(url,m.name,copy));
+  const send=document.createElement('button');send.type='button';send.className='btn';send.textContent='Envoyer';send.disabled=!url||!m.email;if(!send.disabled)send.addEventListener('click',()=>sendMemberLinkEmail(m.id,m.name,send));
+  actions.append(edit,toggle,rotate,copy,send);detail.append(actions)
+}
+function renderTabletMembersWorkspace(){
+  const split=ensureTabletMembersSplit();if(!split||!adminData)return;
+  const filters=q('#tabletMembersFilters');filters.innerHTML='';
+  for(const [value,label] of [['all','Tous'],['active','Actifs'],['inactive','Inactifs']]){const b=document.createElement('button');b.type='button';b.className='tablet-member-filter'+(tabletMembersFilter===value?' selected':'');b.textContent=label;b.addEventListener('click',()=>{tabletMembersFilter=value;renderTabletMembersWorkspace()});filters.append(b)}
+  const members=tabletMembersVisibleList();
+  if(!members.some(m=>String(m.id)===String(tabletMembersSelectedId)))tabletMembersSelectedId=members[0]?.id||'';
+  const list=q('#tabletMembersList');list.innerHTML='';
+  for(const m of members){const b=document.createElement('button');b.type='button';b.className='tablet-member-list-item'+(String(m.id)===String(tabletMembersSelectedId)?' selected':'')+(!m.active?' inactive':'');b.dataset.memberId=m.id;const main=document.createElement('span');main.className='tablet-member-list-main';const name=document.createElement('strong');name.textContent=m.name;const email=document.createElement('small');email.textContent=m.email||'Aucun email';main.append(name,email);const meta=document.createElement('span');meta.className='tablet-member-list-meta';meta.textContent=`${m.active?'Actif':'Inactif'} · ${Number(m.deviceCount||0)} appareil${Number(m.deviceCount||0)>1?'s':''}`;b.append(main,meta);b.addEventListener('click',()=>{tabletMembersSelectedId=m.id;renderTabletMembersWorkspace()});list.append(b)}
+  if(!members.length){const e=document.createElement('div');e.className='tablet-inline-empty';e.textContent='Aucun membre trouvé';list.append(e);tabletMembersSelectedId=''}
+  renderTabletMemberDetail(tabletMembersSelectedId)
 }
 
 function renderMembers(){
@@ -2496,6 +2694,7 @@ function renderMembers(){
   if(rotateAll)rotateAll.textContent=isTouchUi()?'Renouveler tous':'Renouveler';
   ensureMobileMembersSearch();
   applyMobileMembersFilter();
+  renderTabletMembersWorkspace();
   renderMemberManagementList();wireHorizontalScrollAffordances()
 }
 

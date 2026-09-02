@@ -8224,3 +8224,187 @@ html.ui-tablet #adminMembers .member-row-detail{touch-action:manipulation!import
     font-size:14px!important;
   }
 }
+
+/* =========================================================
+   TABLET UX — pass 2 / landscape master-detail
+   - admin planning: date list + live day inspector
+   - inline role edits without a large modal
+   - members: master list + persistent detail pane
+   Portrait, phone and desktop keep their previous layouts.
+   ========================================================= */
+.tablet-calendar-split,
+.tablet-members-split{display:none}
+
+@media (orientation:landscape) and (min-width:900px){
+  html.ui-tablet #adminRoot .admin-calendar-card{overflow:visible!important}
+  html.ui-tablet #adminRoot .admin-schedule-wrap,
+  html.ui-tablet #adminRoot .admin-schedule-mobile{display:none!important}
+  html.ui-tablet #adminRoot .tablet-calendar-split{
+    display:grid!important;
+    grid-template-columns:minmax(235px,30%) minmax(0,1fr)!important;
+    gap:12px!important;
+    min-height:500px!important;
+    max-height:calc(100dvh - 245px)!important;
+    margin-top:6px!important;
+  }
+  html.ui-tablet #adminRoot .tablet-calendar-date-list{
+    display:grid!important;
+    align-content:start!important;
+    gap:7px!important;
+    min-width:0!important;
+    padding:3px 5px 3px 2px!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+  html.ui-tablet #adminRoot .tablet-date-item{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-areas:'date status' 'missing missing'!important;
+    align-items:center!important;
+    gap:3px 8px!important;
+    width:100%!important;
+    min-height:60px!important;
+    padding:9px 10px!important;
+    border:1px solid #dce4df!important;
+    border-left:4px solid #b8c6be!important;
+    border-radius:11px!important;
+    background:#fff!important;
+    color:var(--text)!important;
+    text-align:left!important;
+    touch-action:manipulation!important;
+  }
+  html.ui-tablet #adminRoot .tablet-date-item:active{transform:scale(.995)!important;background:#f6faf7!important}
+  html.ui-tablet #adminRoot .tablet-date-item.selected{
+    border-color:#86b798!important;
+    border-left-color:#2f8451!important;
+    background:#eef8f2!important;
+    box-shadow:0 0 0 2px rgba(47,132,81,.08)!important;
+  }
+  html.ui-tablet #adminRoot .tablet-date-item.complete:not(.selected){border-left-color:#5b9e72!important}
+  html.ui-tablet #adminRoot .tablet-date-item.closed{border-left-color:#adb7b1!important;background:#f7f9f8!important;color:#67736c!important}
+  html.ui-tablet #adminRoot .tablet-date-item-main{grid-area:date!important;min-width:0!important;font-size:12.5px!important;font-weight:900!important;line-height:1.15!important}
+  html.ui-tablet #adminRoot .tablet-date-item-status{grid-area:status!important;font-size:9.5px!important;font-weight:900!important;white-space:nowrap!important}
+  html.ui-tablet #adminRoot .tablet-date-item-missing{grid-area:missing!important;min-height:12px!important;overflow:hidden!important;color:#9a443a!important;font-size:9.5px!important;font-weight:750!important;line-height:1.2!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+
+  html.ui-tablet #adminRoot .tablet-calendar-inspector{
+    display:flex!important;
+    flex-direction:column!important;
+    min-width:0!important;
+    min-height:0!important;
+    padding:14px!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    border:1px solid #d9e2dc!important;
+    border-radius:14px!important;
+    background:#fbfdfc!important;
+    box-shadow:0 4px 16px rgba(20,46,31,.05)!important;
+  }
+  html.ui-tablet #adminRoot .tablet-inspector-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:10px!important;margin-bottom:10px!important;padding-bottom:10px!important;border-bottom:1px solid #e5ebe7!important}
+  html.ui-tablet #adminRoot .tablet-inspector-head h3{margin:0 0 5px!important;font-size:18px!important;line-height:1.15!important}
+  html.ui-tablet #adminRoot .tablet-inspector-status{font-size:11px!important;font-weight:800!important;line-height:1.3!important}
+  html.ui-tablet #adminRoot .tablet-inspector-status.ok{color:#176b39!important}
+  html.ui-tablet #adminRoot .tablet-inspector-status.alert{color:#a53a31!important}
+  html.ui-tablet #adminRoot .tablet-inspector-status.closed{color:#66736c!important}
+  html.ui-tablet #adminRoot .tablet-inspector-roles{display:grid!important;gap:6px!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role{
+    display:grid!important;
+    grid-template-columns:105px minmax(0,1fr) 18px!important;
+    align-items:center!important;
+    gap:8px!important;
+    width:100%!important;
+    min-height:52px!important;
+    padding:8px 10px!important;
+    border:1px solid #dfe6e1!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    color:var(--text)!important;
+    text-align:left!important;
+    touch-action:manipulation!important;
+  }
+  html.ui-tablet #adminRoot .tablet-inspector-role:not(:disabled):active{background:#f0f7f3!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role.selected{border-color:#8ab99c!important;background:#eef8f2!important;box-shadow:inset 3px 0 0 #3d8e5b!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role-label{font-size:11px!important;font-weight:900!important;color:#43544a!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role-value{min-width:0!important;overflow:hidden!important;font-size:12px!important;font-weight:800!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role-value.empty{color:#808b85!important;font-style:italic!important;font-weight:700!important}
+  html.ui-tablet #adminRoot .tablet-inspector-role-chevron{justify-self:end!important;color:#829087!important;font-size:22px!important;line-height:1!important}
+  html.ui-tablet #adminRoot .tablet-calendar-role-editor{
+    margin-top:9px!important;
+    padding:10px!important;
+    border:1px solid #cfe0d5!important;
+    border-radius:12px!important;
+    background:#f5faf7!important;
+  }
+  html.ui-tablet #adminRoot .tablet-calendar-role-editor.hidden{display:none!important}
+  html.ui-tablet #adminRoot .tablet-inline-editor-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-bottom:8px!important}
+  html.ui-tablet #adminRoot .tablet-inline-editor-head strong{font-size:12px!important}
+  html.ui-tablet #adminRoot .tablet-inline-editor-close{min-height:38px!important;padding:6px 9px!important;border:1px solid #d5dfd9!important;border-radius:9px!important;background:#fff!important;color:#526159!important;font-size:10px!important;font-weight:850!important}
+  html.ui-tablet #adminRoot .tablet-inline-editor-search{width:100%!important;min-height:44px!important;margin-bottom:8px!important;padding:8px 10px!important;border:1px solid #cbd8d0!important;border-radius:10px!important;background:#fff!important;font-size:15px!important}
+  html.ui-tablet #adminRoot .tablet-inline-editor-list{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;max-height:210px!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+  html.ui-tablet #adminRoot .tablet-inline-choice{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:6px!important;
+    min-height:46px!important;
+    padding:7px 9px!important;
+    border:1px solid #dbe4de!important;
+    border-radius:9px!important;
+    background:#fff!important;
+    color:var(--text)!important;
+    font-size:11px!important;
+    font-weight:800!important;
+    text-align:left!important;
+  }
+  html.ui-tablet #adminRoot .tablet-inline-choice.selected{border-color:#79ad8b!important;background:#e8f5ed!important;color:#176b39!important}
+  html.ui-tablet #adminRoot .tablet-inline-choice.blocked{opacity:.55!important;background:#f3f5f4!important}
+  html.ui-tablet #adminRoot .tablet-inline-choice-state{overflow:hidden!important;color:#607068!important;font-size:9px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminRoot .tablet-inline-empty{grid-column:1/-1!important;padding:18px 8px!important;color:#78857e!important;font-size:11px!important;text-align:center!important}
+  html.ui-tablet #adminRoot .tablet-inspector-actions{margin-top:auto!important;padding-top:12px!important}
+  html.ui-tablet #adminRoot .tablet-inspector-actions .btn{width:100%!important;min-height:48px!important}
+
+  /* Members use a true master/detail workspace on landscape tablets. */
+  html.ui-tablet #adminMembers .members-table-wrap{display:none!important}
+  html.ui-tablet #adminMembers .tablet-members-split{
+    display:grid!important;
+    grid-template-columns:minmax(285px,36%) minmax(0,1fr)!important;
+    gap:12px!important;
+    min-height:455px!important;
+    max-height:calc(100dvh - 285px)!important;
+    margin-top:4px!important;
+  }
+  html.ui-tablet #adminMembers .tablet-members-master,
+  html.ui-tablet #adminMembers .tablet-member-detail{min-width:0!important;min-height:0!important;border:1px solid #dce4df!important;border-radius:13px!important;background:#fff!important}
+  html.ui-tablet #adminMembers .tablet-members-master{display:flex!important;flex-direction:column!important;overflow:hidden!important}
+  html.ui-tablet #adminMembers .tablet-members-filters{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;padding:8px!important;border-bottom:1px solid #e5ebe7!important;background:#f8faf9!important}
+  html.ui-tablet #adminMembers .tablet-member-filter{min-height:40px!important;border:1px solid #d9e2dc!important;border-radius:9px!important;background:#fff!important;color:#5a6961!important;font-size:10.5px!important;font-weight:850!important}
+  html.ui-tablet #adminMembers .tablet-member-filter.selected{border-color:#85b697!important;background:#e9f5ee!important;color:#176b39!important}
+  html.ui-tablet #adminMembers .tablet-members-list{display:grid!important;align-content:start!important;gap:5px!important;padding:7px!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+  html.ui-tablet #adminMembers .tablet-member-list-item{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;min-height:58px!important;padding:8px 9px!important;border:1px solid transparent!important;border-radius:10px!important;background:#fff!important;color:var(--text)!important;text-align:left!important}
+  html.ui-tablet #adminMembers .tablet-member-list-item:active{background:#f4f8f5!important}
+  html.ui-tablet #adminMembers .tablet-member-list-item.selected{border-color:#8bb99c!important;background:#edf8f1!important;box-shadow:inset 3px 0 0 #3d8e5b!important}
+  html.ui-tablet #adminMembers .tablet-member-list-item.inactive:not(.selected){opacity:.68!important;background:#f8f9f8!important}
+  html.ui-tablet #adminMembers .tablet-member-list-main{display:grid!important;gap:2px!important;min-width:0!important}
+  html.ui-tablet #adminMembers .tablet-member-list-main strong{overflow:hidden!important;font-size:12px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-list-main small{overflow:hidden!important;color:#76827b!important;font-size:9.5px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-list-meta{color:#69776f!important;font-size:9.5px!important;font-weight:800!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-detail{display:flex!important;flex-direction:column!important;padding:14px!important;overflow-y:auto!important;overscroll-behavior:contain!important;background:#fbfdfc!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;padding-bottom:11px!important;border-bottom:1px solid #e5ebe7!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-head h3{margin:0 0 4px!important;font-size:18px!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-email{display:block!important;max-width:420px!important;overflow:hidden!important;color:#607068!important;font-size:11px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-stats{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin:11px 0!important}
+  html.ui-tablet #adminMembers .tablet-member-stat{display:flex!important;align-items:baseline!important;gap:6px!important;padding:9px 10px!important;border:1px solid #e0e7e3!important;border-radius:10px!important;background:#fff!important}
+  html.ui-tablet #adminMembers .tablet-member-stat strong{font-size:16px!important}
+  html.ui-tablet #adminMembers .tablet-member-stat span{color:#6d7a73!important;font-size:10px!important}
+  html.ui-tablet #adminMembers .tablet-member-device-box,
+  html.ui-tablet #adminMembers .tablet-member-link-box{display:grid!important;gap:6px!important;margin-top:4px!important;padding:10px!important;border:1px solid #e0e7e3!important;border-radius:10px!important;background:#fff!important}
+  html.ui-tablet #adminMembers .tablet-member-device-box>strong,
+  html.ui-tablet #adminMembers .tablet-member-link-box>strong{font-size:11px!important}
+  html.ui-tablet #adminMembers .tablet-member-device-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;padding-top:5px!important;border-top:1px solid #eef2ef!important;font-size:10.5px!important}
+  html.ui-tablet #adminMembers .tablet-member-device-row small{color:#78847d!important;font-size:9px!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-link{overflow:hidden!important;color:#65736b!important;font-size:10px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-top:auto!important;padding-top:12px!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-actions .btn{min-height:44px!important;font-size:11px!important}
+  html.ui-tablet #adminMembers .tablet-member-detail-actions .btn:first-child{grid-column:1/-1!important}
+  html.ui-tablet .tablet-split-empty{display:grid!important;place-items:center!important;min-height:180px!important;color:#7b8780!important;font-size:12px!important;text-align:center!important}
+}
