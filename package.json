@@ -7,7 +7,8 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@vercel/blob": "2.8.0"
+    "@vercel/blob": "2.8.0",
+    "nodemailer": "9.1.1"
   },
   "scripts": {
     "start": "node server.mjs",
