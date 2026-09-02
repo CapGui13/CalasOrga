@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import net from 'node:net';
 
 const root=path.resolve(new URL('..',import.meta.url).pathname);
 const tmp=await fs.mkdtemp(path.join(os.tmpdir(),'calasorga-ui-'));
@@ -34,17 +35,80 @@ function connectCdp(wsUrl){
   })
 }
 
+async function reserveLoopbackPort(){
+  return new Promise((resolve,reject)=>{
+    const server=net.createServer();
+    server.unref();
+    server.once('error',reject);
+    server.listen(0,'127.0.0.1',()=>{
+      const address=server.address();
+      const port=typeof address==='object'&&address?address.port:0;
+      server.close(err=>err?reject(err):resolve(port))
+    })
+  })
+}
+
+async function stopChromium(child){
+  if(!child||child.exitCode!==null)return;
+  try{child.kill('SIGTERM')}catch{}
+  await Promise.race([
+    new Promise(resolve=>child.once('exit',resolve)),
+    sleep(1000)
+  ]);
+  if(child.exitCode===null){
+    try{child.kill('SIGKILL')}catch{}
+    await Promise.race([
+      new Promise(resolve=>child.once('exit',resolve)),
+      sleep(500)
+    ])
+  }
+}
+
+async function launchChromium(){
+  const failures=[];
+  for(let attempt=1;attempt<=3;attempt++){
+    const port=await reserveLoopbackPort();
+    const chromeDir=path.join(tmp,`chrome-${attempt}`);
+    await fs.mkdir(chromeDir,{recursive:true});
+    let chromeErr='';
+    const child=spawn(chromium,[
+      '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
+      '--no-first-run','--no-default-browser-check','--disable-background-networking',
+      '--remote-debugging-address=127.0.0.1',`--remote-debugging-port=${port}`,
+      `--user-data-dir=${chromeDir}`,'about:blank'
+    ],{stdio:['ignore','ignore','pipe']});
+    child.stderr.on('data',d=>{chromeErr+=String(d)});
+
+    const deadline=Date.now()+20000;
+    let wsUrl='';
+    while(Date.now()<deadline&&child.exitCode===null){
+      try{
+        const r=await fetch(`http://127.0.0.1:${port}/json/version`,{signal:AbortSignal.timeout(1200)});
+        if(r.ok){
+          const info=await r.json();
+          if(typeof info?.webSocketDebuggerUrl==='string'&&info.webSocketDebuggerUrl){
+            wsUrl=info.webSocketDebuggerUrl;
+            break
+          }
+        }
+      }catch{}
+      await sleep(150)
+    }
+
+    if(wsUrl)return {child,wsUrl};
+    failures.push(`tentative ${attempt}: code=${child.exitCode ?? 'actif'}\n${chromeErr.slice(-3000)}`);
+    await stopChromium(child);
+    await fs.rm(chromeDir,{recursive:true,force:true,maxRetries:3,retryDelay:100});
+    if(attempt<3)await sleep(300*attempt)
+  }
+  throw new Error(`Chromium DevTools indisponible après 3 tentatives:\n${failures.join('\n---\n')}`)
+}
+
 let chrome=null,cdp=null;
 try{
-  const chromeDir=path.join(tmp,'chrome');await fs.mkdir(chromeDir,{recursive:true});
-  chrome=spawn(chromium,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=0',`--user-data-dir=${chromeDir}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
-  let chromeErr='';
-  const wsUrl=await new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(new Error('Chromium DevTools timeout: '+chromeErr)),10000);
-    chrome.stderr.on('data',d=>{chromeErr+=d;const m=chromeErr.match(/DevTools listening on (ws:\/\/[^\s]+)/);if(m){clearTimeout(timer);resolve(m[1])}});
-    chrome.on('exit',code=>{if(code)reject(new Error('Chromium exited '+code+': '+chromeErr))})
-  });
-  cdp=await connectCdp(wsUrl);
+  const launched=await launchChromium();
+  chrome=launched.child;
+  cdp=await connectCdp(launched.wsUrl);
 
   async function newPage({mode,width,height}){
     const {targetId}=await cdp.send('Target.createTarget',{url:'about:blank'});
@@ -117,12 +181,6 @@ try{
   console.log('UI browser tests: PASS (desktop/tablet/mobile + visual geometry + landscape)');
 } finally {
   try{cdp?.close()}catch{}
-  if(chrome){
-    try{chrome.kill('SIGTERM')}catch{}
-    await Promise.race([
-      new Promise(resolve=>chrome.once('exit',resolve)),
-      sleep(750)
-    ]);
-  }
+  await stopChromium(chrome);
   await fs.rm(tmp,{recursive:true,force:true,maxRetries:5,retryDelay:100});
 }
