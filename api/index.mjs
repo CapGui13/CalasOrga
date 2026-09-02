@@ -188,9 +188,10 @@ async function sendMemberLinkWithGmail({ memberName, email, personalUrl }) {
 
   const transporter = await gmailTransport();
   const cleanName = String(memberName || '').trim() || 'Membre';
-  const subject = 'Planning Bridge — Votre lien personnel';
-  const text = `Bonjour ${cleanName},\n\nVoici votre lien personnel pour accéder au planning du club :\n${personalUrl}\n\nConservez ce lien : il vous permet d'accéder directement à votre planning.\n\nPlanning Bridge`;
-  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#17251e"><p>Bonjour ${escapeHtml(cleanName)},</p><p>Voici votre lien personnel pour accéder au planning du club :</p><p><a href="${escapeHtml(personalUrl)}">Accéder à mon planning</a></p><p style="font-size:13px;color:#5b665f">Conservez ce lien : il vous permet d'accéder directement à votre planning.</p><p>Planning Bridge</p></body></html>`;
+  const safeUrl = escapeHtml(personalUrl);
+  const subject = 'Planning du club — votre accès';
+  const text = `Bonjour ${cleanName},\n\nLe club vous envoie votre accès personnel au planning des permanences.\n\nVotre lien personnel :\n${personalUrl}\n\nCe lien est associé à votre compte. Vous pouvez le conserver pour ouvrir directement votre planning.\n\nVous recevez ce message car votre adresse e-mail est enregistrée dans le planning du club. Si vous n’attendiez pas ce message, vous pouvez simplement l’ignorer.\n\nBien cordialement,\nPlanning Bridge`;
+  const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#17251e"><p>Bonjour ${escapeHtml(cleanName)},</p><p>Le club vous envoie votre accès personnel au planning des permanences.</p><p><strong>Votre lien personnel :</strong><br><a href="${safeUrl}">${safeUrl}</a></p><p>Ce lien est associé à votre compte. Vous pouvez le conserver pour ouvrir directement votre planning.</p><p style="font-size:13px;color:#5b665f">Vous recevez ce message car votre adresse e-mail est enregistrée dans le planning du club. Si vous n’attendiez pas ce message, vous pouvez simplement l’ignorer.</p><p>Bien cordialement,<br>Planning Bridge</p></body></html>`;
 
   return transporter.sendMail({
     from: { name: fromName, address: user },
