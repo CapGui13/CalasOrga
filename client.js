@@ -135,6 +135,8 @@ function scheduleUiModeRefresh(){
 window.addEventListener('resize',scheduleUiModeRefresh,{passive:true});
 globalThis.visualViewport?.addEventListener?.('resize',scheduleUiModeRefresh,{passive:true});
 function isTouchUi(){return currentUiMode!=='desktop'}
+function isTabletPortrait(){return currentUiMode==='tablet'&&window.matchMedia?.('(orientation: portrait)').matches===true}
+function usesCompactTouchEditor(){return currentUiMode==='mobile'||isTabletPortrait()}
 function usesSingleActivation(event){
   if(event?.detail===0)return true; // clavier / activation assistive
   const pointerType=String(event?.pointerType||'').toLowerCase();
@@ -1292,7 +1294,7 @@ function dayEditorMemberStatus(id){
 function toggleDayEditorMemberSelection(memberId){
   dayEditorTouchSelectedId=dayEditorTouchSelectedId===String(memberId)?'':String(memberId);
   renderDayEditorDraft();
-  if(currentUiMode==='mobile'&&dayEditorTouchSelectedId){
+  if(usesCompactTouchEditor()&&dayEditorTouchSelectedId){
     requestAnimationFrame(()=>q('#dayEditorQuickRoles')?.scrollIntoView({
       behavior:motionReduced()?'auto':'smooth',
       block:'nearest'
@@ -1373,7 +1375,7 @@ function dayEditorTouchAssign(role){
     ?(dayEditorDraft?.present||[]).map(String).includes(id)
     :String(dayEditorDraft?.roles?.[role]||'')===id;
   dayEditorTouchSelectedId='';
-  if(currentUiMode==='mobile'&&alreadyCurrent){
+  if(usesCompactTouchEditor()&&alreadyCurrent){
     dayEditorRemove(role,id);
     return
   }
@@ -1386,13 +1388,14 @@ function renderDayEditorQuickRoles(){
   const quickRoles=q('#dayEditorQuickRoles'),quickSelected=q('#dayEditorQuickSelected');
   if(!quickRoles)return;
   const selected=String(dayEditorTouchSelectedId||'');
-  const show=isTouchUi()&&(currentUiMode==='mobile'||!!selected);
+  const compact=usesCompactTouchEditor();
+  const show=isTouchUi()&&(compact||!!selected);
   quickRoles.classList.toggle('hidden',!show);
   quickRoles.classList.toggle('is-overview',show&&!selected);
   if(!show)return;
   if(quickSelected){
     quickSelected.textContent=selected
-      ?(currentUiMode==='mobile'
+      ?(compact
         ?`${dayEditorMemberName(selected)} · choisissez une action`
         :`${dayEditorMemberName(selected)} sélectionné · choisissez le poste`)
       :'Affectations actuelles'
@@ -1407,7 +1410,7 @@ function renderDayEditorQuickRoles(){
       const ids=(dayEditorDraft?.present||[]).map(String);
       const names=ids.map(dayEditorMemberName).filter(Boolean);
       if(selected&&ids.includes(selected)){
-        state=currentUiMode==='mobile'?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
+        state=compact?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
       }else if(selected&&selectedCoreRoles.length){
         state=`Indisponible · ${selectedCoreRoles.map(r=>ROLE_LABELS[r]).join(' + ')}`;
         kind='is-blocked';btn.disabled=true
@@ -1418,7 +1421,7 @@ function renderDayEditorQuickRoles(){
     }else{
       const occupant=String(dayEditorDraft?.roles?.[role]||'');
       if(selected&&occupant===selected){
-        state=currentUiMode==='mobile'?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
+        state=compact?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
       }else if(occupant){
         const name=dayEditorMemberName(occupant)||'Occupé';
         state=selected?`Remplace ${name}`:name;
@@ -1462,7 +1465,7 @@ function ensureDayEditorMobileSearch(){
     wrap.append(input,count);
     column.insertBefore(wrap,pool)
   }
-  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  wrap.classList.toggle('hidden',!isTouchUi());
   const input=q('#dayEditorMobileSearch');
   if(input&&input.value!==dayEditorMobileQuery)input.value=dayEditorMobileQuery
 }
@@ -1509,11 +1512,13 @@ function renderDayEditorDraft(){
   if(touchHelp){
     touchHelp.classList.remove('hidden');
     if(dayEditorTouchSelectedId){
-      touchHelp.textContent=currentUiMode==='mobile'
+      touchHelp.textContent=usesCompactTouchEditor()
         ?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · choisissez une action ci-dessous.`
         :`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · les boutons indiquent ce qui est libre, actuel ou sera remplacé.`
-    }else if(currentUiMode==='mobile'){
+    }else if(usesCompactTouchEditor()){
       touchHelp.textContent='Choisissez un membre, puis son poste. Les affectations actuelles restent visibles en permanence.'
+    }else if(currentUiMode==='tablet'){
+      touchHelp.textContent='Touchez un membre, puis le poste à lui attribuer.'
     }else if(isTouchUi()){
       touchHelp.textContent='Touchez un membre, puis un poste. Balayez horizontalement pour voir tous les postes.'
     }else{
@@ -1524,13 +1529,13 @@ function renderDayEditorDraft(){
   ensureDayEditorMobileSearch();
   const members=dayEditorActiveMembers();
   const query=String(dayEditorMobileQuery||'').trim().toLocaleLowerCase('fr-FR');
-  const shownMembers=currentUiMode==='mobile'&&query
+  const shownMembers=isTouchUi()&&query
     ?members.filter(m=>`${m.name||''} ${dayEditorMemberStatus(m.id)}`.toLocaleLowerCase('fr-FR').includes(query))
     :members;
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
   const searchCount=q('#dayEditorMobileSearchCount');
-  if(searchCount)searchCount.textContent=currentUiMode==='mobile'?`${shownMembers.length}/${members.length}`:'';
+  if(searchCount)searchCount.textContent=isTouchUi()?`${shownMembers.length}/${members.length}`:'';
 
   for(const m of shownMembers){
     const item=document.createElement('div');
@@ -1672,7 +1677,7 @@ function openAdminCorrection(date){
   wireHorizontalScrollAffordances()
 }
 function scrollAdminMobileDateIntoView(date){
-  if(currentUiMode!=='mobile'||!date)return;
+  if(!(currentUiMode==='mobile'||isTabletPortrait())||!date)return;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     const card=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')]
       .find(el=>el.dataset.date===String(date));
@@ -1764,7 +1769,7 @@ function ensureAdminCellMobileSearch(role){
     wrap.append(input,count)
   }
   field.insertBefore(wrap,container);
-  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  wrap.classList.toggle('hidden',!isTouchUi());
   const input=q('#adminCellMobileSearch');
   if(input)input.value=adminCellMobileQuery;
   applyAdminCellMobileSearch()
@@ -2307,7 +2312,7 @@ function ensureMobileMembersSearch(){
     wrap.append(input,count);
     tableWrap.parentElement?.insertBefore(wrap,tableWrap)
   }
-  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  wrap.classList.toggle('hidden',!isTouchUi());
   const input=q('#mobileMembersSearch');
   if(input&&input.value!==membersMobileQuery)input.value=membersMobileQuery;
   applyMobileMembersFilter()
@@ -2356,18 +2361,18 @@ function renderMembers(){
     state.type='button';
     state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
-    state.title=currentUiMode==='mobile'?`Ouvrir la fiche de ${m.name}`:memberStateActionTitle(m.active,m.name);
+    state.title=isTouchUi()?`Ouvrir la fiche de ${m.name}`:memberStateActionTitle(m.active,m.name);
     state.setAttribute('aria-label',state.title);
     state.addEventListener('click',e=>{
       if(!usesSingleActivation(e))return;
       e.preventDefault();
-      if(currentUiMode==='mobile'){openMemberQuick(m.id,state);return}
+      if(isTouchUi()){openMemberQuick(m.id,state);return}
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
     state.addEventListener('dblclick',e=>{
       if(usesSingleActivation(e))return;
       e.preventDefault();
-      if(currentUiMode==='mobile'){openMemberQuick(m.id,state);return}
+      if(isTouchUi()){openMemberQuick(m.id,state);return}
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
     stateTd.append(state);
@@ -2488,7 +2493,7 @@ function renderMembers(){
     body.append(tr)
   }
   const rotateAll=q('#memberManageRotateAll');
-  if(rotateAll)rotateAll.textContent=currentUiMode==='mobile'?'Renouveler tous':'Renouveler';
+  if(rotateAll)rotateAll.textContent=isTouchUi()?'Renouveler tous':'Renouveler';
   ensureMobileMembersSearch();
   applyMobileMembersFilter();
   renderMemberManagementList();wireHorizontalScrollAffordances()
