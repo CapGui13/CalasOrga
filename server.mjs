@@ -739,6 +739,10 @@ class FileStore {
     this.remoteRefreshTtlMs = Math.max(0, Number(process.env.STORAGE_REFRESH_TTL_MS || process.env.BLOB_REFRESH_TTL_MS || (process.env.VERCEL ? 60000 : 0)) || 0);
     this.lastRemoteLoadAt = 0;
     this.remoteRefreshPromise = null;
+    this.syncVersionCheckTtlMs = Math.max(250, Number(process.env.SYNC_VERSION_CHECK_TTL_MS || (process.env.VERCEL ? 1500 : 750)) || 750);
+    this.lastSyncVersionCheckAt = 0;
+    this.lastSyncVersionValue = '';
+    this.syncVersionCheckPromise = null;
   }
 
   async #blobClient() {
@@ -899,6 +903,8 @@ class FileStore {
     this.remoteEtag = String(nextVersion);
     this.remoteCurrentText = text;
     this.lastRemoteLoadAt = Date.now();
+    this.lastSyncVersionValue = this.syncVersion();
+    this.lastSyncVersionCheckAt = Date.now();
 
     if (!snapshots) return;
     const snapshotWrites = [];
@@ -965,6 +971,8 @@ class FileStore {
     this.remoteEtag = loaded.etag;
     this.remoteCurrentText = loaded.rawText;
     this.lastRemoteLoadAt = Date.now();
+    this.lastSyncVersionValue = this.syncVersion();
+    this.lastSyncVersionCheckAt = Date.now();
     if (persistRosterMigration && loaded.rosterMigrationNeeded) {
       await this.#persist({ preserveCurrent: false, snapshots: true });
     }
@@ -995,20 +1003,42 @@ class FileStore {
     return '';
   }
 
-  async currentRemoteSyncVersion() {
+  async currentRemoteSyncVersion({ force = false } = {}) {
     if (!this.remoteSupabase) return this.syncVersion();
-    const params = new URLSearchParams({
-      id: `eq.${this.supabaseRowId}`,
-      select: 'version',
-      limit: '1'
-    });
-    const { body } = await this.#supabaseJsonRequest(
-      this.#supabaseRestUrl(`?${params.toString()}`),
-      { method: 'GET', headers: this.#supabaseHeaders() }
-    );
-    const row = Array.isArray(body) ? body[0] : null;
-    const version = Number(row?.version);
-    return Number.isInteger(version) && version > 0 ? `supabase:${version}` : '';
+    const nowMs = Date.now();
+    if (
+      !force &&
+      this.lastSyncVersionValue &&
+      this.lastSyncVersionCheckAt > 0 &&
+      nowMs - this.lastSyncVersionCheckAt < this.syncVersionCheckTtlMs
+    ) {
+      return this.lastSyncVersionValue;
+    }
+    if (this.syncVersionCheckPromise) return this.syncVersionCheckPromise;
+
+    this.syncVersionCheckPromise = (async () => {
+      const params = new URLSearchParams({
+        id: `eq.${this.supabaseRowId}`,
+        select: 'version',
+        limit: '1'
+      });
+      const { body } = await this.#supabaseJsonRequest(
+        this.#supabaseRestUrl(`?${params.toString()}`),
+        { method: 'GET', headers: this.#supabaseHeaders() }
+      );
+      const row = Array.isArray(body) ? body[0] : null;
+      const version = Number(row?.version);
+      const value = Number.isInteger(version) && version > 0 ? `supabase:${version}` : '';
+      this.lastSyncVersionValue = value;
+      this.lastSyncVersionCheckAt = Date.now();
+      return value;
+    })();
+
+    try {
+      return await this.syncVersionCheckPromise;
+    } finally {
+      this.syncVersionCheckPromise = null;
+    }
   }
 
   async init(seed = null) {
@@ -3209,7 +3239,7 @@ class FileStore {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'data', 'store.json');
 const port = Number(process.env.PORT || 3000);
-const APP_VERSION = '0.15.47.3-stabilized';
+const APP_VERSION = '0.15.47.4-stabilized';
 const demoMode = process.env.DEMO_MODE === '1';
 const isVercelRuntime = process.env.VERCEL === '1';
 const listenHost = String(process.env.LISTEN_HOST || (demoMode ? '127.0.0.1' : '')).trim();
@@ -3410,6 +3440,17 @@ function adminOk(req) {
   const context = rawSession ? store.adminSessionContext(rawSession, adminCredentialTag) : null;
   return { cookies, rawSession, ok: !!session, session, context };
 }
+function plausibleSessionToken(raw) {
+  return /^[A-Za-z0-9_-]{40,100}$/.test(String(raw || ''));
+}
+function syncPrincipal(req, view) {
+  if (view === 'admin') {
+    const auth = adminOk(req);
+    return { ok: auth.ok, rawSession: auth.rawSession, auth, member: null };
+  }
+  const auth = sessionMember(req);
+  return { ok: !!auth.member, rawSession: auth.rawSession, auth: null, member: auth.member };
+}
 function csrfCookie(name, secure, maxAge) { const token = randomToken(18); return { token, header: cookie(name, token, { httpOnly: false, secure, maxAge }) }; }
 
 // Aucun fichier frontend ne doit être lu à l'import de la fonction Vercel.
@@ -3518,36 +3559,65 @@ export async function requestHandler(req, res) {
       return json(res, 200, { ok: true, loginMode: codeOk ? 'code' : 'recovery-token' }, { 'Set-Cookie': [cookie('club_admin', session.rawToken, { secure, maxAge: 60 * 60 * 8 }), csrf.header] });
     }
 
-    // Synchronisation légère multi-appareils : on ne lit que le numéro de version
-    // Supabase tant que rien n'a changé. Lorsqu'une autre session a écrit, une seule
-    // requête force alors la lecture de l'état complet et renvoie le snapshot utile.
+    // Synchronisation légère multi-appareils.
+    // Une requête anonyme ou un cookie manifestement invalide est rejeté avant
+    // toute lecture Supabase. Une session plausible créée sur une autre instance
+    // Vercel peut déclencher une unique resynchronisation contrôlée.
     if (pathname === '/api/sync' && req.method === 'GET') {
       const view = url.searchParams.get('view') === 'admin' ? 'admin' : 'member';
       const since = String(url.searchParams.get('since') || '');
+      let principal = syncPrincipal(req, view);
+
+      if (!plausibleSessionToken(principal.rawSession)) {
+        return json(res, 401, { error: view === 'admin' ? 'Accès administrateur requis.' : 'Session invalide.' });
+      }
+      if (limited(`sync:${tokenHash(principal.rawSession).slice(0, 24)}`, 24, 60_000)) {
+        return json(res, 429, { error: 'Synchronisation trop fréquente.' });
+      }
+
+      if (!principal.ok && store.remoteStore) {
+        if (limited(`sync-auth-refresh:${getIp(req)}`, 12, 60_000)) {
+          return json(res, 401, { error: view === 'admin' ? 'Accès administrateur requis.' : 'Session invalide.' });
+        }
+        const authRemoteVersion = await store.currentRemoteSyncVersion({ force: true });
+        if (authRemoteVersion && authRemoteVersion !== store.syncVersion()) {
+          await store.refresh({ force: true });
+          principal = syncPrincipal(req, view);
+        }
+      }
+      if (!principal.ok) {
+        return json(res, 401, { error: view === 'admin' ? 'Accès administrateur requis.' : 'Session invalide.' });
+      }
+
       const remoteVersion = await store.currentRemoteSyncVersion();
       const changed = !!remoteVersion && remoteVersion !== since;
-      if (changed && remoteVersion !== store.syncVersion()) await store.refresh({ force: true });
+      if (changed && remoteVersion !== store.syncVersion()) {
+        await store.refresh({ force: true });
+        principal = syncPrincipal(req, view);
+        if (!principal.ok) {
+          return json(res, 401, { error: view === 'admin' ? 'Accès administrateur requis.' : 'Session invalide.' });
+        }
+      }
 
+      if (!changed) {
+        return json(res, 200, { ok: true, changed: false, version: remoteVersion || store.syncVersion() });
+      }
       if (view === 'admin') {
-        const a = adminOk(req);
-        if (!a.ok) return json(res, 401, { error: 'Accès administrateur requis.' });
-        if (!changed) return json(res, 200, { ok: true, changed: false, version: remoteVersion || store.syncVersion() });
         return json(res, 200, {
           ok: true,
           changed: true,
           version: store.syncVersion(),
-          snapshot: { ...store.adminSnapshot(), adminContext: a.context || { fromMember: false, memberId: null, name: null } }
+          snapshot: {
+            ...store.adminSnapshot(),
+            adminContext: principal.auth.context || { fromMember: false, memberId: null, name: null }
+          }
         });
       }
-
-      const m = sessionMember(req);
-      if (!m.member) return json(res, 401, { error: 'Session invalide.' });
-      if (!changed) return json(res, 200, { ok: true, changed: false, version: remoteVersion || store.syncVersion() });
       return json(res, 200, {
         ok: true,
         changed: true,
         version: store.syncVersion(),
-        snapshot: store.memberSnapshot(m.member.id)
+        snapshot: store.memberSnapshot(principal.member.id)
       });
     }
 

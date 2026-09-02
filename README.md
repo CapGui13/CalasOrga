@@ -103,7 +103,7 @@ BLOB_STATE_PATH=calasorga/store.json
 Le backend actuellement qualifié répond notamment avec :
 
 ```json
-{"ok":true,"appVersion":"0.15.47.3-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.47.4-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests
@@ -144,7 +144,15 @@ Trois chemins de mise en service existent :
 
 ## Synchronisation multi-appareils
 
-Quand un membre ou un administrateur enregistre une modification du planning, les autres appareils ouverts se mettent à jour automatiquement en environ 2 secondes, sans clic ni rechargement manuel. Le navigateur interroge seulement un numéro de version Supabase très léger ; le snapshot complet n'est rechargé que lorsqu'une modification réelle est détectée. La synchronisation est suspendue lorsque l'onglet n'est pas visible.
+Quand un membre ou un administrateur enregistre une modification du planning, les autres appareils ouverts se mettent à jour automatiquement en quelques secondes, sans clic ni rechargement manuel. Le navigateur interroge seulement un numéro de version Supabase très léger ; le snapshot complet n'est rechargé que lorsqu'une modification réelle est détectée. La synchronisation est suspendue lorsque l'onglet n'est pas visible.
+
+### V15.47.4 — durcissement synchro
+
+- vérification toutes les 4 s au lieu de 2 s afin de diviser par deux les appels par onglet ;
+- `/api/sync` rejette les requêtes sans session valable avant tout accès Supabase ;
+- une session créée sur une autre instance Vercel peut toujours être reconnue via une resynchronisation contrôlée ;
+- les contrôles de version Supabase sont coalescés et brièvement mis en cache par instance ;
+- `/api/sync` est limité par session et revalide l'authentification après une modification distante.
 
 ## Envoi des liens par email
 

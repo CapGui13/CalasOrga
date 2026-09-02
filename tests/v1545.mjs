@@ -48,7 +48,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.47.3-stabilized');
+  assert.equal(health.appVersion,'0.15.47.4-stabilized');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -134,7 +134,7 @@ try{
   assert.match(appText,/session-invalid/);
   assert.match(appText,/QUOTA_ACTIVE_POLL_MS=5\*60\*1000/);
   assert.match(appText,/QUOTA_IDLE_POLL_MS=15\*60\*1000/);
-  assert.match(appText,/SHARED_SYNC_POLL_MS=2000/);
+  assert.match(appText,/SHARED_SYNC_POLL_MS=4000/);
   assert.match(appText,/\/api\/sync\?view=\$\{view\}&since=/);
   assert.doesNotMatch(appText,/age<120000\?2000/);
   assert.match(serverText,/remoteRefreshTtlMs/);
@@ -145,7 +145,9 @@ try{
   assert.match(serverText,/storageMode = requestedStorage \|\| \(hasSupabase \? 'supabase'/);
   assert.match(serverText,/#readSupabaseCandidate\(/);
   assert.match(serverText,/#persistSupabase\(/);
-  assert.match(serverText,/currentRemoteSyncVersion\(\)/);
+  assert.match(serverText,/currentRemoteSyncVersion\(\{ force = false \} = \{\}\)/);
+  assert.match(serverText,/syncVersionCheckTtlMs/);
+  assert.match(serverText,/plausibleSessionToken\(/);
   assert.match(serverText,/pathname === '\/api\/sync'/);
   assert.match(serverText,/version: `eq\.\$\{expectedVersion\}`/);
   assert.match(serverText,/storage: store\.storageMode === 'supabase' \? 'supabase-postgres'/);
@@ -189,9 +191,9 @@ try{
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/\.\/styles\.css\?v=15473-github-pages/);
-  assert.match(indexText,/\.\/client\.js\?v=15473-github-pages/);
-  assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15473-github-pages/);
+  assert.match(indexText,/\.\/styles\.css\?v=15474-hardening/);
+  assert.match(indexText,/\.\/client\.js\?v=15474-hardening/);
+  assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
   assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
   assert.doesNotMatch(indexText,/<style[\s>]/i);
@@ -203,7 +205,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15473-github-pages','./client.js?v=15473-github-pages','./admin-desktop-enhancements.js?v=15473-github-pages']) {
+  for (const ref of ['./styles.css?v=15474-hardening','./client.js?v=15474-hardening','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);
@@ -243,7 +245,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.47.3-stabilized');
+    assert.equal(bundleHealth.appVersion,'0.15.47.4-stabilized');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));

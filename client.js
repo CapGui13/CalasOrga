@@ -1073,7 +1073,7 @@ let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),lastMemberSyncAt=0,m
 const QUOTA_ACTIVE_POLL_MS=5*60*1000;
 const QUOTA_IDLE_POLL_MS=15*60*1000;
 const QUOTA_WAKE_STALE_MS=30*1000;
-const SHARED_SYNC_POLL_MS=2000;
+const SHARED_SYNC_POLL_MS=4000;
 let sharedSyncVersion='',sharedSyncTimer=0,sharedSyncBusy=false;
 function noteSharedSyncVersion(payload){
   const version=String(payload?.syncVersion||payload?.version||'');

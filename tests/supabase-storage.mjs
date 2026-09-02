@@ -90,7 +90,7 @@ let child=spawnApp(appPort);
 try{
   const health=await waitReady(appPort,child);
   assert.equal(health.storage,'supabase-postgres');
-  assert.equal(health.appVersion,'0.15.47.3-stabilized');
+  assert.equal(health.appVersion,'0.15.47.4-stabilized');
   assert.ok(rows.has('main'),'main row must be created');
   assert.ok(rows.has('main.good'),'good snapshot must be created');
   const initialVersion=rows.get('main').version;
@@ -109,9 +109,67 @@ try{
   const health2=await waitReady(appPort+1,child);
   assert.equal(health2.storage,'supabase-postgres');
   assert.ok(requests.some(x=>x.method==='GET'&&x.url.includes('id=eq.main')),'restart must read main from Supabase');
+
+  // V15.47.4 : un appel sync anonyme est rejeté avant toute lecture Supabase.
+  const beforeAnonymousSync=requests.length;
+  const anonymousSync=await api(appPort+1,'/api/sync?view=admin&since=');
+  assert.equal(anonymousSync.r.status,401,JSON.stringify(anonymousSync.j));
+  assert.equal(requests.length,beforeAnonymousSync,'anonymous sync must not touch Supabase');
+
   const login2=await api(appPort+1,'/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
   const snap=await api(appPort+1,'/api/admin',{cookies:login2.set});
   assert.ok(snap.j.membersAdmin.some(m=>m.name==='Supabase Test'),'state must persist across restart');
+
+  // V15.47.4 : vraie synchro entre deux instances partageant le même Supabase.
+  const peerPort=appPort+2;
+  let peer=spawnApp(peerPort);
+  try{
+    await waitReady(peerPort,peer);
+    const memberLogin=await api(peerPort,'/api/session/member-short',{method:'POST',body:{shortToken:created.j.shortToken}});
+    assert.equal(memberLogin.r.status,200,JSON.stringify(memberLogin.j));
+    const memberCookies=memberLogin.set;
+    const before=await api(peerPort,'/api/me',{cookies:memberCookies});
+    assert.equal(before.r.status,200,JSON.stringify(before.j));
+    assert.ok(before.j.syncVersion,'member snapshot must expose syncVersion');
+    const since=before.j.syncVersion;
+
+    const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
+    const parts=fmt.formatToParts(new Date());
+    const get=t=>parts.find(x=>x.type===t)?.value;
+    let d=new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00Z`);
+    while(![1,2,4].includes(d.getUTCDay()))d=new Date(d.getTime()+86400000);
+    const date=d.toISOString().slice(0,10);
+
+    const csrf2=decodeURIComponent(login2.set.club_admin_csrf);
+    const changed=await api(appPort+1,'/api/admin/assignment',{
+      method:'POST',
+      body:{memberId:created.j.member.id,date,role:'accueil',present:true},
+      cookies:login2.set,
+      csrf:csrf2
+    });
+    assert.equal(changed.r.status,200,JSON.stringify(changed.j));
+
+    await new Promise(r=>setTimeout(r,850));
+    requests=[];
+    const synced=await api(peerPort,`/api/sync?view=member&since=${encodeURIComponent(since)}`,{cookies:memberCookies});
+    assert.equal(synced.r.status,200,JSON.stringify(synced.j));
+    assert.equal(synced.j.changed,true,JSON.stringify(synced.j));
+    assert.ok(synced.j.snapshot?.assignments?.[date]?.accueil?.includes(created.j.member.id),'peer snapshot must contain remote role update');
+
+    const current=synced.j.version;
+    requests=[];
+    const noChange1=await api(peerPort,`/api/sync?view=member&since=${encodeURIComponent(current)}`,{cookies:memberCookies});
+    const noChange2=await api(peerPort,`/api/sync?view=member&since=${encodeURIComponent(current)}`,{cookies:memberCookies});
+    assert.equal(noChange1.r.status,200);
+    assert.equal(noChange2.r.status,200);
+    assert.equal(noChange1.j.changed,false);
+    assert.equal(noChange2.j.changed,false);
+    const versionReads=requests.filter(x=>x.method==='GET'&&x.url.includes('select=version')).length;
+    assert.ok(versionReads<=1,`sync version cache should coalesce reads, got ${versionReads}`);
+  } finally {
+    peer.kill('SIGTERM');
+    await new Promise(r=>setTimeout(r,80));
+  }
   
 assert(server.includes("SUPABASE_ALLOW_EMPTY_INIT"), 'Supabase empty-store guard is present');
 assert(server.includes("SUPABASE_EMPTY"), 'Supabase empty-store failure code is present');
