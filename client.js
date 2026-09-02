@@ -962,6 +962,19 @@ function mobileRoleButton(date,role,assignments,open,past,outside,map){
   if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
   return btn
 }
+
+function ensureMobilePlanningHelp(mobile,id,text){
+  if(!mobile)return;
+  let help=q(`#${id}`);
+  if(!help){
+    help=document.createElement('div');
+    help.id=id;
+    help.className='mobile-planning-help';
+    mobile.parentElement?.insertBefore(help,mobile)
+  }
+  help.textContent=text
+}
+
 function renderMember(){
   if(!memberData)return;
   showMemberError();
@@ -991,6 +1004,7 @@ function renderMember(){
 
   const body=q('#scheduleBody'),mobile=q('#scheduleMobile');
   body.innerHTML='';mobile.innerHTML='';
+  ensureMobilePlanningHelp(mobile,'memberMobilePlanningHelp','Touchez une case libre pour vous inscrire. Touchez votre nom pour vous retirer.');
   const map=Object.fromEntries(memberData.members.map(m=>[m.id,m]));
   const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
   let prevWeek='',weekIndex=-1;
@@ -1248,7 +1262,10 @@ function fillSingleChoiceList(container,currentIds,members,onChoose){
 
 let dayEditorDraft=null;
 let dayEditorTouchSelectedId='';
+let dayEditorMobileQuery='';
 let adminCorrectionReturnDate='';
+let adminCellMobileQuery='';
+let membersMobileQuery='';
 
 function dayEditorActiveMembers(){
   return sortMembersAlpha((adminData?.membersAdmin||[]).filter(m=>m.active))
@@ -1352,7 +1369,14 @@ function dayEditorRemove(role,memberId=''){
 function dayEditorTouchAssign(role){
   if(!dayEditorTouchSelectedId)return;
   const id=dayEditorTouchSelectedId;
+  const alreadyCurrent=role==='present'
+    ?(dayEditorDraft?.present||[]).map(String).includes(id)
+    :String(dayEditorDraft?.roles?.[role]||'')===id;
   dayEditorTouchSelectedId='';
+  if(currentUiMode==='mobile'&&alreadyCurrent){
+    dayEditorRemove(role,id);
+    return
+  }
   if(!dayEditorAssign(id,role)){
     dayEditorTouchSelectedId=id;
     renderDayEditorDraft()
@@ -1368,8 +1392,10 @@ function renderDayEditorQuickRoles(){
   if(!show)return;
   if(quickSelected){
     quickSelected.textContent=selected
-      ?`${dayEditorMemberName(selected)} sélectionné · choisissez le poste`
-      :'Affectations actuelles · touchez un membre pour le déplacer'
+      ?(currentUiMode==='mobile'
+        ?`${dayEditorMemberName(selected)} · choisissez une action`
+        :`${dayEditorMemberName(selected)} sélectionné · choisissez le poste`)
+      :'Affectations actuelles'
   }
   const selectedCoreRoles=selected?CORE_ROLE_KEYS.filter(r=>String(dayEditorDraft?.roles?.[r]||'')===selected):[];
   for(const btn of quickRoles.querySelectorAll('[data-quick-role]')){
@@ -1381,7 +1407,7 @@ function renderDayEditorQuickRoles(){
       const ids=(dayEditorDraft?.present||[]).map(String);
       const names=ids.map(dayEditorMemberName).filter(Boolean);
       if(selected&&ids.includes(selected)){
-        state='Actuel';kind='is-current'
+        state=currentUiMode==='mobile'?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
       }else if(selected&&selectedCoreRoles.length){
         state=`Indisponible · ${selectedCoreRoles.map(r=>ROLE_LABELS[r]).join(' + ')}`;
         kind='is-blocked';btn.disabled=true
@@ -1392,7 +1418,7 @@ function renderDayEditorQuickRoles(){
     }else{
       const occupant=String(dayEditorDraft?.roles?.[role]||'');
       if(selected&&occupant===selected){
-        state='Actuel';kind='is-current'
+        state=currentUiMode==='mobile'?'Actuel · toucher pour retirer':'Actuel';kind='is-current'
       }else if(occupant){
         const name=dayEditorMemberName(occupant)||'Occupé';
         state=selected?`Remplace ${name}`:name;
@@ -1407,6 +1433,38 @@ function renderDayEditorQuickRoles(){
     btn.title=selected?`${ROLE_LABELS[role]} · ${state}`:`${ROLE_LABELS[role]} · ${state}`;
     btn.setAttribute('aria-label',btn.title)
   }
+}
+
+
+function ensureDayEditorMobileSearch(){
+  const pool=q('#dayMemberPool');
+  const column=pool?.closest('.day-column-members');
+  if(!pool||!column)return;
+  let wrap=q('#dayEditorMobileSearchWrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='dayEditorMobileSearchWrap';
+    wrap.className='mobile-inline-search day-editor-mobile-search';
+    const input=document.createElement('input');
+    input.id='dayEditorMobileSearch';
+    input.type='search';
+    input.autocomplete='off';
+    input.spellcheck=false;
+    input.placeholder='Rechercher un membre';
+    input.setAttribute('aria-label','Rechercher un membre');
+    input.addEventListener('input',e=>{
+      dayEditorMobileQuery=String(e.currentTarget.value||'');
+      renderDayEditorDraft()
+    });
+    const count=document.createElement('span');
+    count.id='dayEditorMobileSearchCount';
+    count.className='mobile-inline-search-count';
+    wrap.append(input,count);
+    column.insertBefore(wrap,pool)
+  }
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  const input=q('#dayEditorMobileSearch');
+  if(input&&input.value!==dayEditorMobileQuery)input.value=dayEditorMobileQuery
 }
 
 function dayEditorWireDropzone(zone,role){
@@ -1451,9 +1509,11 @@ function renderDayEditorDraft(){
   if(touchHelp){
     touchHelp.classList.remove('hidden');
     if(dayEditorTouchSelectedId){
-      touchHelp.textContent=`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · les boutons indiquent ce qui est libre, actuel ou sera remplacé.`
+      touchHelp.textContent=currentUiMode==='mobile'
+        ?`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · choisissez une action ci-dessous.`
+        :`${dayEditorMemberName(dayEditorTouchSelectedId)} sélectionné · les boutons indiquent ce qui est libre, actuel ou sera remplacé.`
     }else if(currentUiMode==='mobile'){
-      touchHelp.textContent='Les postes et leurs titulaires sont visibles juste dessous. Touchez un membre : chaque bouton indiquera Libre, Actuel ou qui sera remplacé.'
+      touchHelp.textContent='Choisissez un membre, puis son poste. Les affectations actuelles restent visibles en permanence.'
     }else if(isTouchUi()){
       touchHelp.textContent='Touchez un membre, puis un poste. Balayez horizontalement pour voir tous les postes.'
     }else{
@@ -1461,11 +1521,18 @@ function renderDayEditorDraft(){
     }
   }
   renderDayEditorQuickRoles();
+  ensureDayEditorMobileSearch();
   const members=dayEditorActiveMembers();
+  const query=String(dayEditorMobileQuery||'').trim().toLocaleLowerCase('fr-FR');
+  const shownMembers=currentUiMode==='mobile'&&query
+    ?members.filter(m=>`${m.name||''} ${dayEditorMemberStatus(m.id)}`.toLocaleLowerCase('fr-FR').includes(query))
+    :members;
   const pool=q('#dayMemberPool');
   pool.innerHTML='';
+  const searchCount=q('#dayEditorMobileSearchCount');
+  if(searchCount)searchCount.textContent=currentUiMode==='mobile'?`${shownMembers.length}/${members.length}`:'';
 
-  for(const m of members){
+  for(const m of shownMembers){
     const item=document.createElement('div');
     item.className='day-member-source-item'+(dayEditorTouchSelectedId===String(m.id)?' touch-selected':'');
 
@@ -1479,14 +1546,23 @@ function renderDayEditorDraft(){
     const name=document.createElement('strong');
     name.textContent=m.name;
     const statusText=dayEditorMemberStatus(m.id);
+    const status=document.createElement('span');
+    status.className='day-member-source-status'+(statusText?' has-assignment':'');
+    status.textContent=statusText||'Non affecté';
 
-    text.append(name);
+    text.append(name,status);
     item.append(grip,text);
     item.title=isTouchUi()
       ?(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · choisissez un poste`:`Touchez ${m.name} puis un poste`)
       :(dayEditorTouchSelectedId===String(m.id)?`${m.name} sélectionné · cliquez un poste`:(statusText?`${m.name} · ${statusText} · cliquer ou glisser`:`Cliquer ou glisser ${m.name}`));
     makeDayMemberDraggable(item,m.id);
     pool.append(item)
+  }
+  if(!shownMembers.length){
+    const empty=document.createElement('div');
+    empty.className='mobile-search-empty';
+    empty.textContent='Aucun membre trouvé';
+    pool.append(empty)
   }
 
   for(const role of CORE_ROLE_KEYS){
@@ -1553,6 +1629,7 @@ function renderDayEditorDraft(){
 }
 function populateDayEditor(date){
   dayEditorTouchSelectedId='';
+  dayEditorMobileQuery='';
   const assignments=adminData.assignments?.[date]||{};
   const roles=Object.fromEntries(CORE_ROLE_KEYS.map(role=>[
     role,
@@ -1611,6 +1688,7 @@ function closeAdminCorrection(){
 }
 function adminCorrectionForDate(date){openAdminCorrection(date)}
 function populateAdminCellEditor(date,role){
+  adminCellMobileQuery='';
   const active=(adminData.membersAdmin||[]).filter(m=>m.active);
   const assignments=adminData.assignments?.[date]||{};
   const ids=Array.isArray(assignments[role])?assignments[role]:[];
@@ -1639,7 +1717,59 @@ function populateAdminCellEditor(date,role){
     actions.classList.add('hidden');
     fillSingleChoiceList(q('#adminCellRoleChoices'),ids,active,(memberId)=>saveAdminCellSelection(date,role,memberId,true))
   }
+  ensureAdminCellMobileSearch(role)
 }
+
+function applyAdminCellMobileSearch(){
+  const query=String(adminCellMobileQuery||'').trim().toLocaleLowerCase('fr-FR');
+  const role=q('#adminCellRole')?.value||'';
+  const container=role==='present'?q('#adminCellAvailableChoices'):q('#adminCellRoleChoices');
+  if(!container)return;
+  let shown=0,total=0;
+  const items=[...container.querySelectorAll(role==='present'?'.available-check':'.single-choice-item')];
+  for(const item of items){
+    const always=item.classList.contains('empty-choice');
+    const hay=String(item.textContent||'').toLocaleLowerCase('fr-FR');
+    const visible=always||!query||hay.includes(query);
+    item.hidden=!visible;
+    if(!always){total++;if(visible)shown++}
+  }
+  const count=q('#adminCellMobileSearchCount');
+  if(count)count.textContent=`${shown}/${total}`
+}
+function ensureAdminCellMobileSearch(role){
+  const roleField=q('#adminCellRoleField'),availableField=q('#adminCellAvailableField');
+  const field=role==='present'?availableField:roleField;
+  const container=role==='present'?q('#adminCellAvailableChoices'):q('#adminCellRoleChoices');
+  if(!field||!container)return;
+  let wrap=q('#adminCellMobileSearchWrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='adminCellMobileSearchWrap';
+    wrap.className='mobile-inline-search admin-cell-mobile-search';
+    const input=document.createElement('input');
+    input.id='adminCellMobileSearch';
+    input.type='search';
+    input.autocomplete='off';
+    input.spellcheck=false;
+    input.placeholder='Rechercher un membre';
+    input.setAttribute('aria-label','Rechercher un membre');
+    input.addEventListener('input',e=>{
+      adminCellMobileQuery=String(e.currentTarget.value||'');
+      applyAdminCellMobileSearch()
+    });
+    const count=document.createElement('span');
+    count.id='adminCellMobileSearchCount';
+    count.className='mobile-inline-search-count';
+    wrap.append(input,count)
+  }
+  field.insertBefore(wrap,container);
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  const input=q('#adminCellMobileSearch');
+  if(input)input.value=adminCellMobileQuery;
+  applyAdminCellMobileSearch()
+}
+
 function openAdminCellEditor(date,role){
   populateAdminCellEditor(date,role);
   const overlay=q('#adminCellOverlay');
@@ -1846,6 +1976,7 @@ function renderAdminCalendar(){
 
   const body=q('#adminScheduleBody'),mobile=q('#adminScheduleMobile');
   body.innerHTML='';mobile.innerHTML='';
+  ensureMobilePlanningHelp(mobile,'adminMobilePlanningHelp','Touchez un poste pour le modifier directement. « Modifier la journée » permet de tout réorganiser.');
   const nameMap=Object.fromEntries((adminData.membersAdmin||adminData.members||[]).map(m=>[m.id,m.name]));
   let prevWeek='',weekIndex=-1;
   const dates=effectiveMode==='upcoming'?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth);
@@ -1981,7 +2112,7 @@ function renderAdminCalendar(){
       line.append(lab,val);roles.append(line)
     }
     card.append(roles);
-    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Modifier';mobileEdit.disabled=!open;
+    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Modifier la journée';mobileEdit.disabled=!open;
     mobileEdit.addEventListener('click',()=>adminCorrectionForDate(date));
     card.append(mobileEdit);
     mobile.append(card)
@@ -2136,6 +2267,52 @@ function wireHorizontalScrollAffordances(){
 }
 window.addEventListener('resize',wireHorizontalScrollAffordances,{passive:true});
 
+
+function applyMobileMembersFilter(){
+  const body=q('#membersTable');
+  if(!body)return;
+  const query=String(membersMobileQuery||'').trim().toLocaleLowerCase('fr-FR');
+  let shown=0,total=0;
+  for(const row of body.querySelectorAll('tr')){
+    total++;
+    const visible=!query||String(row.dataset.search||'').includes(query);
+    row.hidden=!visible;
+    if(visible)shown++
+  }
+  const count=q('#mobileMembersSearchCount');
+  if(count)count.textContent=`${shown}/${total}`
+}
+function ensureMobileMembersSearch(){
+  const tableWrap=q('#adminMembers .members-table-wrap');
+  if(!tableWrap)return;
+  let wrap=q('#mobileMembersSearchWrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='mobileMembersSearchWrap';
+    wrap.className='mobile-inline-search mobile-members-search';
+    const input=document.createElement('input');
+    input.id='mobileMembersSearch';
+    input.type='search';
+    input.autocomplete='off';
+    input.spellcheck=false;
+    input.placeholder='Rechercher un membre';
+    input.setAttribute('aria-label','Rechercher un membre');
+    input.addEventListener('input',e=>{
+      membersMobileQuery=String(e.currentTarget.value||'');
+      applyMobileMembersFilter()
+    });
+    const count=document.createElement('span');
+    count.id='mobileMembersSearchCount';
+    count.className='mobile-inline-search-count';
+    wrap.append(input,count);
+    tableWrap.parentElement?.insertBefore(wrap,tableWrap)
+  }
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  const input=q('#mobileMembersSearch');
+  if(input&&input.value!==membersMobileQuery)input.value=membersMobileQuery;
+  applyMobileMembersFilter()
+}
+
 function renderMembers(){
   const body=q('#membersTable');
   body.innerHTML='';
@@ -2160,6 +2337,10 @@ function renderMembers(){
       nameLine.append(adminBadge)
     }
     nameTd.append(nameLine);
+    const mobileEmail=document.createElement('div');
+    mobileEmail.className='member-card-email';
+    mobileEmail.textContent=m.email||'Aucun email';
+    nameTd.append(mobileEmail);
 
     const emailTd=document.createElement('td');
     const email=document.createElement('a');
@@ -2175,16 +2356,18 @@ function renderMembers(){
     state.type='button';
     state.className='member-state-pill '+(m.active?'active':'inactive');
     state.textContent=m.active?'Actif':'Inactif';
-    state.title=memberStateActionTitle(m.active,m.name);
+    state.title=currentUiMode==='mobile'?`Ouvrir la fiche de ${m.name}`:memberStateActionTitle(m.active,m.name);
     state.setAttribute('aria-label',state.title);
     state.addEventListener('click',e=>{
       if(!usesSingleActivation(e))return;
       e.preventDefault();
+      if(currentUiMode==='mobile'){openMemberQuick(m.id,state);return}
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
     state.addEventListener('dblclick',e=>{
       if(usesSingleActivation(e))return;
       e.preventDefault();
+      if(currentUiMode==='mobile'){openMemberQuick(m.id,state);return}
       toggleMemberActiveDirect(m.id,!m.active,m.name,state)
     });
     stateTd.append(state);
@@ -2290,6 +2473,8 @@ function renderMembers(){
 
     tr.append(nameTd,emailTd,stateTd,devicesTd,linkTd);
     tr.classList.add('member-row-detail');
+    tr.classList.toggle('is-inactive',!m.active);
+    tr.dataset.search=`${m.name||''} ${m.email||''} ${latestLabel||''}`.toLocaleLowerCase('fr-FR');
     tr.tabIndex=isTouchUi()?0:-1;
     tr.setAttribute('aria-label',`Ouvrir la fiche de ${m.name}`);
     tr.addEventListener('click',e=>{
@@ -2302,6 +2487,10 @@ function renderMembers(){
     });
     body.append(tr)
   }
+  const rotateAll=q('#memberManageRotateAll');
+  if(rotateAll)rotateAll.textContent=currentUiMode==='mobile'?'Renouveler tous':'Renouveler';
+  ensureMobileMembersSearch();
+  applyMobileMembersFilter();
   renderMemberManagementList();wireHorizontalScrollAffordances()
 }
 

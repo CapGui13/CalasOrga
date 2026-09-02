@@ -7400,3 +7400,491 @@ html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button.is-block
 html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button.is-blocked .quick-role-state{
   color:#737f78!important;
 }
+
+
+/* =========================================================
+   MOBILE UX CONSOLIDATION — full pass
+   Phone-only layer. Desktop and tablet remain untouched.
+   ========================================================= */
+
+/* General mobile rhythm and non-blocking save feedback. */
+html.ui-mobile #adminSaveState{
+  top:auto!important;
+  bottom:calc(72px + max(8px,env(safe-area-inset-bottom)))!important;
+}
+html.ui-mobile #lastRefresh{
+  top:auto!important;
+  bottom:max(12px,env(safe-area-inset-bottom))!important;
+}
+html.ui-mobile .mobile-planning-help{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:7px!important;
+  margin:0 0 10px!important;
+  padding:8px 10px!important;
+  border:1px solid #dce7df!important;
+  border-radius:10px!important;
+  background:#f7faf8!important;
+  color:#536158!important;
+  font-size:10.5px!important;
+  font-weight:700!important;
+  line-height:1.35!important;
+}
+html:not(.ui-mobile) .mobile-planning-help{display:none!important}
+html:not(.ui-mobile) #adminCorrectionOverlay .day-member-source-status{display:none!important}
+
+/* Planning cards: slightly calmer hierarchy and clearer direct-edit affordance. */
+html.ui-mobile #adminRoot .admin-schedule-mobile>.mobile-date-card>.admin-calendar-edit{
+  min-height:48px!important;
+  font-size:12.5px!important;
+}
+html.ui-mobile #adminRoot .admin-mobile-role:not(:disabled){
+  border-color:#d9e4dd!important;
+  background:#fbfcfb!important;
+}
+html.ui-mobile #adminRoot .admin-mobile-role:not(:disabled)::after{
+  content:'Modifier ›'!important;
+  width:auto!important;
+  font-size:9.5px!important;
+  font-weight:850!important;
+  color:#617168!important;
+}
+html.ui-mobile #adminRoot .admin-mobile-role .mobile-role-value{
+  padding-right:54px!important;
+}
+html.ui-mobile #memberRoot .member-mobile-role:not(:disabled){
+  border-color:#d9e4dd!important;
+}
+html.ui-mobile .mobile-date-card{
+  scroll-margin-top:10px!important;
+}
+
+/* Shared search language for long touch lists. */
+html.ui-mobile .mobile-inline-search{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:100%!important;
+}
+html.ui-mobile .mobile-inline-search input{
+  width:100%!important;
+  min-width:0!important;
+  min-height:46px!important;
+  padding:9px 12px!important;
+  border:1px solid #ccd8d1!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:var(--text)!important;
+  font-size:16px!important;
+  outline:none!important;
+}
+html.ui-mobile .mobile-inline-search input:focus{
+  border-color:#8eb9a0!important;
+  box-shadow:0 0 0 3px rgba(33,108,74,.10)!important;
+}
+html.ui-mobile .mobile-inline-search-count{
+  min-width:44px!important;
+  color:#69766f!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  text-align:right!important;
+  font-variant-numeric:tabular-nums;
+}
+html.ui-mobile .mobile-search-empty{
+  padding:16px 10px!important;
+  color:#738079!important;
+  font-size:11px!important;
+  text-align:center!important;
+}
+
+/* =========================================================
+   MOBILE MEMBERS — list/cards + detail sheet
+   ========================================================= */
+html.ui-mobile #adminMembers{
+  padding:12px!important;
+}
+html.ui-mobile #adminMembers .members-head{
+  margin-bottom:9px!important;
+}
+html.ui-mobile #adminMembers .members-title-line{
+  align-items:center!important;
+}
+html.ui-mobile #adminMembers .members-title-line h2{
+  font-size:19px!important;
+}
+html.ui-mobile #adminMembers .member-management-actions-main{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+  margin:8px 0 10px!important;
+}
+html.ui-mobile #adminMembers .member-management-actions-main .btn{
+  min-height:46px!important;
+  font-size:11.5px!important;
+}
+html.ui-mobile #adminMembers #memberManageRotateAll{
+  grid-column:1/-1!important;
+  background:#f8faf9!important;
+}
+html.ui-mobile #adminMembers .mobile-members-search{
+  margin:0 0 10px!important;
+}
+
+html.ui-mobile #adminMembers .members-table-wrap{
+  overflow:visible!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+html.ui-mobile #adminMembers .members-table{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  table-layout:auto!important;
+  border:0!important;
+  background:transparent!important;
+}
+html.ui-mobile #adminMembers .members-table thead{
+  display:none!important;
+}
+html.ui-mobile #adminMembers .members-table tbody{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  width:100%!important;
+}
+html.ui-mobile #adminMembers .members-table tr{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-areas:
+    'name state'
+    'devices arrow'!important;
+  align-items:center!important;
+  gap:5px 10px!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:82px!important;
+  margin:0!important;
+  padding:11px 12px!important;
+  overflow:hidden!important;
+  border:1px solid #dce5df!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  box-shadow:0 2px 8px rgba(24,39,31,.04)!important;
+  cursor:pointer!important;
+  touch-action:manipulation!important;
+}
+html.ui-mobile #adminMembers .members-table tr:active{
+  background:#f4f8f5!important;
+  border-color:#c9dbcf!important;
+}
+html.ui-mobile #adminMembers .members-table tr.is-inactive{
+  background:#f8f9f8!important;
+}
+html.ui-mobile #adminMembers .members-table tr::after{
+  content:'›'!important;
+  grid-area:arrow!important;
+  align-self:center!important;
+  justify-self:end!important;
+  color:#7a8780!important;
+  font-size:22px!important;
+  line-height:1!important;
+}
+html.ui-mobile #adminMembers .members-table td{
+  display:block!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:0!important;
+  overflow:visible!important;
+  border:0!important;
+  background:transparent!important;
+}
+html.ui-mobile #adminMembers .members-table td:nth-child(1){grid-area:name!important;width:auto!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(2){display:none!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(3){grid-area:state!important;width:auto!important;justify-self:end!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(4){grid-area:devices!important;width:auto!important}
+html.ui-mobile #adminMembers .members-table td:nth-child(5){display:none!important}
+html.ui-mobile #adminMembers .member-name-line{
+  gap:6px!important;
+}
+html.ui-mobile #adminMembers .member-display-name{
+  font-size:13.5px!important;
+  font-weight:850!important;
+  line-height:1.2!important;
+}
+html.ui-mobile #adminMembers .member-card-email{
+  display:block!important;
+  max-width:100%!important;
+  margin-top:3px!important;
+  overflow:hidden!important;
+  color:#748078!important;
+  font-size:10.5px!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+html:not(.ui-mobile) #adminMembers .member-card-email{display:none!important}
+html.ui-mobile #adminMembers .admin-member-badge{
+  padding:2px 5px!important;
+  font-size:8px!important;
+}
+html.ui-mobile #adminMembers .member-state-pill{
+  min-height:32px!important;
+  padding:5px 9px!important;
+  font-size:9.5px!important;
+  cursor:pointer!important;
+}
+html.ui-mobile #adminMembers .member-device-primary{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  max-width:100%!important;
+  color:#5f6d65!important;
+  font-size:10.5px!important;
+  line-height:1.2!important;
+  white-space:normal!important;
+}
+html.ui-mobile #adminMembers .member-device-secondary{
+  display:none!important;
+}
+
+/* Member quick details become a real bottom sheet. */
+html.ui-mobile #memberQuickPanel{
+  align-items:flex-end!important;
+  justify-content:center!important;
+  padding:0!important;
+}
+html.ui-mobile #memberQuickPanel .member-quick-dialog{
+  width:100%!important;
+  max-width:none!important;
+  max-height:92dvh!important;
+  margin:0!important;
+  padding:15px 14px max(14px,env(safe-area-inset-bottom))!important;
+  overflow-y:auto!important;
+  border-radius:22px 22px 0 0!important;
+}
+html.ui-mobile #memberQuickPanel .section-head{
+  position:sticky!important;
+  top:-15px!important;
+  z-index:5!important;
+  margin:-15px -14px 10px!important;
+  padding:15px 14px 10px!important;
+  background:rgba(255,255,255,.98)!important;
+  border-bottom:1px solid #edf1ee!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+html.ui-mobile #memberQuickPanel .member-quick-summary{
+  gap:7px!important;
+}
+html.ui-mobile #memberQuickPanel .member-quick-stat,
+html.ui-mobile #memberQuickPanel .member-quick-link-card{
+  padding:9px 10px!important;
+}
+html.ui-mobile #memberQuickPanel .member-quick-device-list{
+  max-height:180px!important;
+}
+html.ui-mobile #memberQuickPanel .member-quick-actions{
+  position:sticky!important;
+  bottom:-1px!important;
+  z-index:4!important;
+  margin:10px -2px -2px!important;
+  padding:9px 2px 2px!important;
+  background:linear-gradient(to bottom,rgba(255,255,255,0),#fff 24%)!important;
+}
+html.ui-mobile #memberQuickPanel .member-quick-actions .btn{
+  min-height:46px!important;
+}
+
+/* Create / modify member flows follow the same sheet language. */
+html.ui-mobile #memberCreatePanel,
+html.ui-mobile #memberModifyPanel{
+  align-items:flex-end!important;
+  padding:0!important;
+}
+html.ui-mobile #memberCreatePanel .member-management-dialog,
+html.ui-mobile #memberModifyPanel .member-management-dialog{
+  width:100%!important;
+  max-width:none!important;
+  max-height:92dvh!important;
+  margin:0!important;
+  padding:15px 14px max(14px,env(safe-area-inset-bottom))!important;
+  overflow-y:auto!important;
+  border-radius:22px 22px 0 0!important;
+}
+html.ui-mobile #memberModifyPanel .member-picker-modal{
+  max-height:38dvh!important;
+}
+
+/* =========================================================
+   MOBILE DIRECT ROLE EDITOR — searchable bottom sheet
+   ========================================================= */
+html.ui-mobile #adminCellOverlay{
+  align-items:flex-end!important;
+  padding:0!important;
+}
+html.ui-mobile #adminCellOverlay .admin-cell-dialog{
+  width:100%!important;
+  max-width:none!important;
+  max-height:88dvh!important;
+  margin:0!important;
+  padding:15px 14px max(14px,env(safe-area-inset-bottom))!important;
+  overflow-y:auto!important;
+  border-radius:22px 22px 0 0!important;
+}
+html.ui-mobile #adminCellOverlay .section-head{
+  position:sticky!important;
+  top:-15px!important;
+  z-index:5!important;
+  margin:-15px -14px 10px!important;
+  padding:15px 14px 10px!important;
+  background:rgba(255,255,255,.98)!important;
+  border-bottom:1px solid #edf1ee!important;
+}
+html.ui-mobile #adminCellOverlay .admin-cell-mobile-search{
+  margin:4px 0 8px!important;
+}
+html.ui-mobile #adminCellOverlay .single-choice-list,
+html.ui-mobile #adminCellOverlay .available-checklist{
+  max-height:min(50dvh,390px)!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  padding:4px!important;
+}
+html.ui-mobile #adminCellOverlay .single-choice-item,
+html.ui-mobile #adminCellOverlay .available-check{
+  min-height:48px!important;
+  font-size:12.5px!important;
+}
+
+/* =========================================================
+   MOBILE FULL-DAY EDITOR — one clear flow
+   Current assignments -> choose/search member -> choose action -> save.
+   ========================================================= */
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-roles{
+  position:static!important;
+  top:auto!important;
+  margin:0 0 9px!important;
+  padding:9px!important;
+  box-shadow:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-selected{
+  margin:0 0 6px!important;
+  color:#32443a!important;
+  font-size:11.5px!important;
+  font-weight:900!important;
+  text-align:left!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button{
+  min-height:52px!important;
+  padding:8px 9px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .quick-role-name{
+  font-size:11px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .quick-role-state{
+  overflow:visible!important;
+  font-size:10.5px!important;
+  line-height:1.2!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-buttons button.is-current .quick-role-state{
+  color:#116837!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members{
+  grid-column:auto!important;
+  border-radius:13px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-role,
+html.ui-mobile #adminCorrectionOverlay .day-column-available{
+  display:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-mobile-search{
+  margin:0!important;
+  padding:7px 7px 4px!important;
+  border-top:0!important;
+  background:#fff!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+  max-height:min(42dvh,320px)!important;
+  padding:4px 7px 7px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-height:50px!important;
+  padding:7px 9px!important;
+  border-bottom:1px solid #edf1ee!important;
+  border-radius:8px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item:last-child{
+  border-bottom-color:transparent!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-text{
+  display:grid!important;
+  gap:2px!important;
+  min-width:0!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-text strong{
+  font-size:12.5px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-status{
+  display:block!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  color:#7a867f!important;
+  font-size:9.5px!important;
+  font-weight:700!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-status.has-assignment{
+  color:#297047!important;
+  font-weight:850!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item::after{
+  content:'Choisir'!important;
+  justify-self:end!important;
+  padding:4px 7px!important;
+  border-radius:999px!important;
+  background:#eef3f0!important;
+  color:#5e6e65!important;
+  font-size:9px!important;
+  font-weight:850!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-source-item.touch-selected::after{
+  content:'Sélectionné'!important;
+  background:#dff1e6!important;
+  color:#176b39!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-touch-help{
+  padding:7px 9px!important;
+  font-size:10.5px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions{
+  padding-bottom:max(2px,env(safe-area-inset-bottom))!important;
+}
+
+/* Landscape: use space efficiently without changing the interaction model. */
+@media (orientation:landscape) and (min-width:640px) and (max-height:560px){
+  html.ui-mobile #adminMembers .members-table tbody{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  html.ui-mobile #memberQuickPanel .member-quick-dialog,
+  html.ui-mobile #adminCellOverlay .admin-cell-dialog{
+    width:min(620px,100%)!important;
+  }
+  html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+    max-height:170px!important;
+  }
+}
