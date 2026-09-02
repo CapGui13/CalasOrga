@@ -17,6 +17,28 @@ let queued=false;
 let cellWasOpen=false;
 let pendingCellSync=null;
 
+<<<<<<< HEAD
+=======
+function hideHistory(){
+  const link=$('.admin-tabs [data-admin-page="history"]');
+  if(link){
+    link.classList.add('hidden');
+    link.hidden=true;
+    link.setAttribute('aria-hidden','true');
+    link.tabIndex=-1;
+  }
+  const page=$('[data-admin-view="history"]');
+  if(page){
+    page.classList.add('hidden');
+    page.setAttribute('aria-hidden','true');
+  }
+  if(/^\/admin\/historique\/?$/.test(location.pathname)){
+    history.replaceState({},'', '/admin');
+    setTimeout(()=>$('.admin-tabs [data-admin-page="calendar"]')?.click(),0);
+  }
+}
+
+>>>>>>> e0506927d53ade50b6a8c3d1def3237aa5a80dcf
 function normalizeRenewButton(){
   const button=$('#memberManageRotateAll');
   if(button&&!button.disabled&&button.textContent.trim()!=='Renouveler')button.textContent='Renouveler';
@@ -188,6 +210,11 @@ function performAssignedDrop(targetRole){
 function decorateAssignedChip(chip,role,memberId){
   if(!desktop()||!chip||!memberId)return;
 
+<<<<<<< HEAD
+=======
+  /* Réutilise le contrat visuel/cursor du planning au lieu d'un style inline.
+     La CSP reste donc totalement respectée. */
+>>>>>>> e0506927d53ade50b6a8c3d1def3237aa5a80dcf
   chip.classList.add('admin-role-editable');
   chip.dataset.memberId=String(memberId);
   chip.draggable=true;
@@ -236,6 +263,11 @@ function decorateAssignedChips(){
 function installZone(zone){
   if(!desktop()||!zone)return;
 
+<<<<<<< HEAD
+=======
+  /* C'est exactement la classe utilisée par les cellules du planning principal :
+     même main pointer, même hover et même focus. */
+>>>>>>> e0506927d53ade50b6a8c3d1def3237aa5a80dcf
   zone.classList.add('admin-role-editable');
   for(const placeholder of $$('.day-drop-placeholder',zone))placeholder.classList.add('admin-role-editable');
 
@@ -318,6 +350,10 @@ function syncDraftRoleFromPlanning(date,role){
 
 function enhance(){
   queued=false;
+<<<<<<< HEAD
+=======
+  hideHistory();
+>>>>>>> e0506927d53ade50b6a8c3d1def3237aa5a80dcf
   normalizeRenewButton();
   if(!desktop())return;
   decoratePlanningRemoveButtons();
@@ -391,6 +427,14 @@ if(confirmOverlay){
   new MutationObserver(normalizeRenewButton).observe(confirmOverlay,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }
 
+<<<<<<< HEAD
 normalizeRenewButton();
 queueEnhance();
 })();
+=======
+window.addEventListener('popstate',hideHistory);
+hideHistory();
+normalizeRenewButton();
+queueEnhance();
+})();
+>>>>>>> e0506927d53ade50b6a8c3d1def3237aa5a80dcf
