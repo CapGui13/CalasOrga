@@ -3283,6 +3283,7 @@ if (configuredAdminHash && !/^[a-f0-9]{64}$/.test(configuredAdminHash)) {
 const storagePreference = String(process.env.CALASORGA_STORAGE || '').trim().toLowerCase();
 const supabaseUrlConfig = String(process.env.SUPABASE_URL || '').trim();
 const supabaseSecretConfig = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const supabaseTableConfig = String(process.env.SUPABASE_STATE_TABLE || 'calasorga_state').trim();
 const hasSupabaseConfig = !!(supabaseUrlConfig && supabaseSecretConfig);
 const hasBlobConfig = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 if (storagePreference && !['supabase', 'blob', 'file'].includes(storagePreference)) {
@@ -3297,8 +3298,7 @@ if (hasSupabaseConfig) {
   if (!parsed || !['https:', ...(process.env.NODE_ENV === 'test' ? ['http:'] : [])].includes(parsed.protocol)) {
     configurationError('SUPABASE_URL invalide : utilisez l’URL HTTPS du projet Supabase.');
   }
-  const table = String(process.env.SUPABASE_STATE_TABLE || 'calasorga_state').trim();
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(supabaseTableConfig)) {
     configurationError('SUPABASE_STATE_TABLE invalide.');
   }
 }
@@ -3353,6 +3353,164 @@ function limited(key, max = 60, windowMs = 60_000) {
   if (t - row.start > windowMs) { row.start = t; row.n = 0; }
   row.n += 1; rate.set(key, row); return row.n > max;
 }
+
+// Hardening auth : sur Vercel + Supabase, les limites sensibles sont partagees
+// entre toutes les instances. Les lignes utilisent la table privee existante,
+// avec un nombre borne de cles (globales + 64 buckets), sans exposer de secret.
+const AUTH_RATE_LIMIT_KIND = 'calasorga-auth-rate-v1';
+const AUTH_RATE_BUCKETS = 256;
+
+function authRateHeaders(extra = {}) {
+  const headers = {
+    apikey: supabaseSecretConfig,
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+  if (!/^sb_(?:secret|publishable)_/i.test(supabaseSecretConfig)) {
+    headers.Authorization = `Bearer ${supabaseSecretConfig}`;
+  }
+  return { ...headers, ...extra };
+}
+
+function authRateRestUrl(query = '') {
+  return `${supabaseUrlConfig.replace(/\/+$/, '')}/rest/v1/${encodeURIComponent(supabaseTableConfig)}${query}`;
+}
+
+async function authRateJsonRequest(url, options = {}) {
+  let response;
+  try {
+    response = await fetch(url, options);
+  } catch (err) {
+    throw Object.assign(new Error(`Rate-limit Supabase indisponible : ${err?.message || err}`), {
+      code: 'AUTH_RATE_UNAVAILABLE'
+    });
+  }
+  const raw = await response.text();
+  let body = null;
+  if (raw) {
+    try { body = JSON.parse(raw); } catch { body = raw; }
+  }
+  return { response, body };
+}
+
+async function supabaseAuthLimited(key, max, windowMs) {
+  const rowId = `auth-rate:${tokenHash(key).slice(0, 48)}`;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const readParams = new URLSearchParams({
+      id: `eq.${rowId}`,
+      select: 'version,state',
+      limit: '1'
+    });
+    const read = await authRateJsonRequest(
+      authRateRestUrl(`?${readParams.toString()}`),
+      { method: 'GET', headers: authRateHeaders() }
+    );
+    if (!read.response.ok) {
+      throw Object.assign(new Error(`Rate-limit Supabase ${read.response.status}.`), {
+        code: 'AUTH_RATE_HTTP', status: read.response.status
+      });
+    }
+
+    const row = Array.isArray(read.body) ? read.body[0] : null;
+    const nowMs = Date.now();
+
+    if (!row) {
+      const nextState = {
+        kind: AUTH_RATE_LIMIT_KIND,
+        windowStart: nowMs,
+        count: 1,
+        windowMs
+      };
+      const created = await authRateJsonRequest(
+        authRateRestUrl('?select=version'),
+        {
+          method: 'POST',
+          headers: authRateHeaders({ Prefer: 'return=representation' }),
+          body: JSON.stringify({
+            id: rowId,
+            version: 1,
+            state: nextState,
+            updated_at: new Date(nowMs).toISOString()
+          })
+        }
+      );
+      // Deux instances peuvent creer la meme cle simultanement : relire et retenter.
+      if (created.response.status === 409) continue;
+      if (!created.response.ok) {
+        throw Object.assign(new Error(`Rate-limit Supabase ${created.response.status}.`), {
+          code: 'AUTH_RATE_HTTP', status: created.response.status
+        });
+      }
+      return 1 > max;
+    }
+
+    const version = Number(row.version);
+    if (!Number.isInteger(version) || version < 1) return true;
+
+    const previous = row.state && typeof row.state === 'object' && !Array.isArray(row.state)
+      ? row.state
+      : {};
+    const previousStart = Number(previous.windowStart);
+    const previousCount = Number(previous.count);
+    const sameWindow =
+      previous.kind === AUTH_RATE_LIMIT_KIND &&
+      Number(previous.windowMs) === windowMs &&
+      Number.isFinite(previousStart) &&
+      Number.isFinite(previousCount) &&
+      previousCount >= 0 &&
+      nowMs >= previousStart &&
+      nowMs - previousStart < windowMs;
+
+    const nextCount = sameWindow ? previousCount + 1 : 1;
+    const nextState = {
+      kind: AUTH_RATE_LIMIT_KIND,
+      windowStart: sameWindow ? previousStart : nowMs,
+      count: nextCount,
+      windowMs
+    };
+    const updateParams = new URLSearchParams({
+      id: `eq.${rowId}`,
+      version: `eq.${version}`,
+      select: 'version'
+    });
+    const updated = await authRateJsonRequest(
+      authRateRestUrl(`?${updateParams.toString()}`),
+      {
+        method: 'PATCH',
+        headers: authRateHeaders({ Prefer: 'return=representation' }),
+        body: JSON.stringify({
+          version: version + 1,
+          state: nextState,
+          updated_at: new Date(nowMs).toISOString()
+        })
+      }
+    );
+    if (!updated.response.ok) {
+      throw Object.assign(new Error(`Rate-limit Supabase ${updated.response.status}.`), {
+        code: 'AUTH_RATE_HTTP', status: updated.response.status
+      });
+    }
+    if (!Array.isArray(updated.body) || !updated.body.length) continue;
+    return nextCount > max;
+  }
+
+  // Contention anormale : on echoue ferme plutot que de laisser passer un brute force.
+  return true;
+}
+
+async function authLimited(key, max, windowMs) {
+  if (isVercelRuntime && hasSupabaseConfig) {
+    return supabaseAuthLimited(key, max, windowMs);
+  }
+  return limited(key, max, windowMs);
+}
+
+function memberShortRateBucket(prefix) {
+  const n = Number.parseInt(tokenHash(prefix).slice(0, 8), 16);
+  return Number.isFinite(n) ? n % AUTH_RATE_BUCKETS : 0;
+}
+
 if (!isVercelRuntime) {
   setInterval(() => { const t = Date.now(); for (const [k, v] of rate) if (t - v.start > 5 * 60_000) rate.delete(k); }, 5 * 60_000).unref();
   setInterval(() => { store.maintenance().catch((err) => console.error('Maintenance stockage:', err)); }, 60 * 60_000).unref();
@@ -3543,7 +3701,10 @@ export async function requestHandler(req, res) {
     }
     if (pathname === '/api/session/member-short' && req.method === 'POST') {
       const ip = getIp(req);
-      if (limited(`member-short-login:${ip}`, 8, 15 * 60_000) || limited('member-short-login-global', 240, 15 * 60_000)) {
+      if (
+        limited(`member-short-login:${ip}`, 8, 15 * 60_000) ||
+        await authLimited('member-short-login-global', 240, 15 * 60_000)
+      ) {
         return json(res, 429, { error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
       }
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
@@ -3551,7 +3712,11 @@ export async function requestHandler(req, res) {
       const raw = String(b.shortToken || '').trim().normalize('NFC');
       if (!/^[\p{L}\p{N}]{1,40}\d{6}$/u.test(raw)) return json(res, 401, { error: 'Lien personnel invalide ou révoqué.' });
       const prefix = raw.slice(0, -6).toLocaleLowerCase('fr-FR');
-      if (limited(`member-short-name:${tokenHash(prefix).slice(0, 24)}`, 12, 60 * 60_000)) {
+      const prefixBucket = memberShortRateBucket(prefix);
+      if (
+        limited(`member-short-name:${tokenHash(prefix).slice(0, 24)}`, 12, 60 * 60_000) ||
+        await authLimited(`member-short-login-bucket:${prefixBucket}`, 12, 60 * 60_000)
+      ) {
         return json(res, 429, { error: 'Trop de tentatives pour ce lien. Réessayez plus tard.' });
       }
       const cookies = parseCookies(req.headers.cookie || '');
@@ -3562,7 +3727,10 @@ export async function requestHandler(req, res) {
     }
     if (pathname === '/api/session/admin' && req.method === 'POST') {
       const ip = getIp(req);
-      if (limited(`admin-login:${ip}`, 8, 10 * 60_000) || limited('admin-login-global', 80, 10 * 60_000)) {
+      if (
+        limited(`admin-login:${ip}`, 8, 10 * 60_000) ||
+        await authLimited('admin-login-global', 80, 10 * 60_000)
+      ) {
         return json(res, 429, { error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
       }
       if (!sameOriginRequestOk(req, { trustProxy })) return json(res, 403, { error: 'Origine de connexion invalide.' });
