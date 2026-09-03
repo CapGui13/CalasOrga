@@ -8651,7 +8651,7 @@ html.ui-tablet #memberModifyPanel .member-modify-dialog{
 
 /* Standard portrait tablets: Monday / Tuesday / Thursday share one row.
    Narrow split-screen tablet layouts keep the safer two-column fallback. */
-@media (orientation:portrait) and (min-width:700px) and (max-width:899px){
+@media (orientation:portrait) and (min-width:600px) and (max-width:899px){
   html.ui-tablet #memberRoot .member-schedule-mobile,
   html.ui-tablet #adminRoot .admin-schedule-mobile{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
@@ -8664,11 +8664,38 @@ html.ui-tablet #memberModifyPanel .member-modify-dialog{
     padding:10px!important;
   }
   html.ui-tablet .mobile-role-button{
-    grid-template-columns:76px minmax(0,1fr)!important;
+    grid-template-columns:68px minmax(0,1fr)!important;
     gap:5px!important;
+    min-height:50px!important;
     padding:6px 7px!important;
   }
+  html.ui-tablet .mobile-role-value{
+    min-height:24px!important;
+    align-content:center!important;
+    align-items:center!important;
+  }
+  html.ui-tablet .mobile-role-empty{
+    display:flex!important;
+    align-items:center!important;
+    min-height:24px!important;
+  }
+  html.ui-tablet .mobile-role-button .role-chip{
+    display:inline-flex!important;
+    align-items:center!important;
+    min-height:24px!important;
+    padding:2px 5px!important;
+    line-height:1.15!important;
+  }
   html.ui-tablet #adminRoot .admin-mobile-role .mobile-role-value{padding-right:12px!important}
+}
+
+/* Real-device tablet hardening: a normal filled role must not make its row
+   taller than an empty role. Long names may wrap, but ordinary names retain
+   the same vertical rhythm as “À pourvoir”. */
+@media (orientation:portrait) and (max-width:899px){
+  html.ui-tablet .mobile-role-value,
+  html.ui-tablet .mobile-role-empty{min-height:24px!important}
+  html.ui-tablet .mobile-role-button .role-chip{min-height:24px!important}
 }
 
 /* Phone: the role rows already show what is missing, so duplicate coverage

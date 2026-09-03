@@ -148,6 +148,16 @@ try{
   await desktop.evalJs(`document.querySelector('#memberModifyClose').click()`);await sleep(30);
   await desktop.close();
 
+  /* Real-device portrait tablet regression: some Android tablets expose a
+     CSS viewport around 600–680 px. They must still show one week per row. */
+  const tabletNarrow=await newPage({mode:'tablet',width:640,height:1024});
+  assert.equal(await tabletNarrow.evalJs(`document.documentElement.dataset.uiMode`),'tablet');
+  assert.equal(await tabletNarrow.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).gridTemplateColumns.split(' ').length`),3,'narrow real-device tablet portrait must still use three date-card columns');
+  assert.equal(await tabletNarrow.evalJs(`(()=>{const cards=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')],groups=new Map();for(const c of cards){const r=c.style.getPropertyValue('--tablet-week-row');if(!groups.has(r))groups.set(r,[]);groups.get(r).push(c)}const full=[...groups.values()].find(g=>g.length>=3);if(!full)return false;const tops=full.slice(0,3).map(c=>Math.round(c.getBoundingClientRect().top));return Math.max(...tops)-Math.min(...tops)<2})()`),true,'narrow tablet Monday/Tuesday/Thursday must share one visual row');
+  assert.equal(await tabletNarrow.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'narrow tablet three-column planning must not overflow horizontally');
+  assert.equal(await tabletNarrow.evalJs(`(()=>{const seed=[...document.querySelectorAll('#adminScheduleMobile .mobile-role-button')].find(b=>b.querySelector('.mobile-role-empty'));if(!seed)return false;const clone=seed.cloneNode(true);const value=clone.querySelector('.mobile-role-value');value.replaceChildren();const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Christian';value.append(chip);seed.parentElement.append(clone);const a=seed.getBoundingClientRect().height,b=clone.getBoundingClientRect().height;clone.remove();return Math.abs(a-b)<2})()`),true,'a normal filled tablet role must keep the same row height as an empty role');
+  await tabletNarrow.close();
+
   const tabletMember=await newPage({mode:'tablet',width:712,height:1138,view:'member'});
   assert.equal(await tabletMember.evalJs(`document.documentElement.dataset.uiMode`),'tablet');
   assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#memberRoot .member-schedule-wrap')).display`),'none');
