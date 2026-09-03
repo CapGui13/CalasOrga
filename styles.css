@@ -8408,3 +8408,225 @@ html.ui-tablet #adminMembers .member-row-detail{touch-action:manipulation!import
   html.ui-tablet #adminMembers .tablet-member-detail-actions .btn:first-child{grid-column:1/-1!important}
   html.ui-tablet .tablet-split-empty{display:grid!important;place-items:center!important;min-height:180px!important;color:#7b8780!important;font-size:12px!important;text-align:center!important}
 }
+
+/* =========================================================
+   TABLET FEEDBACK PASS — clarity + scrolling
+   - desktop: align empty Disponible with the other empty roles
+   - tablet: remove redundant coverage tags, strengthen complete-day green
+   - tablet direct role edits: no search field
+   - tablet member details: clearer status/link actions
+   - tablet full-day editor: reliable vertical member scrolling
+   ========================================================= */
+
+/* Desktop: Disponible uses flex-start for multi-chip lists; only its empty
+   placeholder is re-centered so it lines up with the four "À pourvoir" cells. */
+html.ui-desktop #adminCorrectionOverlay .day-available-dropzone>.day-drop-placeholder{
+  align-self:center!important;
+}
+
+/* A direct tablet cell edit is short enough to scan: keep the member choices,
+   remove the extra search control. Phone keeps its search field. */
+html.ui-tablet #adminCellOverlay .admin-cell-mobile-search{
+  display:none!important;
+}
+html.ui-tablet #adminCellOverlay .single-choice-list,
+html.ui-tablet #adminCellOverlay .available-checklist{
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y!important;
+}
+
+/* Tablet full-day editor: make the member list a real vertical scroll surface. */
+html.ui-tablet #adminCorrectionOverlay .day-member-pool-column{
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y!important;
+  scrollbar-gutter:stable;
+}
+html.ui-tablet #adminCorrectionOverlay .day-member-source-item{
+  touch-action:pan-y!important;
+}
+
+/* Tablet quick member sheet: destructive state action beside Fermer;
+   personal-link actions stay together in their own block. */
+html.ui-tablet #memberQuickPanel .member-quick-dialog>.section-head{
+  align-items:flex-start!important;
+  flex-wrap:nowrap!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-head-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  flex:0 0 auto!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-head-actions .btn{
+  min-height:42px!important;
+  padding:8px 11px!important;
+  font-size:11px!important;
+  white-space:nowrap!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-link-card{
+  gap:7px!important;
+  border-color:#d6e2da!important;
+  background:#fbfdfc!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-link-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+  margin-top:2px!important;
+  padding-top:7px!important;
+  border-top:1px solid #e6ece8!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-link-actions .btn{
+  min-width:0!important;
+  min-height:44px!important;
+  padding:7px 6px!important;
+  font-size:10.5px!important;
+  white-space:nowrap!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-actions{
+  display:block!important;
+  margin-top:9px!important;
+}
+html.ui-tablet #memberQuickPanel .member-quick-actions .btn{
+  width:100%!important;
+  min-height:46px!important;
+}
+
+@media (orientation:portrait) and (max-width:899px){
+  /* The role rows already tell the story. Hide duplicate "x à pourvoir" and
+     "Manque …" labels; retain the closed marker when relevant. */
+  html.ui-tablet .mobile-date-status.ok,
+  html.ui-tablet .mobile-date-status.alert,
+  html.ui-tablet .mobile-date-missing{
+    display:none!important;
+  }
+  html.ui-tablet .mobile-date-head{
+    justify-content:flex-start!important;
+  }
+  html.ui-tablet .mobile-date-status.closed{
+    margin-left:auto!important;
+  }
+
+  /* A complete day should read instantly as complete, in both admin/member. */
+  html.ui-tablet #memberRoot .member-schedule-mobile .mobile-date-card.day-complete,
+  html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete{
+    border-color:#9fcaae!important;
+    border-left-color:#318353!important;
+    background:#e8f5ed!important;
+    box-shadow:0 3px 14px rgba(38,116,70,.10)!important;
+  }
+  html.ui-tablet #memberRoot .member-schedule-mobile .mobile-date-card.day-complete .mobile-date-head,
+  html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete .mobile-date-head{
+    border-bottom-color:#c4dfce!important;
+  }
+  html.ui-tablet #memberRoot .member-schedule-mobile .mobile-date-card.day-complete .mobile-role-button,
+  html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete .mobile-role-button{
+    border-color:#c4dfce!important;
+    background:#f0faf3!important;
+  }
+
+  /* Real scroll area in Modifier: a vertical drag scrolls instead of feeling
+     like a member tap. */
+  html.ui-tablet #adminCorrectionOverlay .day-member-pool-column{
+    height:min(42dvh,330px)!important;
+    max-height:min(42dvh,330px)!important;
+  }
+}
+
+@media (orientation:landscape) and (min-width:900px){
+  /* Complete dates are visually green in the master list, without status tags. */
+  html.ui-tablet #adminRoot .tablet-date-item{
+    grid-template-areas:'date status'!important;
+    min-height:52px!important;
+  }
+  html.ui-tablet #adminRoot .tablet-date-item.complete:not(.selected){
+    border-color:#a9cfb6!important;
+    border-left-color:#338454!important;
+    background:#e9f5ed!important;
+  }
+  html.ui-tablet #adminRoot .tablet-date-item.complete.selected{
+    border-color:#72ac86!important;
+    border-left-color:#247144!important;
+    background:#ddf0e4!important;
+    box-shadow:0 0 0 2px rgba(47,132,81,.10)!important;
+  }
+  html.ui-tablet #adminRoot .tablet-calendar-inspector.day-complete{
+    border-color:#b6d5c1!important;
+    background:#f1faf4!important;
+  }
+  html.ui-tablet #adminRoot .tablet-calendar-inspector.day-complete .tablet-inspector-role{
+    border-color:#c7dfcf!important;
+    background:#f8fdf9!important;
+  }
+
+  /* Inline role edit: list only, no search, and enough room to scroll names. */
+  html.ui-tablet #adminRoot .tablet-calendar-role-editor .tablet-inline-editor-search{
+    display:none!important;
+  }
+  html.ui-tablet #adminRoot .tablet-inline-editor-list{
+    max-height:280px!important;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y!important;
+  }
+  html.ui-tablet #adminRoot .tablet-inline-choice{
+    touch-action:manipulation!important;
+  }
+
+  /* Landscape member detail: state action belongs to the header; link actions
+     form one clearly labelled three-button group. */
+  html.ui-tablet #adminMembers .tablet-member-detail-head-actions{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:7px!important;
+    flex:0 0 auto!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-detail-head-actions .member-state-pill{
+    min-height:34px!important;
+    padding:5px 8px!important;
+    font-size:9.5px!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-toggle{
+    min-height:40px!important;
+    padding:7px 10px!important;
+    font-size:10.5px!important;
+    white-space:nowrap!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-link-box{
+    border-color:#d4e1d8!important;
+    background:#fbfdfc!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-link-actions{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    padding-top:7px!important;
+    border-top:1px solid #e5ece7!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-link-actions .btn{
+    min-width:0!important;
+    min-height:42px!important;
+    padding:7px 6px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-detail-actions{
+    display:block!important;
+    margin-top:auto!important;
+    padding-top:10px!important;
+  }
+  html.ui-tablet #adminMembers .tablet-member-detail-actions .btn{
+    width:100%!important;
+    min-height:44px!important;
+  }
+
+  /* Landscape full-day editor gets the same reliable vertical member scroll. */
+  html.ui-tablet #adminCorrectionOverlay .day-member-pool-column{
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y!important;
+  }
+}

@@ -134,6 +134,8 @@ try{
   assert.equal(await desktop.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).display`),'none');
   await desktop.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
   assert.match(await desktop.evalJs(`document.querySelector('#dayEditorTouchHelp')?.textContent||''`),/Cliquez un membre puis un poste/);
+  await desktop.evalJs(`(()=>{for(const b of [...document.querySelectorAll('#adminCorrectionOverlay .day-assignment-remove')])b.click();return true})()`);await sleep(40);
+  assert.equal(await desktop.evalJs(`(()=>{const a=document.querySelector('#dayAccueilChoices .day-drop-placeholder')?.getBoundingClientRect(),p=document.querySelector('#dayPresentChoices .day-drop-placeholder')?.getBoundingClientRect();return !!a&&!!p&&Math.abs(a.top-p.top)<2})()`),true,'desktop empty Disponible must align with the other empty role cells');
   await desktop.close();
 
   const tabletMember=await newPage({mode:'tablet',width:712,height:1138,view:'member'});
@@ -142,6 +144,9 @@ try{
   assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#memberRoot .member-schedule-mobile')).display`),'grid');
   assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#memberRoot .member-schedule-mobile')).gridTemplateColumns.split(' ').length`),2,'tablet portrait member planning should use two date-card columns');
   assert.match(await tabletMember.evalJs(`document.querySelector('#memberMobilePlanningHelp')?.textContent||''`),/Touchez une case libre/);
+  assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#scheduleMobile .mobile-date-status.alert')).display`),'none','tablet member cards should not repeat x-to-fill tags');
+  assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#scheduleMobile .mobile-date-missing')).display`),'none','tablet member cards should not repeat missing-role tags');
+  assert.equal(await tabletMember.evalJs(`(()=>{const cards=[...document.querySelectorAll('#scheduleMobile .mobile-date-card')];if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet member complete days must have a visible green variation');
   assert.ok(Number(await tabletMember.evalJs(`parseFloat(getComputedStyle(document.querySelector('#scheduleMobile .mobile-role-button')).minHeight)`))>=44);
   assert.equal(await tabletMember.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet portrait member view must fit viewport');
   await tabletMember.close();
@@ -160,14 +165,16 @@ try{
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).gridTemplateColumns.split(' ').length`),2,'tablet portrait planning should use two date-card columns');
   assert.ok(Number(await tablet.evalJs(`document.querySelectorAll('#adminScheduleMobile .mobile-date-card').length`))>0);
   assert.match(await tablet.evalJs(`document.querySelector('#adminMobilePlanningHelp')?.textContent||''`),/Touchez un poste/);
+  assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-status.alert')).display`),'none','tablet admin cards should not repeat x-to-fill tags');
+  assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-missing')).display`),'none','tablet admin cards should not repeat missing-role tags');
+  assert.equal(await tablet.evalJs(`(()=>{const cards=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')];if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet admin complete days must have a visible green variation');
   assert.equal(await tablet.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet portrait body must not overflow horizontally');
   assert.ok(Number(await tablet.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminScheduleMobile .admin-calendar-edit')).minHeight)`))>=44);
 
   await tablet.evalJs(`document.querySelector('#adminScheduleMobile .admin-mobile-role:not(:disabled)')?.click()`);await sleep(70);
   assert.equal(await tablet.evalJs(`document.querySelector('#adminCellOverlay').classList.contains('hidden')`),false,'tablet direct role edit must open');
-  assert.equal(await tablet.evalJs(`document.querySelector('#adminCellMobileSearch')!==null`),true,'tablet direct role editor must provide search');
-  assert.notEqual(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminCellMobileSearchWrap')).display`),'none');
-  assert.ok(Number(await tablet.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminCellMobileSearch')).minHeight)`))>=44);
+  assert.equal(await tablet.evalJs(`document.querySelector('#adminCellMobileSearch')!==null`),true);
+  assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminCellMobileSearchWrap')).display`),'none','tablet direct role editor should show choices directly, without search');
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminCellRoleChoices')).gridTemplateColumns.split(' ').length`),2,'tablet direct role choices should use two columns');
   await tablet.evalJs(`document.querySelector('#adminCellClose').click()`);await sleep(40);
 
@@ -179,6 +186,10 @@ try{
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#membersTable tr')).display`),'grid');
   await tablet.evalJs(`document.querySelector('#membersTable .member-state-pill')?.click()`);await sleep(70);
   assert.equal(await tablet.evalJs(`document.querySelector('#memberQuickPanel').classList.contains('hidden')`),false,'tablet status tap must open member details instead of toggling immediately');
+  assert.equal(await tablet.evalJs(`document.querySelector('#memberQuickHeadActions')?.contains(document.querySelector('#memberQuickToggle'))`),true,'tablet member status action must sit in the header beside Fermer');
+  assert.equal(await tablet.evalJs(`document.querySelectorAll('#memberQuickLinkActions .btn').length`),3,'tablet personal-link actions must stay grouped together');
+  assert.equal(await tablet.evalJs(`(()=>{const xs=[...document.querySelectorAll('#memberQuickLinkActions .btn')].map(x=>x.getBoundingClientRect().top);return xs.length===3&&Math.max(...xs)-Math.min(...xs)<2})()`),true,'tablet personal-link actions must share one row');
+  assert.equal(await tablet.evalJs(`document.querySelectorAll('#memberQuickPanel .member-quick-actions .btn').length`),1,'only the member edit action should remain outside the link block');
   await tablet.evalJs(`document.querySelector('#memberQuickClose').click()`);await sleep(40);
 
   await tablet.evalJs(`document.querySelector('[data-admin-page="calendar"]').click()`);await sleep(350);
@@ -191,6 +202,8 @@ try{
   assert.equal(await tablet.evalJs(`document.querySelector('#dayEditorMobileSearch')!==null`),true,'tablet portrait day editor must provide member search');
   assert.notEqual(await tablet.evalJs(`getComputedStyle(document.querySelector('#dayEditorMobileSearchWrap')).display`),'none');
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#dayMemberPool')).gridTemplateColumns.split(' ').length`),2,'tablet portrait member picker should use two columns');
+  assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#dayMemberPool')).touchAction`),'pan-y','tablet full-day member list must allow vertical touch scrolling');
+  assert.equal(await tablet.evalJs(`(()=>{const p=document.querySelector('#dayMemberPool'),seed=p.querySelector('.day-member-source-item');if(!seed)return false;for(let i=0;i<20;i++)p.append(seed.cloneNode(true));p.scrollTop=90;return p.scrollHeight>p.clientHeight&&p.scrollTop>0})()`),true,'tablet full-day member list must actually scroll when it contains many members');
   assert.ok(Number(await tablet.evalJs(`document.querySelectorAll('#dayMemberPool .day-member-source-status').length`))>0);
   await tablet.evalJs(`document.querySelector('#dayMemberPool .day-member-source-item')?.click()`);await sleep(70);
   assert.match(await tablet.evalJs(`document.querySelector('#dayEditorQuickSelected')?.textContent||''`),/choisissez une action/);
@@ -207,10 +220,13 @@ try{
   assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletCalendarDateList .tablet-date-item').length`))>0,'tablet landscape must list planning dates');
   assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarInspector h3')?.textContent||''`)).length>0,'tablet landscape must show selected day details');
   assert.equal(await tabletLandscape.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet landscape body must fit viewport');
+  assert.equal(await tabletLandscape.evalJs(`([...document.querySelectorAll('#tabletCalendarDateList .tablet-date-item-status')].every(x=>x.textContent.trim()==='Fermé'))`),true,'tablet landscape date list should not repeat complete/missing tags');
+  assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletCalendarDateList .tablet-date-item-missing').length`),0,'tablet landscape date list should not repeat missing-role text');
+  assert.equal(await tabletLandscape.evalJs(`(()=>{const xs=[...document.querySelectorAll('#tabletCalendarDateList .tablet-date-item')];if(xs.length<2)return false;const before=getComputedStyle(xs[1]).backgroundColor;xs[0].classList.add('complete');return getComputedStyle(xs[0]).backgroundColor!==before})()`),true,'tablet landscape complete dates must have a visible green variation');
   await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarInspector .tablet-inspector-role:not(:disabled)')?.click()`);await sleep(60);
   assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminCellOverlay').classList.contains('hidden')`),true,'tablet landscape quick role edit must stay inline');
   assert.notEqual(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#tabletCalendarRoleEditor')).display`),'none','tablet landscape must expose inline role editor');
-  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarRoleEditor .tablet-inline-editor-search')!==null`),true);
+  assert.equal(await tabletLandscape.evalJs(`document.querySelector('#tabletCalendarRoleEditor .tablet-inline-editor-search')===null`),true,'tablet landscape direct role edit should not include search');
   assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletCalendarRoleEditor .tablet-inline-choice').length`))>0);
 
   await tabletLandscape.evalJs(`document.querySelector('[data-admin-page="members"]').click()`);await sleep(300);
@@ -220,7 +236,9 @@ try{
   assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMembersFilters .tablet-member-filter').length`),3,'tablet member workspace must expose status filters');
   assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMembersList .tablet-member-list-item').length`))>0);
   assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletMemberDetail h3')?.textContent||''`)).length>0,'tablet member detail must stay visible');
-  assert.ok(Number(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMemberDetail .tablet-member-detail-actions .btn').length`))>=4);
+  assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMemberDetail .tablet-member-detail-head-actions .tablet-member-toggle').length`),1,'tablet member status action must be in the detail header');
+  assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMemberDetail .tablet-member-link-actions .btn').length`),3,'tablet member link actions must be grouped together');
+  assert.equal(await tabletLandscape.evalJs(`document.querySelectorAll('#tabletMemberDetail .tablet-member-detail-actions .btn').length`),1,'tablet member footer should only contain Modify');
   const firstTabletMember=await tabletLandscape.evalJs(`document.querySelector('#tabletMembersList .tablet-member-list-item')?.dataset.memberId||''`);
   await tabletLandscape.evalJs(`(()=>{const xs=[...document.querySelectorAll('#tabletMembersList .tablet-member-list-item')];(xs[1]||xs[0])?.click();return true})()`);await sleep(40);
   assert.ok((await tabletLandscape.evalJs(`document.querySelector('#tabletMemberDetail h3')?.textContent||''`)).length>0);
@@ -233,6 +251,7 @@ try{
   assert.equal(await tabletLandscape.evalJs(`document.querySelector('#adminCorrectionOverlay .day-editor-columns').scrollWidth<=document.querySelector('#adminCorrectionOverlay .day-editor-columns').clientWidth+2`),true,'tablet landscape editor should fit without horizontal swipe');
   assert.notEqual(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-column-role')).display`),'none');
   assert.equal(await tabletLandscape.evalJs(`document.querySelector('#dayEditorMobileSearch')!==null`),true);
+  assert.equal(await tabletLandscape.evalJs(`getComputedStyle(document.querySelector('#dayMemberPool')).touchAction`),'pan-y','tablet landscape full-day member list must allow vertical touch scrolling');
   await tabletLandscape.evalJs(`document.querySelector('#adminCorrectionClose').click()`);await sleep(30);
   await tabletLandscape.close();
 

@@ -1471,7 +1471,7 @@ function ensureDayEditorMobileSearch(){
     wrap.append(input,count);
     column.insertBefore(wrap,pool)
   }
-  wrap.classList.toggle('hidden',!isTouchUi());
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
   const input=q('#dayEditorMobileSearch');
   if(input&&input.value!==dayEditorMobileQuery)input.value=dayEditorMobileQuery
 }
@@ -1775,7 +1775,7 @@ function ensureAdminCellMobileSearch(role){
     wrap.append(input,count)
   }
   field.insertBefore(wrap,container);
-  wrap.classList.toggle('hidden',!isTouchUi());
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
   const input=q('#adminCellMobileSearch');
   if(input)input.value=adminCellMobileQuery;
   applyAdminCellMobileSearch()
@@ -2005,12 +2005,9 @@ function renderTabletCalendarRoleEditor(date,role,nameMap){
   close.addEventListener('click',()=>{tabletCalendarEditRole='';tabletCalendarRoleQuery='';renderTabletCalendarSplit()});
   head.append(title,close);host.append(head);
 
-  const search=document.createElement('input');search.type='search';search.className='tablet-inline-editor-search';search.placeholder='Rechercher un membre';search.value=tabletCalendarRoleQuery;search.setAttribute('aria-label','Rechercher un membre');
-  search.addEventListener('input',e=>{tabletCalendarRoleQuery=String(e.currentTarget.value||'');renderTabletCalendarSplit();requestAnimationFrame(()=>{const i=q('#tabletCalendarRoleEditor .tablet-inline-editor-search');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}})});
-  host.append(search);
-
-  const query=tabletCalendarRoleQuery.trim().toLocaleLowerCase('fr-FR');
-  const shown=active.filter(m=>!query||`${m.name||''} ${m.email||''}`.toLocaleLowerCase('fr-FR').includes(query));
+  /* On tablet, direct role editing is intentionally immediate: the full
+     member list is visible and scrollable, without a search field. */
+  const shown=active;
   const list=document.createElement('div');list.className='tablet-inline-editor-list';
   if(role!=='present'){
     const empty=document.createElement('button');empty.type='button';empty.className='tablet-inline-choice'+(!selected.length?' selected':'');empty.textContent='À pourvoir';
@@ -2042,12 +2039,16 @@ function renderTabletCalendarInspector(date,nameMap){
   inspector.innerHTML='';
   if(!date){inspector.innerHTML='<div class="tablet-split-empty">Sélectionnez une date.</div>';return}
   const {open,coverageState}=tabletPlanningDateState(date);
+  inspector.classList.toggle('day-complete',open&&coverageState.covered);
+  inspector.classList.toggle('day-closed',!open);
   const head=document.createElement('div');head.className='tablet-inspector-head';
   const text=document.createElement('div');
   const title=document.createElement('h3');title.textContent=dayLabel(date);
-  const sub=document.createElement('div');sub.className='tablet-inspector-status '+(!open?'closed':coverageState.covered?'ok':'alert');
-  sub.textContent=!open?'Fermé':coverageState.covered?'Journée complète':`Manque : ${coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · ')}`;
-  text.append(title,sub);head.append(text);inspector.append(head);
+  text.append(title);
+  if(!open){
+    const sub=document.createElement('div');sub.className='tablet-inspector-status closed';sub.textContent='Fermé';text.append(sub)
+  }
+  head.append(text);inspector.append(head);
 
   const roles=document.createElement('div');roles.className='tablet-inspector-roles';
   for(const role of ROLE_KEYS){
@@ -2083,9 +2084,9 @@ function renderTabletCalendarSplit(datesArg=null,nameMapArg=null){
     const {open,coverageState}=tabletPlanningDateState(date);
     const b=document.createElement('button');b.type='button';b.className='tablet-date-item'+(date===tabletCalendarSelectedDate?' selected':'')+(open&&coverageState.covered?' complete':'')+(!open?' closed':'');b.dataset.date=date;
     const main=document.createElement('span');main.className='tablet-date-item-main';main.textContent=compactDayLabel(date);
-    const status=document.createElement('span');status.className='tablet-date-item-status';status.textContent=!open?'Fermé':coverageState.covered?'Complet':`${coverageState.missing.length} à pourvoir`;
-    const missing=document.createElement('span');missing.className='tablet-date-item-missing';missing.textContent=open&&!coverageState.covered?coverageState.missing.map(r=>ROLE_LABELS[r]).join(' · '):'';
-    b.append(main,status,missing);b.addEventListener('click',()=>{tabletCalendarSelectedDate=date;tabletCalendarEditRole='';tabletCalendarRoleQuery='';renderTabletCalendarSplit()});list.append(b)
+    b.append(main);
+    if(!open){const status=document.createElement('span');status.className='tablet-date-item-status';status.textContent='Fermé';b.append(status)}
+    b.addEventListener('click',()=>{tabletCalendarSelectedDate=date;tabletCalendarEditRole='';tabletCalendarRoleQuery='';renderTabletCalendarSplit()});list.append(b)
   }
   renderTabletCalendarInspector(tabletCalendarSelectedDate,nameMap)
 }
@@ -2337,9 +2338,29 @@ function formatMemberDeviceLabel(d){
   if(label)return label;
   return [d?.type,d?.browser,d?.os].filter(Boolean).join(' · ')||'Appareil'
 }
+function arrangeMemberQuickActionsForUi(){
+  const panel=q('#memberQuickPanel'),dialog=panel?.querySelector('.member-quick-dialog');
+  const head=dialog?.querySelector('.section-head'),actions=dialog?.querySelector('.member-quick-actions'),linkCard=dialog?.querySelector('.member-quick-link-card');
+  const close=q('#memberQuickClose'),toggle=q('#memberQuickToggle'),rotate=q('#memberQuickRotate'),copy=q('#memberQuickCopy'),send=q('#memberQuickSend'),edit=q('#memberQuickEdit');
+  if(!head||!actions||!linkCard||!close||!toggle||!rotate||!copy||!send||!edit)return;
+  let headActions=q('#memberQuickHeadActions'),linkActions=q('#memberQuickLinkActions');
+  if(currentUiMode==='tablet'){
+    if(!headActions){headActions=document.createElement('div');headActions.id='memberQuickHeadActions';headActions.className='member-quick-head-actions';head.append(headActions)}
+    headActions.append(toggle,close);
+    if(!linkActions){linkActions=document.createElement('div');linkActions.id='memberQuickLinkActions';linkActions.className='member-quick-link-actions';linkCard.append(linkActions)}
+    linkActions.append(rotate,copy,send);
+    actions.append(edit)
+  }else{
+    head.append(close);
+    actions.append(toggle,rotate,copy,send,edit);
+    headActions?.remove();
+    linkActions?.remove()
+  }
+}
 function renderMemberQuick(id){
   const m=(adminData?.membersAdmin||[]).find(x=>String(x.id)===String(id));
   if(!m)return false;
+  arrangeMemberQuickActionsForUi();
   const panel=q('#memberQuickPanel');panel.dataset.memberId=String(m.id);
   q('#memberQuickTitle').textContent=m.name||'Membre';
   q('#memberQuickEmail').textContent=m.email||'Aucun email';
@@ -2447,7 +2468,7 @@ function ensureMobileMembersSearch(){
     wrap.append(input,count);
     tableWrap.parentElement?.insertBefore(wrap,tableWrap)
   }
-  wrap.classList.toggle('hidden',!isTouchUi());
+  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
   const input=q('#mobileMembersSearch');
   if(input&&input.value!==membersMobileQuery)input.value=membersMobileQuery;
   applyMobileMembersFilter()
@@ -2483,7 +2504,10 @@ function renderTabletMemberDetail(id){
   if(!m){detail.innerHTML='<div class="tablet-split-empty">Sélectionnez un membre.</div>';return}
   const head=document.createElement('div');head.className='tablet-member-detail-head';
   const titleWrap=document.createElement('div');const title=document.createElement('h3');title.textContent=m.name;const email=document.createElement('a');email.className='tablet-member-detail-email';email.textContent=m.email||'Aucun email';if(m.email)email.href=`mailto:${m.email}`;titleWrap.append(title,email);
-  const badge=document.createElement('span');badge.className='member-state-pill '+(m.active?'active':'inactive');badge.textContent=m.active?'Actif':'Inactif';head.append(titleWrap,badge);detail.append(head);
+  const headActions=document.createElement('div');headActions.className='tablet-member-detail-head-actions';
+  const badge=document.createElement('span');badge.className='member-state-pill '+(m.active?'active':'inactive');badge.textContent=m.active?'Actif':'Inactif';
+  const toggle=document.createElement('button');toggle.type='button';toggle.className='btn tablet-member-toggle'+(m.active?' danger':'');toggle.textContent=m.active?'Désactiver':'Activer';toggle.addEventListener('click',()=>toggleMemberActiveDirect(m.id,!m.active,m.name,toggle));
+  headActions.append(badge,toggle);head.append(titleWrap,headActions);detail.append(head);
 
   const stats=document.createElement('div');stats.className='tablet-member-stats';
   const devices=(m.devices||[]).filter(Boolean);const stat=document.createElement('div');stat.className='tablet-member-stat';stat.innerHTML=`<strong>${Number(m.deviceCount||0)}</strong><span>appareil${Number(m.deviceCount||0)>1?'s':''}</span>`;
@@ -2494,16 +2518,18 @@ function renderTabletMemberDetail(id){
   else for(const d of devices){const row=document.createElement('div');row.className='tablet-member-device-row';const t=document.createElement('span');t.textContent=formatMemberDeviceLabel(d);const when=document.createElement('small');when.textContent=d.createdAt?new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Paris'}).format(new Date(d.createdAt)):'';row.append(t,when);deviceBox.append(row)}
   detail.append(deviceBox);
 
-  const url=memberCurrentUrl(m);const linkBox=document.createElement('div');linkBox.className='tablet-member-link-box';const linkTitle=document.createElement('strong');linkTitle.textContent='Lien personnel';const link=document.createElement('div');link.className='tablet-member-link';link.textContent=url||'Aucun lien actif';link.title=url;linkBox.append(linkTitle,link);detail.append(linkBox);
+  const url=memberCurrentUrl(m);const linkBox=document.createElement('div');linkBox.className='tablet-member-link-box';const linkTitle=document.createElement('strong');linkTitle.textContent='Lien personnel';const link=document.createElement('div');link.className='tablet-member-link';link.textContent=url||'Aucun lien actif';link.title=url;linkBox.append(linkTitle,link);
+  const linkActions=document.createElement('div');linkActions.className='tablet-member-link-actions';
+  const rotate=document.createElement('button');rotate.type='button';rotate.className='btn';rotate.textContent='Renouveler';rotate.title='Renouveler le lien personnel';rotate.disabled=!m.active;rotate.addEventListener('click',()=>rotateMember(m.id,m.name,rotate,{showResult:false,scrollResult:false}));
+  const copy=document.createElement('button');copy.type='button';copy.className='btn';copy.textContent='Copier';copy.title='Copier le lien personnel';copy.disabled=!url;if(url)copy.addEventListener('click',()=>copyMemberLink(url,m.name,copy));
+  const send=document.createElement('button');send.type='button';send.className='btn';send.textContent='Envoyer';send.title='Envoyer le lien personnel';send.disabled=!url||!m.email;if(!send.disabled)send.addEventListener('click',()=>sendMemberLinkEmail(m.id,m.name,send));
+  linkActions.append(rotate,copy,send);linkBox.append(linkActions);detail.append(linkBox);
 
   const actions=document.createElement('div');actions.className='tablet-member-detail-actions';
-  const edit=document.createElement('button');edit.type='button';edit.className='btn';edit.textContent='Modifier';edit.addEventListener('click',()=>setMemberManagementMode('modify',{selectedId:m.id}));
-  const toggle=document.createElement('button');toggle.type='button';toggle.className='btn'+(m.active?' danger':'');toggle.textContent=m.active?'Désactiver':'Activer';toggle.addEventListener('click',()=>toggleMemberActiveDirect(m.id,!m.active,m.name,toggle));
-  const rotate=document.createElement('button');rotate.type='button';rotate.className='btn';rotate.textContent='Renouveler le lien';rotate.disabled=!m.active;rotate.addEventListener('click',()=>rotateMember(m.id,m.name,rotate,{showResult:false,scrollResult:false}));
-  const copy=document.createElement('button');copy.type='button';copy.className='btn';copy.textContent='Copier';copy.disabled=!url;if(url)copy.addEventListener('click',()=>copyMemberLink(url,m.name,copy));
-  const send=document.createElement('button');send.type='button';send.className='btn';send.textContent='Envoyer';send.disabled=!url||!m.email;if(!send.disabled)send.addEventListener('click',()=>sendMemberLinkEmail(m.id,m.name,send));
-  actions.append(edit,toggle,rotate,copy,send);detail.append(actions)
+  const edit=document.createElement('button');edit.type='button';edit.className='btn primary';edit.textContent='Modifier la fiche';edit.addEventListener('click',()=>setMemberManagementMode('modify',{selectedId:m.id}));
+  actions.append(edit);detail.append(actions)
 }
+
 function renderTabletMembersWorkspace(){
   const split=ensureTabletMembersSplit();if(!split||!adminData)return;
   const filters=q('#tabletMembersFilters');filters.innerHTML='';
