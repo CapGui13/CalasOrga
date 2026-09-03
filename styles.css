@@ -8743,3 +8743,66 @@ html.ui-mobile .mobile-role-button .role-chip{
 html.ui-mobile .mobile-role-value{
   align-items:flex-start!important;
 }
+
+
+/* =========================================================
+   TABLET CURRENT-WEEK MEMORY + ADMIN NAME RHYTHM
+   ========================================================= */
+
+/* Past days from the still-current week remain visible on tablet, but are
+   deliberately read-only so showing history does not unlock old edits. */
+html.ui-tablet .mobile-date-card.day-past{
+  opacity:.78!important;
+}
+html.ui-tablet .mobile-date-card.day-past .mobile-date-title{
+  color:#5f6c65!important;
+}
+html.ui-tablet .tablet-date-item.past{
+  opacity:.76!important;
+}
+
+/* Portrait tablet admin: reserve a real chevron column instead of stealing
+   width from the name. Admin name chips are flatter and better proportioned
+   than the member badges while keeping the member view untouched. */
+@media (orientation:portrait) and (min-width:600px) and (max-width:899px){
+  html.ui-tablet #adminRoot .admin-mobile-role{
+    grid-template-columns:64px minmax(0,1fr) 12px!important;
+    column-gap:5px!important;
+  }
+  html.ui-tablet #adminRoot .admin-mobile-role:not(:disabled)::after{
+    grid-column:3!important;
+    grid-row:1!important;
+    justify-self:end!important;
+  }
+  html.ui-tablet #adminRoot .admin-mobile-role .mobile-role-value{
+    grid-column:2!important;
+    padding-right:0!important;
+    min-width:0!important;
+  }
+  html.ui-tablet #adminRoot .admin-mobile-role .role-chip{
+    min-height:22px!important;
+    padding:2px 6px!important;
+    border-radius:7px!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+    white-space:nowrap!important;
+  }
+}
+
+/* Phone admin only: a person's name is a single semantic label. Never split
+   it in the middle across two lines. The member view keeps its existing,
+   user-approved wrapping behaviour. */
+html.ui-mobile #adminRoot .admin-mobile-role .role-chip{
+  display:inline-flex!important;
+  align-items:center!important;
+  max-width:100%!important;
+  min-width:0!important;
+  padding:3px 6px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  overflow-wrap:normal!important;
+  word-break:keep-all!important;
+  font-size:clamp(9.5px,2.9vw,11px)!important;
+  line-height:1.15!important;
+}

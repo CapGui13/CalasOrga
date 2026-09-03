@@ -36,6 +36,16 @@ function cookiesFrom(res){
   return Object.fromEntries(list.map(x=>x.split(';',1)[0].split(/=(.*)/s).slice(0,2)));
 }
 function cookieHeader(jar){return Object.entries(jar).map(([k,v])=>`${k}=${v}`).join('; ')}
+function parisTodayIso(){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const get=t=>parts.find(p=>p.type===t)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function isoWeekStartForTest(iso){
+  const [y,m,d]=iso.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay();
+  dt.setUTCDate(dt.getUTCDate()+(wd===0?-6:1-wd));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+}
 async function api(pathname,{method='GET',body,cookies={},csrf}={}){
   const headers={Origin:origin};
   if(Object.keys(cookies).length)headers.Cookie=cookieHeader(cookies);
@@ -77,6 +87,7 @@ try{
   assert.equal(meA.r.status,200);
   assert.equal(meA.j.me.name,'Alice');
   assert.equal(meA.j.me.adminPrivilege,true);
+  assert.equal(meA.j.settings.memberWindow.from,isoWeekStartForTest(parisTodayIso()),'member snapshot must keep the current ISO week available for tablet history');
 
   const switchBlocked=await api('/api/session/member-short',{method:'POST',body:{shortToken:createdB.j.shortToken},cookies:memberCookies});
   assert.equal(switchBlocked.r.status,409,JSON.stringify(switchBlocked.j));
@@ -213,12 +224,15 @@ try{
   assert.match(appText,/UI_MODE_CLASSES=\['ui-desktop','ui-tablet','ui-mobile'\]/);
   assert.match(appText,/uiShortSide\(\)/);
   assert.match(appText,/return shortSide<600\?'mobile':'tablet'/);
+  assert.match(appText,/function calendarVisibleStart\(today=parisToday\(\)\)/);
+  assert.match(appText,/function mergeTabletCurrentWeekDates\(/);
+  assert.match(serverText,/function isoWeekStart\(iso\)/);
   assert.match(appText,/if\(!uiTouchCapable\(\)\)return'desktop'/);
   assert.match(stylesText,/STRICT 3 UI MODES/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
-  assert.match(indexText,/\.\/styles\.css\?v=15475-tablet-real-device/);
-  assert.match(indexText,/\.\/client\.js\?v=15475-tablet-real-device/);
+  assert.match(indexText,/\.\/styles\.css\?v=15476-tablet-week-names/);
+  assert.match(indexText,/\.\/client\.js\?v=15476-tablet-week-names/);
   assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
   assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
@@ -231,7 +245,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15475-tablet-real-device','./client.js?v=15475-tablet-real-device','./admin-desktop-enhancements.js?v=15474-hardening']) {
+  for (const ref of ['./styles.css?v=15476-tablet-week-names','./client.js?v=15476-tablet-week-names','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);

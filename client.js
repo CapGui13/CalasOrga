@@ -872,7 +872,7 @@ function loadLocal(){try{const x=JSON.parse(localStorage.getItem(STORAGE_KEY)||'
 function saveLocal(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(localState))}catch{}}
 function audit(actor,action,date='',meta={}){localState.auditLog.push({at:nowIso(),actor,action,date,...meta});if(localState.auditLog.length>1000)localState.auditLog=localState.auditLog.slice(-1000)}
 function localAssignmentsSnapshot(){const out={};const dates=new Set([...Object.keys(localState.attendance||{}),...Object.keys(localState.roleAssignments||{})]);for(const d of dates){const r=localState.roleAssignments?.[d]||{};out[d]={accueil:[...(r.accueil||[])],tpe:[...(r.tpe||[])],mep:[...(r.mep||[])],arbitrage:[...(r.arbitrage||[])],present:[...(localState.attendance?.[d]||[])]}}return out}
-function localMemberSnapshot(id){const me=localState.members.find(m=>m.id===id&&m.active);if(!me)return null;const from=parisToday(),to=planningHorizonEnd(from),all=localAssignmentsSnapshot(),assignments={},visible=new Set([id]);for(const[d,roles]of Object.entries(all)){if(d<from||d>to)continue;const clean={};for(const role of ROLE_KEYS){const ids=(roles[role]||[]).filter(mid=>localState.members.some(m=>m.id===mid&&m.active));clean[role]=ids;for(const x of ids)visible.add(x)}if(ROLE_KEYS.some(r=>clean[r].length))assignments[d]=clean}const attendance=Object.fromEntries(Object.entries(assignments).filter(([,r])=>r.present.length).map(([d,r])=>[d,r.present]));const exceptions=Object.fromEntries(Object.entries(localState.scheduleExceptions).filter(([d])=>d>=from&&d<=to));return {me:{id:me.id,name:me.name,adminPrivilege:me.adminPrivilege===true},members:localState.members.filter(m=>m.active&&visible.has(m.id)).map(m=>({id:m.id,name:m.name})),attendance,roleAssignments:Object.fromEntries(Object.entries(localState.roleAssignments||{}).filter(([d])=>d>=from&&d<=to)),assignments,scheduleExceptions:clone(exceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS,memberWindow:{from,to}}}}
+function localMemberSnapshot(id){const me=localState.members.find(m=>m.id===id&&m.active);if(!me)return null;const today=parisToday(),from=weekStart(today),to=planningHorizonEnd(today),all=localAssignmentsSnapshot(),assignments={},visible=new Set([id]);for(const[d,roles]of Object.entries(all)){if(d<from||d>to)continue;const clean={};for(const role of ROLE_KEYS){const ids=(roles[role]||[]).filter(mid=>localState.members.some(m=>m.id===mid&&m.active));clean[role]=ids;for(const x of ids)visible.add(x)}if(ROLE_KEYS.some(r=>clean[r].length))assignments[d]=clean}const attendance=Object.fromEntries(Object.entries(assignments).filter(([,r])=>r.present.length).map(([d,r])=>[d,r.present]));const exceptions=Object.fromEntries(Object.entries(localState.scheduleExceptions).filter(([d])=>d>=from&&d<=to));return {me:{id:me.id,name:me.name,adminPrivilege:me.adminPrivilege===true},members:localState.members.filter(m=>m.active&&visible.has(m.id)).map(m=>({id:m.id,name:m.name})),attendance,roleAssignments:Object.fromEntries(Object.entries(localState.roleAssignments||{}).filter(([d])=>d>=from&&d<=to)),assignments,scheduleExceptions:clone(exceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS,memberWindow:{from,to}}}}
 function localAdminSnapshot(){const members=localState.members.map(m=>({id:m.id,name:m.name,email:m.email||'',active:m.active,adminPrivilege:m.adminPrivilege===true})),assignments=localAssignmentsSnapshot();return {members,attendance:clone(localState.attendance),roleAssignments:clone(localState.roleAssignments),assignments,scheduleExceptions:clone(localState.scheduleExceptions),settings:{minRequired:localState.settings.minRequired,timezone:'Europe/Paris',defaultOpenDays:[1,2,4],roles:ROLE_KEYS},membersAdmin:members.map(m=>({...m,createdAt:m.createdAt,hasActiveLink:m.active})),auditLog:clone(localState.auditLog.slice(-200).reverse()),integrity:{ok:true,counts:{activeMembers:members.filter(m=>m.active).length,attendanceDates:Object.keys(localState.attendance).length,roleAssignmentDates:Object.keys(localState.roleAssignments).length}}}}
 function csrf(name){const m=document.cookie.match(new RegExp('(?:^|; )'+name+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
 let adminWriteQueue=Promise.resolve();
@@ -936,18 +936,29 @@ function memberNextOpenDates(limit=6,from=parisToday()){
   }
   return out
 }
+function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay(),diff=wd===0?-6:1-wd;dt.setUTCDate(dt.getUTCDate()+diff);return iso(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate())}
+function calendarVisibleStart(today=parisToday()){return currentUiMode==='tablet'?weekStart(today):today}
+function mergeTabletCurrentWeekDates(baseDates,isOpen,today=parisToday()){
+  if(currentUiMode!=='tablet')return baseDates;
+  const monday=weekStart(today),seen=new Set(baseDates),extra=[];
+  for(let i=0;i<7;i++){
+    const s=addDays(monday,i);
+    if(s>today)break;
+    if(isOpen(s)&&!seen.has(s)){seen.add(s);extra.push(s)}
+  }
+  return [...extra,...baseDates].sort()
+}
 function memberDatesForMonth(k){
-  const[y,m]=k.split('-').map(Number),out=[],today=parisToday();
+  const[y,m]=k.split('-').map(Number),out=[],today=parisToday(),visibleFrom=calendarVisibleStart(today);
   const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
   for(let d=1;d<=daysInMonth(y,m);d++){
     const s=iso(y,m,d);
-    if(s<today||s<from||s>to)continue;
+    if(s<visibleFrom||s<from||s>to)continue;
     if(memberIsOpen(s))out.push(s)
   }
-  return out
+  return k===memberHomeMonth(today)?mergeTabletCurrentWeekDates(out,s=>s>=from&&s<=to&&memberIsOpen(s),today):out
 }
 function chooseInitialMonth(){return memberHomeMonth()}
-function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay(),diff=wd===0?-6:1-wd;dt.setUTCDate(dt.getUTCDate()+diff);return iso(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate())}
 function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new Intl.DateTimeFormat('fr-FR',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad(d)}/${pad(m)}`}
 function mobileRoleButton(date,role,assignments,open,past,outside,map){
   const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id),btn=document.createElement('button');
@@ -996,7 +1007,7 @@ function renderMember(){
   const homeMonth=memberHomeMonth(today);
   const homeMode=memberHomeMode(today);
   const effectiveMode=memberCalendarMode==='auto'?homeMode:memberCalendarMode;
-  const nextOpen=nextMemberOpenDate(today);
+  const nextOpen=nextMemberOpenDate(calendarVisibleStart(today));
   const max=monthKey(memberData.settings.memberWindow.to);
 
   if(effectiveMode==='upcoming'){
@@ -1200,13 +1211,13 @@ function adminHomeMonth(today=parisToday()){
 }
 
 function adminDatesForMonth(k){
-  const[y,m]=k.split('-').map(Number),out=[],today=parisToday();
+  const[y,m]=k.split('-').map(Number),out=[],today=parisToday(),visibleFrom=calendarVisibleStart(today);
   for(let d=1;d<=daysInMonth(y,m);d++){
     const s=iso(y,m,d);
-    if(s<today)continue;
+    if(s<visibleFrom)continue;
     if(adminIsOpen(s))out.push(s)
   }
-  return out
+  return k===adminHomeMonth(today)?mergeTabletCurrentWeekDates(out,s=>adminIsOpen(s),today):out
 }
 function fillDaySingleChoiceList(container,currentIds,members){
   const current=String((currentIds||[])[0]||'');
@@ -2047,8 +2058,10 @@ function renderTabletCalendarInspector(date,nameMap){
   inspector.innerHTML='';
   if(!date){inspector.innerHTML='<div class="tablet-split-empty">Sélectionnez une date.</div>';return}
   const {open,coverageState}=tabletPlanningDateState(date);
+  const past=date<parisToday();
   inspector.classList.toggle('day-complete',open&&coverageState.covered);
   inspector.classList.toggle('day-closed',!open);
+  inspector.classList.toggle('day-past',past);
   const head=document.createElement('div');head.className='tablet-inspector-head';
   const text=document.createElement('div');
   const title=document.createElement('h3');title.textContent=dayLabel(date);
@@ -2060,13 +2073,13 @@ function renderTabletCalendarInspector(date,nameMap){
 
   const roles=document.createElement('div');roles.className='tablet-inspector-roles';
   for(const role of ROLE_KEYS){
-    const b=document.createElement('button');b.type='button';b.className='tablet-inspector-role'+(tabletCalendarEditRole===role?' selected':'');b.disabled=!open;
+    const b=document.createElement('button');b.type='button';b.className='tablet-inspector-role'+(tabletCalendarEditRole===role?' selected':'');b.disabled=!open||past;
     const label=document.createElement('span');label.className='tablet-inspector-role-label';label.textContent=ROLE_LABELS[role];
     const names=tabletRoleNames(date,role,nameMap);
     const value=document.createElement('span');value.className='tablet-inspector-role-value'+(!names.length?' empty':'');value.textContent=names.length?names.join(', '):(role==='present'?'Personne disponible':'À pourvoir');
     const chevron=document.createElement('span');chevron.className='tablet-inspector-role-chevron';chevron.textContent='›';
     b.append(label,value,chevron);
-    if(open)b.addEventListener('click',()=>{tabletCalendarEditRole=tabletCalendarEditRole===role?'':role;tabletCalendarRoleQuery='';renderTabletCalendarSplit()});
+    if(open&&!past)b.addEventListener('click',()=>{tabletCalendarEditRole=tabletCalendarEditRole===role?'':role;tabletCalendarRoleQuery='';renderTabletCalendarSplit()});
     roles.append(b)
   }
   inspector.append(roles);
@@ -2074,7 +2087,7 @@ function renderTabletCalendarInspector(date,nameMap){
   if(tabletCalendarEditRole)renderTabletCalendarRoleEditor(date,tabletCalendarEditRole,nameMap);
 
   const actions=document.createElement('div');actions.className='tablet-inspector-actions';
-  const full=document.createElement('button');full.type='button';full.className='btn primary';full.textContent='Modifier toute la journée';full.disabled=!open;full.addEventListener('click',()=>adminCorrectionForDate(date));
+  const full=document.createElement('button');full.type='button';full.className='btn primary';full.textContent='Modifier toute la journée';full.disabled=!open||past;full.addEventListener('click',()=>adminCorrectionForDate(date));
   actions.append(full);inspector.append(actions)
 }
 function renderTabletCalendarSplit(datesArg=null,nameMapArg=null){
@@ -2082,15 +2095,15 @@ function renderTabletCalendarSplit(datesArg=null,nameMapArg=null){
   if(!split||!adminData)return;
   const today=parisToday();
   const effectiveMode=adminCalendarMode==='auto'?adminHomeMode(today):adminCalendarMode;
-  const nextOpen=nextAdminOpenDate(today);
+  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today));
   const dates=(datesArg||((effectiveMode==='upcoming')?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth||adminHomeMonth(today))))
     .filter(date=>adminIsOpen(date)||adminData.scheduleExceptions?.[date]?.isOpen===false);
   const nameMap=nameMapArg||Object.fromEntries((adminData.membersAdmin||adminData.members||[]).map(m=>[m.id,m.name]));
-  if(!dates.includes(tabletCalendarSelectedDate))tabletCalendarSelectedDate=dates.find(d=>adminIsOpen(d))||dates[0]||'';
+  if(!dates.includes(tabletCalendarSelectedDate))tabletCalendarSelectedDate=dates.find(d=>adminIsOpen(d)&&d>=today)||dates.find(d=>adminIsOpen(d))||dates[0]||'';
   const list=q('#tabletCalendarDateList');list.innerHTML='';
   for(const date of dates){
     const {open,coverageState}=tabletPlanningDateState(date);
-    const b=document.createElement('button');b.type='button';b.className='tablet-date-item'+(date===tabletCalendarSelectedDate?' selected':'')+(open&&coverageState.covered?' complete':'')+(!open?' closed':'');b.dataset.date=date;
+    const b=document.createElement('button');b.type='button';b.className='tablet-date-item'+(date===tabletCalendarSelectedDate?' selected':'')+(open&&coverageState.covered?' complete':'')+(!open?' closed':'')+(date<today?' past':'');b.dataset.date=date;
     const main=document.createElement('span');main.className='tablet-date-item-main';main.textContent=compactDayLabel(date);
     b.append(main);
     if(!open){const status=document.createElement('span');status.className='tablet-date-item-status';status.textContent='Fermé';b.append(status)}
@@ -2105,7 +2118,7 @@ function renderAdminCalendar(){
   const homeMonth=adminHomeMonth(today);
   const homeMode=adminHomeMode(today);
   const effectiveMode=adminCalendarMode==='auto'?homeMode:adminCalendarMode;
-  const nextOpen=nextAdminOpenDate(today);
+  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today));
   const max=shiftMonth(homeMonth,2);
 
   if(effectiveMode==='upcoming'){
@@ -2145,6 +2158,7 @@ function renderAdminCalendar(){
 
     const assignments=adminData.assignments?.[date]||{};
     const present=assignments.present||[];
+    const past=date<today;
     const coverageState=assignmentCoverage(adminData,date);
     const row=document.createElement('tr');
     row.className=(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'');
@@ -2218,7 +2232,7 @@ function renderAdminCalendar(){
     body.append(row);
 
     const card=document.createElement('article');
-    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(!open?' day-closed':'');
+    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(!open?' day-closed':'')+(past?' day-past':'');
     card.dataset.date=date;
     setTabletWeekCardPosition(card,date,weekIndex);
     const head=document.createElement('div');head.className='mobile-date-head';
@@ -2240,7 +2254,7 @@ function renderAdminCalendar(){
       const line=document.createElement('button');
       line.type='button';
       line.className='mobile-role-button admin-mobile-role';
-      line.disabled=!open;
+      line.disabled=!open||past;
       line.title=open?`Modifier ${ROLE_LABELS[role]}`:'Fermé';
       if(open)line.addEventListener('click',()=>openAdminCellEditor(date,role));
       const lab=document.createElement('span');lab.className='mobile-role-label';lab.textContent=ROLE_LABELS[role];
@@ -2260,7 +2274,7 @@ function renderAdminCalendar(){
       line.append(lab,val);roles.append(line)
     }
     card.append(roles);
-    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Modifier la journée';mobileEdit.disabled=!open;
+    const mobileEdit=document.createElement('button');mobileEdit.type='button';mobileEdit.className='btn admin-calendar-edit';mobileEdit.textContent='Modifier la journée';mobileEdit.disabled=!open||past;
     mobileEdit.addEventListener('click',()=>adminCorrectionForDate(date));
     card.append(mobileEdit);
     mobile.append(card)

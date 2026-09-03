@@ -208,6 +208,12 @@ function weekdayForIso(iso) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+function isoWeekStart(iso) {
+  const wd = weekdayForIso(iso);
+  if (wd == null) return null;
+  return addIsoDays(iso, wd === 0 ? -6 : 1 - wd);
+}
+
 function defaultIsOpen(iso) {
   const wd = weekdayForIso(iso);
   return wd !== null && OPEN_WEEKDAYS.has(wd);
@@ -2030,8 +2036,9 @@ class FileStore {
 
   memberSnapshot(memberId) {
     const snap = publicSnapshot(this.state, memberId);
-    const from = parisToday(this.now());
-    const to = planningWindowEnd(from);
+    const today = parisToday(this.now());
+    const from = isoWeekStart(today);
+    const to = planningWindowEnd(today);
     snap.attendance = Object.fromEntries(Object.entries(snap.attendance).filter(([date]) => date >= from && date <= to));
     snap.roleAssignments = Object.fromEntries(Object.entries(snap.roleAssignments || {}).filter(([date]) => date >= from && date <= to));
     snap.assignments = Object.fromEntries(Object.entries(snap.assignments || {}).filter(([date]) => date >= from && date <= to));
