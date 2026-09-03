@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#216c4a">
 <meta name="robots" content="noindex,nofollow">
 <title>Planning Bridge</title>
-<link rel="stylesheet" href="./styles.css?v=15478-past-row-polish">
+<link rel="stylesheet" href="./styles.css?v=15479-member-red-editor">
 </head>
 <body>
 <main class="shell" id="appRoot">
@@ -262,7 +262,10 @@
           <div>
             <h2 id="adminCorrectionTitle">Modifier</h2>
           </div>
-          <button class="btn" type="button" id="adminCorrectionClose">Fermer</button>
+          <div class="admin-correction-head-actions">
+            <button class="btn" type="button" id="adminCorrectionClose">Fermer</button>
+            <button class="btn primary admin-correction-save-top" type="submit" form="adminDayForm" id="adminCorrectionSaveTop">Enregistrer</button>
+          </div>
         </div>
         <form id="adminDayForm">
           <input type="hidden" id="dayEditorDate">
@@ -306,7 +309,7 @@
           </div>
           <div class="notice warn hidden day-editor-warning" id="dayEditorWarning"></div>
           <div class="actions day-editor-actions">
-            <button class="btn primary" type="submit">Enregistrer</button>
+            <button class="btn primary" type="submit" id="adminCorrectionSaveBottom">Enregistrer</button>
           </div>
         </form>
       </div>
@@ -347,6 +350,6 @@
   </section>
 
 </main>
-<script src="./client.js?v=15477-week-boundary-touch"></script>
+<script src="./client.js?v=15479-member-red-editor"></script>
 <script src="./admin-desktop-enhancements.js?v=15474-hardening"></script>
 </body></html>

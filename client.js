@@ -1500,14 +1500,23 @@ function renderDayEditorQuickRoles(){
 
 
 function ensureDayEditorMobileSearch(){
+  /* Phone UX deliberately uses the full member list directly. The former
+     search field consumed vertical space and made the scroll model harder to
+     understand. Keep the legacy hidden node only on non-phone touch layouts
+     so tablet behaviour remains unchanged. */
+  let wrap=q('#dayEditorMobileSearchWrap');
+  if(currentUiMode==='mobile'){
+    wrap?.remove();
+    dayEditorMobileQuery='';
+    return
+  }
   const pool=q('#dayMemberPool');
   const column=pool?.closest('.day-column-members');
   if(!pool||!column)return;
-  let wrap=q('#dayEditorMobileSearchWrap');
   if(!wrap){
     wrap=document.createElement('div');
     wrap.id='dayEditorMobileSearchWrap';
-    wrap.className='mobile-inline-search day-editor-mobile-search';
+    wrap.className='mobile-inline-search day-editor-mobile-search hidden';
     const input=document.createElement('input');
     input.id='dayEditorMobileSearch';
     input.type='search';
@@ -1525,7 +1534,7 @@ function ensureDayEditorMobileSearch(){
     wrap.append(input,count);
     column.insertBefore(wrap,pool)
   }
-  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  wrap.classList.add('hidden');
   const input=q('#dayEditorMobileSearch');
   if(input&&input.value!==dayEditorMobileQuery)input.value=dayEditorMobileQuery
 }

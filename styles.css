@@ -9130,3 +9130,175 @@ html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card.day-past > .a
     flex:0 0 auto!important;
   }
 }
+
+/* =========================================================
+   MEMBER SELF + EDITOR FLOW — follow-up
+   - member view: own name is red on every device
+   - desktop member Disponible grows/stack vertically, never internal-scrolls
+   - desktop Modifier Disponible grows instead of scrolling
+   - mobile Modifier: no search, list owns scroll, Save lives in header
+   ========================================================= */
+
+/* The member must spot their own assignment instantly, independent of device. */
+#memberRoot .role-chip.me,
+#memberRoot .member-schedule .role-chip.me,
+#memberRoot .member-schedule-mobile .role-chip.me{
+  color:#b42318!important;
+  font-weight:900!important;
+}
+
+/* Desktop member planning: Disponible behaves like admin. Multiple names
+   stack and grow the complete table row; there is no scroll inside the cell. */
+html.ui-desktop #memberRoot .member-schedule tbody tr:not(.week-separator){
+  height:auto!important;
+}
+html.ui-desktop #memberRoot .member-role-button,
+html.ui-desktop #memberRoot .member-role-display{
+  height:auto!important;
+  min-height:102px!important;
+  max-height:none!important;
+}
+html.ui-desktop #memberRoot .member-role-display{
+  overflow:visible!important;
+}
+html.ui-desktop #memberRoot .member-role-display .role-stack{
+  max-height:none!important;
+  overflow:visible!important;
+}
+html.ui-desktop #memberRoot .member-schedule tbody tr:not(.week-separator) .member-role-cell:last-child .role-stack{
+  flex-direction:column!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-content:center!important;
+}
+
+/* Desktop full-day editor: Disponible is a growing list, not a scroll box. */
+html.ui-desktop #adminCorrectionOverlay .day-column-available{
+  height:auto!important;
+  min-height:162px!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+html.ui-desktop #adminCorrectionOverlay .day-column-available .day-role-dropzone-column,
+html.ui-desktop #adminCorrectionOverlay .day-column-available .day-available-dropzone{
+  height:auto!important;
+  min-height:118px!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+html.ui-desktop #adminCorrectionOverlay .day-available-chip-wrap{
+  display:flex!important;
+  flex-direction:column!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+}
+
+/* Header grouping is neutral outside phone mode. */
+#adminCorrectionOverlay .admin-correction-head-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+#adminCorrectionSaveTop{
+  display:none;
+}
+
+/* Phone full-day editor: the member list is the only vertical scroll surface.
+   Save/Close stay visible in the header, so no bottom action overlays names. */
+html.ui-mobile #adminCorrectionOverlay .day-editor-mobile-search{
+  display:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
+  display:flex!important;
+  flex-direction:column!important;
+  height:min(94dvh,760px)!important;
+  max-height:94dvh!important;
+  overflow:hidden!important;
+  touch-action:none!important;
+}
+html.ui-mobile #adminCorrectionOverlay .section-head{
+  flex:0 0 auto!important;
+  position:relative!important;
+  top:auto!important;
+  margin:-14px -12px 8px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .admin-correction-head-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:6px!important;
+  flex:0 0 auto!important;
+}
+html.ui-mobile #adminCorrectionOverlay #adminCorrectionClose,
+html.ui-mobile #adminCorrectionOverlay #adminCorrectionSaveTop{
+  display:inline-flex!important;
+  min-height:44px!important;
+  padding:7px 9px!important;
+  font-size:10.5px!important;
+  white-space:nowrap!important;
+}
+html.ui-mobile #adminCorrectionOverlay #adminCorrectionSaveTop{
+  min-width:92px!important;
+}
+html.ui-mobile #adminCorrectionOverlay #adminDayForm{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-date,
+html.ui-mobile #adminCorrectionOverlay .day-editor-touch-help,
+html.ui-mobile #adminCorrectionOverlay .day-editor-quick-roles,
+html.ui-mobile #adminCorrectionOverlay .day-editor-warning{
+  flex:0 0 auto!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-columns{
+  display:grid!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-column-members{
+  display:flex!important;
+  flex-direction:column!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-member-pool-column{
+  display:block!important;
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  padding:4px 7px 7px!important;
+}
+html.ui-mobile #adminCorrectionOverlay .day-editor-actions{
+  display:none!important;
+}
+html.ui-desktop #adminCorrectionOverlay .day-column-available .day-role-dropzone-column,
+html.ui-desktop #adminCorrectionOverlay .day-column-available .day-available-dropzone{
+  flex:0 0 auto!important;
+}
+html.ui-desktop body #memberRoot .member-schedule .member-role-display .role-chip.me,
+html.ui-tablet body #memberRoot .member-schedule-mobile .mobile-role-value .role-chip.me,
+html.ui-mobile body #memberRoot .member-schedule-mobile .mobile-role-value .role-chip.me{
+  color:#b42318!important;
+  font-weight:900!important;
+}
+html.ui-tablet body #memberRoot .member-schedule .member-role-display .role-chip.me{
+  color:#b42318!important;
+  font-weight:900!important;
+}
