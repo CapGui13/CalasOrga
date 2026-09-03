@@ -9050,3 +9050,83 @@ html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
   -webkit-overflow-scrolling:touch!important;
   touch-action:pan-y!important;
 }
+
+
+/* =========================================================
+   PAST-DATE + ROW RHYTHM POLISH — desktop/tablet follow-up
+   ========================================================= */
+
+/* Desktop: past days must be unmistakably read-only in BOTH admin and member
+   views. Keep the familiar prohibited cursor and use a stronger neutral grey
+   than the alternating week colours. */
+html.ui-desktop #adminRoot .admin-schedule tr.day-past > .date-cell,
+html.ui-desktop #adminRoot .admin-schedule tr.day-past > .role-cell,
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .date-cell,
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .role-cell{
+  background:#e4e8e6!important;
+  color:#69736e!important;
+}
+html.ui-desktop #adminRoot .admin-schedule tr.day-past .admin-role-display,
+html.ui-desktop #adminRoot .admin-schedule tr.day-past .admin-role-display.empty,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display.empty{
+  color:#69736e!important;
+}
+html.ui-desktop #adminRoot .admin-schedule tr.day-past .role-chip,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .role-chip{
+  border-color:#c9cfcc!important;
+  background:#f2f4f3!important;
+  color:#68716c!important;
+  box-shadow:none!important;
+}
+html.ui-desktop #memberRoot .member-schedule tr.day-past,
+html.ui-desktop #memberRoot .member-schedule tr.day-past td,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-button,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display{
+  cursor:not-allowed!important;
+}
+
+/* Desktop admin: when Disponible makes a row taller, every other cell keeps
+   its content vertically centred in that same row. */
+html.ui-desktop #adminRoot .admin-schedule tbody tr:not(.week-separator) > td{
+  vertical-align:middle!important;
+}
+html.ui-desktop #adminRoot .admin-schedule .admin-role-display{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+html.ui-desktop #adminRoot .admin-schedule .admin-role-display .role-stack{
+  align-items:center!important;
+  justify-content:center!important;
+}
+
+/* Tablet: a past card is read-only all the way through. Its full-day action
+   uses the same grey language as the rest of the card instead of retaining
+   the green call-to-action styling. */
+html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card.day-past > .admin-calendar-edit:disabled{
+  opacity:1!important;
+  border-color:#cbd1ce!important;
+  background:#e1e5e3!important;
+  color:#747d78!important;
+  box-shadow:none!important;
+  cursor:not-allowed!important;
+}
+
+/* Tablet admin: Disponible is a real vertical list, exactly like the readable
+   member presentation. Core roles are single-choice, so this also keeps their
+   single name aligned without changing the card geometry. */
+@media (orientation:portrait) and (min-width:600px) and (max-width:899px){
+  html.ui-tablet #adminRoot .admin-mobile-role .mobile-role-value{
+    flex-direction:column!important;
+    flex-wrap:nowrap!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    gap:4px!important;
+  }
+  html.ui-tablet #adminRoot .admin-mobile-role .role-chip{
+    width:auto!important;
+    max-width:100%!important;
+    flex:0 0 auto!important;
+  }
+}

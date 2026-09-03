@@ -229,12 +229,13 @@ try{
   assert.match(serverText,/function isoWeekStart\(iso\)/);
   assert.match(appText,/if\(!uiTouchCapable\(\)\)return'desktop'/);
   assert.match(stylesText,/STRICT 3 UI MODES/);
+  assert.match(stylesText,/PAST-DATE \+ ROW RHYTHM POLISH/);
   assert.match(stylesText,/html\.ui-tablet #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(stylesText,/html\.ui-mobile #adminCorrectionOverlay \.day-editor-columns/);
   assert.match(appText,/function monthWeekEnvelopeDates\(/,'month pages must preserve complete cross-month weeks on desktop/tablet');
   assert.match(appText,/currentUiMode===\'tablet\'\|\|currentUiMode===\'mobile\'/,'mobile member quick actions must share tablet organization');
   assert.match(stylesText,/mobile direct-edit and full-day-edit lists now match tablet|Phone direct-edit and full-day-edit lists now match tablet/i);
-  assert.match(indexText,/\.\/styles\.css\?v=15477-week-boundary-touch/);
+  assert.match(indexText,/\.\/styles\.css\?v=15478-past-row-polish/);
   assert.match(indexText,/\.\/client\.js\?v=15477-week-boundary-touch/);
   assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
@@ -248,7 +249,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15477-week-boundary-touch','./client.js?v=15477-week-boundary-touch','./admin-desktop-enhancements.js?v=15474-hardening']) {
+  for (const ref of ['./styles.css?v=15478-past-row-polish','./client.js?v=15477-week-boundary-touch','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);
