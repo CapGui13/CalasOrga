@@ -132,7 +132,11 @@ try{
   assert.notEqual(await desktop.evalJs(`getComputedStyle(document.querySelector('.admin-tabs')).position`),'fixed');
   assert.equal(await desktop.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-wrap')).display`),'block');
   assert.equal(await desktop.evalJs(`getComputedStyle(document.querySelector('#adminRoot .admin-schedule-mobile')).display`),'none');
-  await desktop.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
+  assert.equal(await desktop.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#adminScheduleBody [data-date="'+d+'"]'))`),true,'desktop September planning must keep the complete Sep/Oct boundary week together');
+  await desktop.evalJs(`document.querySelector('#adminNextMonth').click()`);await sleep(430);
+  assert.equal(await desktop.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#adminScheduleBody [data-date="'+d+'"]'))`),true,'desktop October planning must repeat the complete boundary week');
+  await desktop.evalJs(`document.querySelector('#adminPrevMonth').click()`);await sleep(430);
+  await desktop.evalJs(`document.querySelector('.admin-calendar-edit:not(:disabled)')?.click()`);await sleep(60);
   assert.match(await desktop.evalJs(`document.querySelector('#dayEditorTouchHelp')?.textContent||''`),/Cliquez un membre puis un poste/);
   await desktop.evalJs(`(()=>{for(const b of [...document.querySelectorAll('#adminCorrectionOverlay .day-assignment-remove')])b.click();return true})()`);await sleep(40);
   assert.equal(await desktop.evalJs(`(()=>{const a=document.querySelector('#dayAccueilChoices .day-drop-placeholder')?.getBoundingClientRect(),p=document.querySelector('#dayPresentChoices .day-drop-placeholder')?.getBoundingClientRect();return !!a&&!!p&&Math.abs(a.top-p.top)<2})()`),true,'desktop empty Disponible must align with the other empty role cells');
@@ -148,6 +152,13 @@ try{
   await desktop.evalJs(`document.querySelector('#memberModifyClose').click()`);await sleep(30);
   await desktop.close();
 
+  const desktopMember=await newPage({mode:'desktop',width:1440,height:900,view:'member'});
+  assert.equal(await desktopMember.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#date-'+d))`),true,'desktop member September view must include Thursday 01/10 with its September week');
+  assert.equal(await desktopMember.evalJs(`(()=>{const b=document.querySelector('#memberRoot .member-role-button'),r=b.closest('tr'),before=[b.getBoundingClientRect().height,r.getBoundingClientRect().height];const v=b.querySelector('.member-role-display');v.replaceChildren();const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Guillaume';v.append(chip);const after=[b.getBoundingClientRect().height,r.getBoundingClientRect().height];return Math.abs(before[0]-after[0])<1&&Math.abs(before[1]-after[1])<1})()`),true,'desktop member assignment must not resize its planning cell');
+  await desktopMember.evalJs(`document.querySelector('#nextMonth').click()`);await sleep(430);
+  assert.equal(await desktopMember.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#date-'+d))`),true,'desktop member October view must repeat Monday/Tuesday from the same boundary week');
+  await desktopMember.close();
+
   /* Real-device portrait tablet regression: some Android tablets expose a
      CSS viewport around 600–680 px. They must still show one week per row. */
   const tabletNarrow=await newPage({mode:'tablet',width:640,height:1024});
@@ -158,7 +169,11 @@ try{
   assert.equal(await tabletNarrow.evalJs(`(()=>{const seed=[...document.querySelectorAll('#adminScheduleMobile .mobile-role-button')].find(b=>b.querySelector('.mobile-role-empty'));if(!seed)return false;const clone=seed.cloneNode(true);const value=clone.querySelector('.mobile-role-value');value.replaceChildren();const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Christian';value.append(chip);seed.parentElement.append(clone);const a=seed.getBoundingClientRect().height,b=clone.getBoundingClientRect().height;clone.remove();return Math.abs(a-b)<2})()`),true,'a normal filled tablet role must keep the same row height as an empty role');
   assert.equal(await tabletNarrow.evalJs(`(()=>{const iso=d=>[d.getUTCFullYear(),String(d.getUTCMonth()+1).padStart(2,'0'),String(d.getUTCDate()).padStart(2,'0')].join('-');const now=new Date(),parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now),get=t=>parts.find(p=>p.type===t)?.value,today=get('year')+'-'+get('month')+'-'+get('day'),[y,m,d]=today.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay();dt.setUTCDate(dt.getUTCDate()+(wd===0?-6:1-wd));const monday=iso(dt),expected=[];for(let i=0;i<7;i++){const x=new Date(dt);x.setUTCDate(dt.getUTCDate()+i);const s=iso(x);if(s>today)break;if([1,2,4].includes(x.getUTCDay()))expected.push(s)}const shown=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')].map(c=>c.dataset.date);return expected.every(s=>shown.includes(s))})()`),true,'tablet admin must retain open days already passed in the current week');
   assert.equal(await tabletNarrow.evalJs(`(()=>{const past=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card.day-past')];return past.every(c=>[...c.querySelectorAll('button')].every(b=>b.disabled))})()`),true,'past current-week tablet admin cards must stay read-only');
-  assert.equal(await tabletNarrow.evalJs(`(()=>{const row=document.querySelector('#adminScheduleMobile .admin-mobile-role:not(:disabled)');if(!row)return false;const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Christian';row.querySelector('.mobile-role-value').replaceChildren(chip);const s=getComputedStyle(chip);return parseFloat(s.borderRadius)<=10&&parseFloat(s.minHeight)<=24})()`),true,'tablet admin name badge must remain compact and proportioned');
+  assert.equal(await tabletNarrow.evalJs(`(()=>{const row=document.querySelector('#adminScheduleMobile .admin-mobile-role:not(:disabled)');if(!row)return false;const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Guillaume';row.querySelector('.mobile-role-value').replaceChildren(chip);const c=chip.getBoundingClientRect(),r=row.getBoundingClientRect();return chip.scrollWidth<=chip.clientWidth+1&&c.right<=r.right-7})()`),true,'tablet admin must display Guillaume completely inside its name bubble');
+  assert.equal(await tabletNarrow.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#adminScheduleMobile .mobile-date-card[data-date="'+d+'"]'))`),true,'tablet September must include Thursday 01/10 in the September boundary week');
+  assert.equal(await tabletNarrow.evalJs(`(()=>{const p=document.querySelector('#adminScheduleMobile .mobile-date-card.day-past'),f=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')].find(x=>!x.classList.contains('day-past'));return !!p&&!!f&&getComputedStyle(p).backgroundColor!==getComputedStyle(f).backgroundColor})()`),true,'past current-week tablet dates must be visibly greyed');
+  await tabletNarrow.evalJs(`document.querySelector('#adminNextMonth').click()`);await sleep(430);
+  assert.equal(await tabletNarrow.evalJs(`(()=>{const ds=['2026-09-28','2026-09-29','2026-10-01'],cs=ds.map(d=>document.querySelector('#adminScheduleMobile .mobile-date-card[data-date="'+d+'"]'));return cs.every(Boolean)&&new Set(cs.map(c=>c.style.getPropertyValue('--tablet-week-row'))).size===1})()`),true,'tablet October must repeat the complete Sep/Oct week on one row');
   await tabletNarrow.close();
 
   const tabletMember=await newPage({mode:'tablet',width:712,height:1138,view:'member'});
@@ -171,9 +186,12 @@ try{
   assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#scheduleMobile .mobile-date-status.alert')).display`),'none','tablet member cards should not repeat x-to-fill tags');
   assert.equal(await tabletMember.evalJs(`getComputedStyle(document.querySelector('#scheduleMobile .mobile-date-missing')).display`),'none','tablet member cards should not repeat missing-role tags');
   assert.equal(await tabletMember.evalJs(`(()=>{const cards=[...document.querySelectorAll('#scheduleMobile .mobile-date-card')],today=(()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t)?.value;return g('year')+'-'+g('month')+'-'+g('day')})(),[y,m,d]=today.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay();dt.setUTCDate(dt.getUTCDate()+(wd===0?-6:1-wd));const iso=x=>x.getUTCFullYear()+'-'+String(x.getUTCMonth()+1).padStart(2,'0')+'-'+String(x.getUTCDate()).padStart(2,'0'),expected=[];for(let i=0;i<7;i++){const x=new Date(dt);x.setUTCDate(dt.getUTCDate()+i);const s=iso(x);if(s>today)break;if([1,2,4].includes(x.getUTCDay()))expected.push(s)}const shown=cards.map(c=>c.id.replace('mobile-date-',''));return expected.every(s=>shown.includes(s))})()`),true,'tablet member view must retain open days already passed in the current week');
-  assert.equal(await tabletMember.evalJs(`(()=>{const cards=[...document.querySelectorAll('#scheduleMobile .mobile-date-card')];if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet member complete days must have a visible green variation');
+  assert.equal(await tabletMember.evalJs(`(()=>{const cards=[...document.querySelectorAll('#scheduleMobile .mobile-date-card')].filter(c=>!c.classList.contains('day-past'));if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet member complete days must have a visible green variation');
   assert.ok(Number(await tabletMember.evalJs(`parseFloat(getComputedStyle(document.querySelector('#scheduleMobile .mobile-role-button')).minHeight)`))>=44);
   assert.equal(await tabletMember.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet portrait member view must fit viewport');
+  assert.equal(await tabletMember.evalJs(`['2026-09-28','2026-09-29','2026-10-01'].every(d=>document.querySelector('#mobile-date-'+d))`),true,'tablet member September must include the complete Sep/Oct boundary week');
+  await tabletMember.evalJs(`document.querySelector('#nextMonth').click()`);await sleep(430);
+  assert.equal(await tabletMember.evalJs(`(()=>{const ds=['2026-09-28','2026-09-29','2026-10-01'],cs=ds.map(d=>document.querySelector('#mobile-date-'+d));return cs.every(Boolean)&&new Set(cs.map(c=>c.style.getPropertyValue('--tablet-week-row'))).size===1})()`),true,'tablet member October must repeat the complete boundary week');
   await tabletMember.close();
 
   const tabletMemberLandscape=await newPage({mode:'tablet',width:1138,height:712,view:'member'});
@@ -192,7 +210,7 @@ try{
   assert.match(await tablet.evalJs(`document.querySelector('#adminMobilePlanningHelp')?.textContent||''`),/Touchez un poste/);
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-status.alert')).display`),'none','tablet admin cards should not repeat x-to-fill tags');
   assert.equal(await tablet.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-missing')).display`),'none','tablet admin cards should not repeat missing-role tags');
-  assert.equal(await tablet.evalJs(`(()=>{const cards=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')];if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet admin complete days must have a visible green variation');
+  assert.equal(await tablet.evalJs(`(()=>{const cards=[...document.querySelectorAll('#adminScheduleMobile .mobile-date-card')].filter(c=>!c.classList.contains('day-past'));if(cards.length<2)return false;const before=getComputedStyle(cards[1]).backgroundColor;cards[0].classList.add('day-complete');return getComputedStyle(cards[0]).backgroundColor!==before})()`),true,'tablet admin complete days must have a visible green variation');
   assert.equal(await tablet.evalJs(`document.documentElement.scrollWidth<=innerWidth+2`),true,'tablet portrait body must not overflow horizontally');
   assert.ok(Number(await tablet.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminScheduleMobile .admin-calendar-edit')).minHeight)`))>=44);
 
@@ -312,15 +330,15 @@ try{
   assert.ok(Number(await mobile.evalJs(`document.querySelectorAll('#adminScheduleMobile .mobile-date-status').length`))>0,'mobile date cards keep semantic coverage status in the DOM');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-status.alert')).display`),'none','mobile admin cards should not repeat x-to-fill tags');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminScheduleMobile .mobile-date-missing')).display`),'none','mobile admin cards should not repeat missing-role tags');
-  assert.equal(await mobile.evalJs(`(()=>{const host=document.querySelector('#adminScheduleMobile .mobile-role-value');const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Un nom de membre volontairement très long';host.append(chip);return getComputedStyle(chip).whiteSpace})()`),'nowrap','mobile admin role names must stay on one semantic line');
+  assert.equal(await mobile.evalJs(`(()=>{const host=document.querySelector('#adminScheduleMobile .mobile-role-value');const chip=document.createElement('span');chip.className='role-chip';chip.textContent='Un nom de membre volontairement très long';host.append(chip);return getComputedStyle(chip).whiteSpace})()`),'normal','mobile admin names must use the same non-clipping behaviour as member names');
   assert.match(await mobile.evalJs(`document.querySelector('#adminMobilePlanningHelp')?.textContent||''`),/Touchez un poste/);
   assert.equal(await mobile.evalJs(`document.querySelector('#adminScheduleMobile .admin-calendar-edit')?.textContent.trim()`),'Modifier la journée');
   assert.equal(await mobile.evalJs(`document.querySelector('#adminScheduleMobile .mobile-role-button')?.getBoundingClientRect().width<=document.querySelector('#adminScheduleMobile .mobile-date-card')?.getBoundingClientRect().width`),true,'mobile role rows must fit inside cards');
   await mobile.evalJs(`document.querySelector('#adminScheduleMobile .admin-mobile-role:not(:disabled)')?.click()`);await sleep(60);
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCellOverlay').classList.contains('hidden')`),false,'tapping a role row must open direct role editing');
   assert.ok((await mobile.evalJs(`document.querySelector('#adminCellContext')?.textContent||''`)).length>0);
-  assert.equal(await mobile.evalJs(`document.querySelector('#adminCellMobileSearch')!==null`),true,'mobile direct role editor must provide member search');
-  assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#adminCellMobileSearch')).minHeight)`))>=44);
+  assert.equal(await mobile.evalJs(`document.querySelector('#adminCellMobileSearch')!==null`),true);
+  assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminCellMobileSearchWrap')).display`),'none','mobile direct role editor should show the member list directly, without search');
   await mobile.evalJs(`document.querySelector('#adminCellClose').click()`);await sleep(40);
 
   await mobile.evalJs(`document.querySelector('[data-admin-page="members"]').click()`);await sleep(350);
@@ -342,11 +360,15 @@ try{
   await mobile.evalJs(`document.querySelector('#membersTable tr')?.click()`);await sleep(60);
   assert.equal(await mobile.evalJs(`document.querySelector('#memberQuickPanel').classList.contains('hidden')`),false);
   assert.equal(await mobile.evalJs(`(()=>{const d=document.querySelector('#memberQuickPanel .member-quick-dialog').getBoundingClientRect();return d.bottom>=innerHeight-2})()`),true,'mobile member details must behave as a bottom sheet');
+  assert.equal(await mobile.evalJs(`document.querySelector('#memberQuickHeadActions')?.contains(document.querySelector('#memberQuickToggle'))`),true,'mobile Activate/Deactivate must sit in the header beside Close');
+  assert.equal(await mobile.evalJs(`document.querySelectorAll('#memberQuickLinkActions .btn').length`),3,'mobile personal-link actions must be grouped inside the link block');
+  assert.equal(await mobile.evalJs(`document.querySelectorAll('#memberQuickPanel .member-quick-actions .btn').length`),1,'mobile member footer should only contain Modify');
   await mobile.evalJs(`document.querySelector('#memberQuickClose').click()`);await sleep(40);
 
 
   await mobile.evalJs(`document.querySelector('[data-admin-page="calendar"]').click()`);await sleep(350);
   await mobile.evalJs(`document.querySelector('.admin-calendar-edit')?.click()`);await sleep(60);
+  assert.equal(await mobile.evalJs(`document.body.style.position`),'fixed','mobile day editor must lock the page behind the modal');
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay .day-editor-columns').scrollWidth<=document.querySelector('#adminCorrectionOverlay .day-editor-columns').clientWidth+2`),true,'mobile day editor must not require horizontal swiping');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-editor-columns')).gridTemplateColumns.split(' ').length`),1,'mobile day editor must use one vertical member flow');
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#adminCorrectionOverlay .day-column-role')).display`),'none','duplicate role columns must be hidden on mobile');
@@ -362,7 +384,9 @@ try{
   assert.match(await mobile.evalJs(`document.querySelector('#dayEditorQuickRoles [data-quick-role] .quick-role-state')?.textContent||''`),/Libre|Actuel|Remplace|Indisponible|Ajouter/);
   assert.ok(Number(await mobile.evalJs(`parseFloat(getComputedStyle(document.querySelector('#dayEditorQuickRoles button')).minHeight)`))>=44);
   assert.equal(await mobile.evalJs(`getComputedStyle(document.querySelector('#dayEditorQuickRoles .day-editor-quick-buttons')).gridTemplateColumns.split(' ').length`),2,'mobile quick roles must avoid a horizontal button strip');
+  assert.equal(await mobile.evalJs(`(()=>{const p=document.querySelector('#dayMemberPool'),seed=p.querySelector('.day-member-source-item');if(!seed)return false;for(let i=0;i<20;i++)p.append(seed.cloneNode(true));p.scrollTop=100;return p.scrollHeight>p.clientHeight&&p.scrollTop>0})()`),true,'mobile Modifier member list must scroll inside the modal');
   await mobile.evalJs(`document.querySelector('#adminCorrectionClose').click()`);await sleep(40);
+  assert.equal(await mobile.evalJs(`document.body.style.position`),'','closing the mobile editor must release the background page');
   assert.equal(await mobile.evalJs(`document.querySelector('#adminCorrectionOverlay').contains(document.activeElement)`),false);
   await mobile.close();
 

@@ -395,8 +395,39 @@ function setNotice(el,text=''){el.classList.toggle('hidden',!text);el.textConten
 let memberErrorTimer=0;
 function showMemberError(text='',duration=3600){clearTimeout(memberErrorTimer);const el=q('#memberError');setNotice(el,text);if(text&&duration>0)memberErrorTimer=setTimeout(()=>setNotice(el),duration)}
 const modalReturnFocus=new WeakMap();
+let modalBodyScrollY=0,modalBodyLocked=false;
 function syncModalBodyState(){
-  document.body.classList.toggle('modal-open',!!document.querySelector('.confirm-overlay:not(.hidden)'))
+  const open=!!document.querySelector('.confirm-overlay:not(.hidden)');
+  document.body.classList.toggle('modal-open',open);
+  if(currentUiMode==='mobile'){
+    if(open&&!modalBodyLocked){
+      modalBodyScrollY=window.scrollY||0;
+      modalBodyLocked=true;
+      document.body.style.position='fixed';
+      document.body.style.top=`-${modalBodyScrollY}px`;
+      document.body.style.left='0';
+      document.body.style.right='0';
+      document.body.style.width='100%';
+    }else if(!open&&modalBodyLocked){
+      const restore=modalBodyScrollY;
+      modalBodyLocked=false;
+      document.body.style.removeProperty('position');
+      document.body.style.removeProperty('top');
+      document.body.style.removeProperty('left');
+      document.body.style.removeProperty('right');
+      document.body.style.removeProperty('width');
+      window.scrollTo({top:restore,behavior:'instant'})
+    }
+  }else if(modalBodyLocked&&!open){
+    const restore=modalBodyScrollY;
+    modalBodyLocked=false;
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('left');
+    document.body.style.removeProperty('right');
+    document.body.style.removeProperty('width');
+    window.scrollTo({top:restore,behavior:'instant'})
+  }
 }
 function resolveFocusTarget(target,overlay){
   if(typeof target==='function')target=target();
@@ -937,26 +968,31 @@ function memberNextOpenDates(limit=6,from=parisToday()){
   return out
 }
 function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay(),diff=wd===0?-6:1-wd;dt.setUTCDate(dt.getUTCDate()+diff);return iso(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate())}
-function calendarVisibleStart(today=parisToday()){return currentUiMode==='tablet'?weekStart(today):today}
-function mergeTabletCurrentWeekDates(baseDates,isOpen,today=parisToday()){
-  if(currentUiMode!=='tablet')return baseDates;
-  const monday=weekStart(today),seen=new Set(baseDates),extra=[];
-  for(let i=0;i<7;i++){
-    const s=addDays(monday,i);
-    if(s>today)break;
-    if(isOpen(s)&&!seen.has(s)){seen.add(s);extra.push(s)}
+function calendarVisibleStart(today=parisToday()){return currentUiMode==='mobile'?today:weekStart(today)}
+function monthWeekEnvelopeDates(k,isRelevant,{from='',to=''}={}){
+  const[y,m]=k.split('-').map(Number),today=parisToday();
+  if(currentUiMode==='mobile'){
+    const out=[];
+    for(let d=1;d<=daysInMonth(y,m);d++){
+      const s=iso(y,m,d);
+      if(s<today||(from&&s<from)||(to&&s>to))continue;
+      if(isRelevant(s))out.push(s)
+    }
+    return out
   }
-  return [...extra,...baseDates].sort()
+  let start=weekStart(iso(y,m,1));
+  let end=addDays(weekStart(iso(y,m,daysInMonth(y,m))),6);
+  const visibleFrom=weekStart(today);
+  if(start<visibleFrom)start=visibleFrom;
+  if(from&&start<from)start=from;
+  if(to&&end>to)end=to;
+  const out=[];
+  for(let s=start;s<=end;s=addDays(s,1))if(isRelevant(s))out.push(s);
+  return out
 }
 function memberDatesForMonth(k){
-  const[y,m]=k.split('-').map(Number),out=[],today=parisToday(),visibleFrom=calendarVisibleStart(today);
   const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
-  for(let d=1;d<=daysInMonth(y,m);d++){
-    const s=iso(y,m,d);
-    if(s<visibleFrom||s<from||s>to)continue;
-    if(memberIsOpen(s))out.push(s)
-  }
-  return k===memberHomeMonth(today)?mergeTabletCurrentWeekDates(out,s=>s>=from&&s<=to&&memberIsOpen(s),today):out
+  return monthWeekEnvelopeDates(k,s=>s>=from&&s<=to&&memberIsOpen(s),{from,to})
 }
 function chooseInitialMonth(){return memberHomeMonth()}
 function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new Intl.DateTimeFormat('fr-FR',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad(d)}/${pad(m)}`}
@@ -1050,7 +1086,7 @@ function renderMember(){
     const past=date<today,outside=date<from||date>to,coverageState=assignmentCoverage(memberData,date),covered=open&&coverageState.covered;
     const row=document.createElement('tr');
     row.id='date-'+date;
-    row.className=(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'');
+    row.className=(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'')+(past?' day-past':'');
 
     const dateTd=document.createElement('td');dateTd.className='date-cell';
     const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
@@ -1086,7 +1122,7 @@ function renderMember(){
     body.append(row);
 
     const card=document.createElement('article');
-    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'');
+    card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'')+(past?' day-past':'');
     card.id='mobile-date-'+date;
     setTabletWeekCardPosition(card,date,weekIndex);
     const head=document.createElement('div');head.className='mobile-date-head';
@@ -1211,13 +1247,12 @@ function adminHomeMonth(today=parisToday()){
 }
 
 function adminDatesForMonth(k){
-  const[y,m]=k.split('-').map(Number),out=[],today=parisToday(),visibleFrom=calendarVisibleStart(today);
-  for(let d=1;d<=daysInMonth(y,m);d++){
-    const s=iso(y,m,d);
-    if(s<visibleFrom)continue;
-    if(adminIsOpen(s))out.push(s)
-  }
-  return k===adminHomeMonth(today)?mergeTabletCurrentWeekDates(out,s=>adminIsOpen(s),today):out
+  const today=parisToday(),to=planningHorizonEnd(today);
+  return monthWeekEnvelopeDates(
+    k,
+    s=>adminIsOpen(s)||(defaultOpen(s)&&adminData?.scheduleExceptions?.[s]?.isOpen===false),
+    {to}
+  )
 }
 function fillDaySingleChoiceList(container,currentIds,members){
   const current=String((currentIds||[])[0]||'');
@@ -1794,9 +1829,11 @@ function ensureAdminCellMobileSearch(role){
     wrap.append(input,count)
   }
   field.insertBefore(wrap,container);
-  wrap.classList.toggle('hidden',currentUiMode!=='mobile');
+  /* Same interaction on phone and tablet: show the member list directly. */
+  wrap.classList.add('hidden');
+  adminCellMobileQuery='';
   const input=q('#adminCellMobileSearch');
-  if(input)input.value=adminCellMobileQuery;
+  if(input)input.value='';
   applyAdminCellMobileSearch()
 }
 
@@ -2161,12 +2198,12 @@ function renderAdminCalendar(){
     const past=date<today;
     const coverageState=assignmentCoverage(adminData,date);
     const row=document.createElement('tr');
-    row.className=(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'');
+    row.className=(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(past?' day-past':'');
     row.dataset.covered=open&&coverageState.covered?'true':'false';
 
     const dateTd=document.createElement('td');dateTd.className='date-cell';
     const dm=document.createElement('div');dm.className='date-main';dm.textContent=compactDayLabel(date);
-    const edit=document.createElement('button');edit.type='button';edit.className='btn admin-calendar-edit';edit.textContent='Modifier';edit.disabled=!open;
+    const edit=document.createElement('button');edit.type='button';edit.className='btn admin-calendar-edit';edit.textContent='Modifier';edit.disabled=!open||past;
     edit.addEventListener('click',()=>adminCorrectionForDate(date));
     dateTd.append(dm,edit);row.append(dateTd);
 
@@ -2174,7 +2211,7 @@ function renderAdminCalendar(){
       const td=document.createElement('td');td.className='role-cell';
       td.dataset.date=date;td.dataset.role=role;
       const display=document.createElement('div');display.className='admin-role-display';
-      if(open){
+      if(open&&!past){
         td.classList.add('admin-role-editable');
         td.tabIndex=0;
         td.title=`Modifier ${ROLE_LABELS[role]} : un tap tactile, Entrée/Espace, ou double-clic à la souris`;
@@ -2219,7 +2256,7 @@ function renderAdminCalendar(){
           for(const id of ids){
             const chip=document.createElement('span');chip.className='role-chip';
             chip.textContent=nameMap[id]||'Membre';
-            makeAdminChipDraggable(chip,date,role,String(id));
+            if(!past)makeAdminChipDraggable(chip,date,role,String(id));
             stack.append(chip)
           }
           display.append(stack)
@@ -2367,7 +2404,7 @@ function arrangeMemberQuickActionsForUi(){
   const close=q('#memberQuickClose'),toggle=q('#memberQuickToggle'),rotate=q('#memberQuickRotate'),copy=q('#memberQuickCopy'),send=q('#memberQuickSend'),edit=q('#memberQuickEdit');
   if(!head||!actions||!linkCard||!close||!toggle||!rotate||!copy||!send||!edit)return;
   let headActions=q('#memberQuickHeadActions'),linkActions=q('#memberQuickLinkActions');
-  if(currentUiMode==='tablet'){
+  if(currentUiMode==='tablet'||currentUiMode==='mobile'){
     if(!headActions){headActions=document.createElement('div');headActions.id='memberQuickHeadActions';headActions.className='member-quick-head-actions';head.append(headActions)}
     headActions.append(toggle,close);
     if(!linkActions){linkActions=document.createElement('div');linkActions.id='memberQuickLinkActions';linkActions.className='member-quick-link-actions';linkCard.append(linkActions)}
