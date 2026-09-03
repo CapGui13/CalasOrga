@@ -8630,3 +8630,89 @@ html.ui-tablet #memberQuickPanel .member-quick-actions .btn{
     touch-action:pan-y!important;
   }
 }
+
+/* =========================================================
+   DEVICE UX FOLLOW-UP — tablet 3-day weeks + stable member editor + mobile cleanup
+   ========================================================= */
+
+/* Desktop/tablet: the member modification dialog is anchored from the top.
+   Selecting a member can reveal more fields without moving the whole dialog. */
+html.ui-desktop #memberModifyPanel,
+html.ui-tablet #memberModifyPanel{
+  align-items:start!important;
+  justify-items:center!important;
+  overflow-y:auto!important;
+}
+html.ui-desktop #memberModifyPanel .member-modify-dialog,
+html.ui-tablet #memberModifyPanel .member-modify-dialog{
+  margin-top:clamp(22px,5dvh,54px)!important;
+  margin-bottom:22px!important;
+}
+
+/* Standard portrait tablets: Monday / Tuesday / Thursday share one row.
+   Narrow split-screen tablet layouts keep the safer two-column fallback. */
+@media (orientation:portrait) and (min-width:700px) and (max-width:899px){
+  html.ui-tablet #memberRoot .member-schedule-mobile,
+  html.ui-tablet #adminRoot .admin-schedule-mobile{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  html.ui-tablet #memberRoot .member-schedule-mobile .mobile-date-card,
+  html.ui-tablet #adminRoot .admin-schedule-mobile .mobile-date-card{
+    grid-column:var(--tablet-week-col,auto)!important;
+    grid-row:var(--tablet-week-row,auto)!important;
+    padding:10px!important;
+  }
+  html.ui-tablet .mobile-role-button{
+    grid-template-columns:76px minmax(0,1fr)!important;
+    gap:5px!important;
+    padding:6px 7px!important;
+  }
+  html.ui-tablet #adminRoot .admin-mobile-role .mobile-role-value{padding-right:12px!important}
+}
+
+/* Phone: the role rows already show what is missing, so duplicate coverage
+   badges are removed just like on tablet. Closed dates keep their marker. */
+html.ui-mobile .mobile-date-status.ok,
+html.ui-mobile .mobile-date-status.alert,
+html.ui-mobile .mobile-date-missing{
+  display:none!important;
+}
+html.ui-mobile .mobile-date-head{
+  justify-content:flex-start!important;
+}
+html.ui-mobile .mobile-date-status.closed{
+  display:inline-flex!important;
+  margin-left:auto!important;
+}
+
+/* Without a "Complet" badge, a full phone card needs an unmistakable state. */
+html.ui-mobile #memberRoot .member-schedule-mobile .mobile-date-card.day-complete,
+html.ui-mobile #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete{
+  border-color:#9fcaae!important;
+  border-left-color:#318353!important;
+  background:#e8f5ed!important;
+  box-shadow:0 3px 14px rgba(38,116,70,.10)!important;
+}
+html.ui-mobile #memberRoot .member-schedule-mobile .mobile-date-card.day-complete .mobile-date-head,
+html.ui-mobile #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete .mobile-date-head{
+  border-bottom-color:#c4dfce!important;
+}
+html.ui-mobile #memberRoot .member-schedule-mobile .mobile-date-card.day-complete .mobile-role-button,
+html.ui-mobile #adminRoot .admin-schedule-mobile .mobile-date-card.day-complete .mobile-role-button{
+  border-color:#c4dfce!important;
+  background:#f0faf3!important;
+}
+
+/* Phone: never crop a member's name inside a role chip. Let the row grow. */
+html.ui-mobile .mobile-role-button .role-chip{
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.2!important;
+}
+html.ui-mobile .mobile-role-value{
+  align-items:flex-start!important;
+}

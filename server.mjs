@@ -1539,11 +1539,22 @@ class FileStore {
       if (sourceMemberId) {
         source = s.members.find((m) => m.id === sourceMemberId && m.active && m.adminPrivilege === true);
         if (!source) return { ok: false, status: 403, error: 'Privilèges administrateur requis.' };
-        for (const rec of s.sessions) {
-          if (rec.kind === 'admin' && rec.sourceMemberId === sourceMemberId && rec.active) {
-            rec.active = false;
-            rec.revokedAt = now.toISOString();
-          }
+
+        /* Un administrateur membre peut rester connecté sur plusieurs appareils.
+           On conserve jusqu'à 5 sessions admin actives, comme pour les sessions
+           membre, puis on révoque seulement la plus ancienne. */
+        const activeForSource = s.sessions
+          .filter((rec) =>
+            rec.kind === 'admin' &&
+            rec.sourceMemberId === sourceMemberId &&
+            rec.active &&
+            this.#sessionAlive(rec)
+          )
+          .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        while (activeForSource.length >= 5) {
+          const oldest = activeForSource.shift();
+          oldest.active = false;
+          oldest.revokedAt = now.toISOString();
         }
       }
       s.sessions.push({

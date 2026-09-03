@@ -61,6 +61,10 @@ try{
   assert.equal(createdA.r.status,201,JSON.stringify(createdA.j));
   assert.match(createdA.j.shortToken,/^Alice\d{6}$/u);
   const aliceId=createdA.j.member.id;
+  const promoteAlice=await api(`/api/admin/members/${encodeURIComponent(aliceId)}`,{
+    method:'POST',body:{adminPrivilege:true},cookies:adminCookies,csrf:adminCsrf
+  });
+  assert.equal(promoteAlice.r.status,200,JSON.stringify(promoteAlice.j));
 
   const createdB=await api('/api/admin/members',{method:'POST',body:{name:'Bob',email:'bob@example.invalid'},cookies:adminCookies,csrf:adminCsrf});
   assert.equal(createdB.r.status,201,JSON.stringify(createdB.j));
@@ -72,6 +76,7 @@ try{
   const meA=await api('/api/me',{cookies:memberCookies});
   assert.equal(meA.r.status,200);
   assert.equal(meA.j.me.name,'Alice');
+  assert.equal(meA.j.me.adminPrivilege,true);
 
   const switchBlocked=await api('/api/session/member-short',{method:'POST',body:{shortToken:createdB.j.shortToken},cookies:memberCookies});
   assert.equal(switchBlocked.r.status,409,JSON.stringify(switchBlocked.j));
@@ -99,6 +104,27 @@ try{
   assert.equal(syncMember.r.status,200,JSON.stringify(syncMember.j));
   const alice=adminSnap.j.membersAdmin.find(m=>m.id===aliceId);
   assert.equal(alice.deviceCount,1,'réouvrir le lien sur le même navigateur ne doit pas créer un faux appareil');
+
+  // Un même membre administrateur doit pouvoir garder plusieurs appareils
+  // connectés au panneau admin en parallèle.
+  const loginASecondDevice=await api('/api/session/member-short',{method:'POST',body:{shortToken:createdA.j.shortToken}});
+  assert.equal(loginASecondDevice.r.status,200,JSON.stringify(loginASecondDevice.j));
+  const memberCookiesSecondDevice=loginASecondDevice.set;
+  const adminFromFirstDevice=await api('/api/session/admin-from-member',{
+    method:'POST',
+    cookies:aliceCookies2,
+    csrf:decodeURIComponent(aliceCookies2.club_member_csrf)
+  });
+  assert.equal(adminFromFirstDevice.r.status,200,JSON.stringify(adminFromFirstDevice.j));
+  const firstDeviceAdminCookies={...aliceCookies2,...adminFromFirstDevice.set};
+  const adminFromSecondDevice=await api('/api/session/admin-from-member',{
+    method:'POST',
+    cookies:memberCookiesSecondDevice,
+    csrf:decodeURIComponent(memberCookiesSecondDevice.club_member_csrf)
+  });
+  assert.equal(adminFromSecondDevice.r.status,200,JSON.stringify(adminFromSecondDevice.j));
+  const firstDeviceStillAdmin=await api('/api/admin',{cookies:firstDeviceAdminCookies});
+  assert.equal(firstDeviceStillAdmin.r.status,200,'La connexion admin du premier appareil ne doit pas être révoquée par le second.');
 
   const indexText=await fs.readFile(path.join(root,'index.html'),'utf8');
   const stylesText=await fs.readFile(path.join(root,'styles.css'),'utf8');

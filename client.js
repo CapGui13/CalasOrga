@@ -977,6 +977,13 @@ function ensureMobilePlanningHelp(mobile,id,text){
   }
   help.textContent=text
 }
+function setTabletWeekCardPosition(card,date,weekIndex){
+  if(!card)return;
+  const column={1:1,2:2,4:3}[weekday(date)];
+  if(!column)return;
+  card.style.setProperty('--tablet-week-col',String(column));
+  card.style.setProperty('--tablet-week-row',String(Math.max(0,Number(weekIndex)||0)+1))
+}
 
 function renderMember(){
   if(!memberData)return;
@@ -1070,6 +1077,7 @@ function renderMember(){
     const card=document.createElement('article');
     card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(covered?' day-complete':'');
     card.id='mobile-date-'+date;
+    setTabletWeekCardPosition(card,date,weekIndex);
     const head=document.createElement('div');head.className='mobile-date-head';
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
     const status=document.createElement('span');status.className='mobile-date-status '+(covered?'ok':'alert');
@@ -2212,6 +2220,7 @@ function renderAdminCalendar(){
     const card=document.createElement('article');
     card.className='mobile-date-card '+(weekIndex%2?'week-b':'week-a')+(open&&coverageState.covered?' day-complete':'')+(!open?' day-closed':'');
     card.dataset.date=date;
+    setTabletWeekCardPosition(card,date,weekIndex);
     const head=document.createElement('div');head.className='mobile-date-head';
     const left=document.createElement('div');
     const title=document.createElement('div');title.className='mobile-date-title';title.textContent=compactDayLabel(date);
@@ -2976,6 +2985,7 @@ function renderMemberManagementList(){
   for(const m of members){
     const b=document.createElement('button');
     b.type='button';
+    b.dataset.memberId=m.id;
     b.className='btn'+(m.id===memberManagementSelectedId?' selected':'');
     b.textContent=m.name;
     b.addEventListener('click',()=>selectManagedMember(m.id));
@@ -2985,7 +2995,10 @@ function renderMemberManagementList(){
 }
 function selectManagedMember(id){
   memberManagementSelectedId=id;
-  renderMemberManagementList();
+  const box=q('#memberModifyList');
+  for(const btn of box?.querySelectorAll('.btn[data-member-id]')||[]){
+    btn.classList.toggle('selected',String(btn.dataset.memberId)===String(id))
+  }
   fillManagedMemberForm(id)
 }
 function fillManagedMemberForm(id){
