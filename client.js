@@ -968,7 +968,12 @@ function memberNextOpenDates(limit=6,from=parisToday()){
   return out
 }
 function weekStart(s){const[y,m,d]=s.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),wd=dt.getUTCDay(),diff=wd===0?-6:1-wd;dt.setUTCDate(dt.getUTCDate()+diff);return iso(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate())}
-function calendarVisibleStart(today=parisToday()){return currentUiMode==='mobile'?today:weekStart(today)}
+function calendarVisibleStart(today=parisToday(),isOpen=()=>false){
+  if(currentUiMode==='mobile')return today;
+  const start=weekStart(today),end=addDays(start,6);
+  for(let s=today;s<=end;s=addDays(s,1))if(isOpen(s))return start;
+  return addDays(start,7)
+}
 function monthWeekEnvelopeDates(k,isRelevant,{from='',to=''}={}){
   const[y,m]=k.split('-').map(Number),today=parisToday();
   if(currentUiMode==='mobile'){
@@ -1043,7 +1048,7 @@ function renderMember(){
   const homeMonth=memberHomeMonth(today);
   const homeMode=memberHomeMode(today);
   const effectiveMode=memberCalendarMode==='auto'?homeMode:memberCalendarMode;
-  const nextOpen=nextMemberOpenDate(calendarVisibleStart(today));
+  const nextOpen=nextMemberOpenDate(calendarVisibleStart(today,memberIsOpen));
   const max=monthKey(memberData.settings.memberWindow.to);
 
   if(effectiveMode==='upcoming'){
@@ -2141,7 +2146,7 @@ function renderTabletCalendarSplit(datesArg=null,nameMapArg=null){
   if(!split||!adminData)return;
   const today=parisToday();
   const effectiveMode=adminCalendarMode==='auto'?adminHomeMode(today):adminCalendarMode;
-  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today));
+  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today,adminIsOpen));
   const dates=(datesArg||((effectiveMode==='upcoming')?adminNextOpenDates(6,nextOpen):adminDatesForMonth(adminMonth||adminHomeMonth(today))))
     .filter(date=>adminIsOpen(date)||adminData.scheduleExceptions?.[date]?.isOpen===false);
   const nameMap=nameMapArg||Object.fromEntries((adminData.membersAdmin||adminData.members||[]).map(m=>[m.id,m.name]));
@@ -2164,7 +2169,7 @@ function renderAdminCalendar(){
   const homeMonth=adminHomeMonth(today);
   const homeMode=adminHomeMode(today);
   const effectiveMode=adminCalendarMode==='auto'?homeMode:adminCalendarMode;
-  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today));
+  const nextOpen=nextAdminOpenDate(calendarVisibleStart(today,adminIsOpen));
   const max=shiftMonth(homeMonth,2);
 
   if(effectiveMode==='upcoming'){

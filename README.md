@@ -103,7 +103,7 @@ BLOB_STATE_PATH=calasorga/store.json
 Le backend actuellement qualifié répond notamment avec :
 
 ```json
-{"ok":true,"appVersion":"0.15.47.4-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
+{"ok":true,"appVersion":"0.15.47.5-stabilized","storage":"supabase-postgres","integrity":true,"memberShortSecretMode":"dedicated"}
 ```
 
 ## Tests

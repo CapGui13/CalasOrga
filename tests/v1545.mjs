@@ -58,7 +58,7 @@ async function api(pathname,{method='GET',body,cookies={},csrf}={}){
 
 try{
   const health=await waitReady();
-  assert.equal(health.appVersion,'0.15.47.4-stabilized');
+  assert.equal(health.appVersion,'0.15.47.5-stabilized');
   assert.equal(health.memberShortSecretMode,'dedicated');
 
   const adminLogin=await api('/api/session/admin',{method:'POST',body:{code:'Ab#123'}});
@@ -224,7 +224,7 @@ try{
   assert.match(appText,/UI_MODE_CLASSES=\['ui-desktop','ui-tablet','ui-mobile'\]/);
   assert.match(appText,/uiShortSide\(\)/);
   assert.match(appText,/return shortSide<600\?'mobile':'tablet'/);
-  assert.match(appText,/function calendarVisibleStart\(today=parisToday\(\)\)/);
+  assert.match(appText,/function calendarVisibleStart\(today=parisToday\(\),isOpen=\(\)=>false\)/);
   assert.match(appText,/function monthWeekEnvelopeDates\(/);
   assert.match(serverText,/function isoWeekStart\(iso\)/);
   assert.match(appText,/if\(!uiTouchCapable\(\)\)return'desktop'/);
@@ -241,7 +241,7 @@ try{
   assert.match(appText,/currentUiMode===\'tablet\'\|\|currentUiMode===\'mobile\'/,'mobile member quick actions must share tablet organization');
   assert.match(stylesText,/mobile direct-edit and full-day-edit lists now match tablet|Phone direct-edit and full-day-edit lists now match tablet/i);
   assert.match(indexText,/\.\/styles\.css\?v=15480-css-consolidation/);
-  assert.match(indexText,/\.\/client\.js\?v=15479-member-red-editor/);
+  assert.match(indexText,/\.\/client\.js\?v=15481-week-rollover/);
   assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
   assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
@@ -254,7 +254,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15480-css-consolidation','./client.js?v=15479-member-red-editor','./admin-desktop-enhancements.js?v=15474-hardening']) {
+  for (const ref of ['./styles.css?v=15480-css-consolidation','./client.js?v=15481-week-rollover','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);
@@ -294,7 +294,7 @@ try{
       await new Promise(r=>setTimeout(r,50));
     }
     assert.ok(bundleHealth,`Le backend ne démarre pas sans assets frontend dans le bundle: ${bundleErr}`);
-    assert.equal(bundleHealth.appVersion,'0.15.47.4-stabilized');
+    assert.equal(bundleHealth.appVersion,'0.15.47.5-stabilized');
   } finally {
     bundleChild.kill('SIGTERM');
     await new Promise(r=>setTimeout(r,100));
