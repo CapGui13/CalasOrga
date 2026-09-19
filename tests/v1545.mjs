@@ -226,6 +226,8 @@ try{
   assert.match(appText,/return shortSide<600\?'mobile':'tablet'/);
   assert.match(appText,/function calendarVisibleStart\(today=parisToday\(\),isOpen=\(\)=>false\)/);
   assert.match(appText,/function monthWeekEnvelopeDates\(/);
+  assert.match(appText,/if\(path==='\/'\)\{[\s\S]*const fresh=await netApi\('\/api\/me'\)[\s\S]*history\.replaceState\(null,''\,'\/calendar'\)/,'root must reopen an existing member session');
+  assert.match(appText,/if\(e\.status===401\)\{showMemberLinkRequired\(\);return\}/,'root without a member session must keep the personal-link screen');
   assert.match(serverText,/function isoWeekStart\(iso\)/);
   assert.match(appText,/if\(!uiTouchCapable\(\)\)return'desktop'/);
   assert.match(stylesText,/STRICT 3 UI MODES/);
@@ -241,7 +243,7 @@ try{
   assert.match(appText,/currentUiMode===\'tablet\'\|\|currentUiMode===\'mobile\'/,'mobile member quick actions must share tablet organization');
   assert.match(stylesText,/mobile direct-edit and full-day-edit lists now match tablet|Phone direct-edit and full-day-edit lists now match tablet/i);
   assert.match(indexText,/\.\/styles\.css\?v=15480-css-consolidation/);
-  assert.match(indexText,/\.\/client\.js\?v=15481-week-rollover/);
+  assert.match(indexText,/\.\/client\.js\?v=15482-root-session/);
   assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
   assert.match(desktopEnhancementsCore,/decoratePlanningRemoveButtons/);
@@ -254,7 +256,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15480-css-consolidation','./client.js?v=15481-week-rollover','./admin-desktop-enhancements.js?v=15474-hardening']) {
+  for (const ref of ['./styles.css?v=15480-css-consolidation','./client.js?v=15482-root-session','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);

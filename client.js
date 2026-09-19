@@ -3380,7 +3380,31 @@ async function boot(){
   if(path==='/admin-login'&&token){history.replaceState(null,'',path);await serverJoin('admin',token);return}
   if(path==='/admin'||path==='/admin/membres'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
   if(path==='/calendar'){await refreshMember({openIfSuccessful:true});return}
-  if(path==='/join'||path==='/join-short'||path==='/'){showMemberLinkRequired();return}
+  if(path==='/'){
+    /* La racine sert aussi de point d'entrée aux appareils déjà associés.
+       On tente donc d'abord la session membre existante ; si elle n'existe
+       plus, on reste simplement sur l'écran demandant le lien personnel. */
+    try{
+      const fresh=await netApi('/api/me');
+      lastMemberSyncAt=Date.now();
+      memberData=memberPendingOverlay(fresh);
+      if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth()}
+      history.replaceState(null,'','/calendar');
+      showOnly('memberRoot');
+      q('#githubAdminLink').classList.add('hidden');
+      renderMember();
+    }catch(e){
+      if(e.status===401){showMemberLinkRequired();return}
+      setAdminLoginView(false);
+      showOnly('joinView');
+      q('#adminCodeForm').classList.add('hidden');
+      q('#joinTitle').textContent='Calendrier indisponible';
+      q('#joinStatus').textContent='Le serveur n’a pas pu ouvrir le calendrier.';
+      setNotice(q('#joinError'),e.message)
+    }
+    return
+  }
+  if(path==='/join'||path==='/join-short'){showMemberLinkRequired();return}
   if(path==='/admin-login'){showAdminCodeLogin();return}
   await refreshMember({openIfSuccessful:true})
 }
