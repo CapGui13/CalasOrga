@@ -9,6 +9,7 @@ const root=path.resolve(new URL('..',import.meta.url).pathname);
 const server=await fs.readFile(path.join(root,'server.mjs'),'utf8');
 const rows=new Map();
 let requests=[];
+let failPrimaryRead=false;
 
 function send(res,status,body){res.statusCode=status;res.setHeader('content-type','application/json');res.end(body===null?'':JSON.stringify(body))}
 async function readJson(req){let raw='';for await(const chunk of req)raw+=chunk;return raw?JSON.parse(raw):null}
@@ -24,6 +25,7 @@ const supa=http.createServer(async(req,res)=>{
     const versionFilter=u.searchParams.get('version')||'';
     const expected=versionFilter.startsWith('eq.')?Number(versionFilter.slice(3)):null;
     if(req.method==='GET'){
+      if (failPrimaryRead && id === 'main') return send(res,503,{message:'temporary Supabase outage'});
       const row=rows.get(id);
       return send(res,200,row?[{version:row.version,state:row.state,id}]:[]);
     }
@@ -171,6 +173,25 @@ try{
     await new Promise(r=>setTimeout(r,80));
   }
   
+// A temporary failure reading Supabase main must NOT recover .good or revoke
+// the already distributed links. This regression previously destroyed access
+// for every member during an otherwise transient outage.
+const beforeOutage=structuredClone(rows.get('main'));
+assert.ok(beforeOutage.state.memberTokens.some(t=>t.active),'fixture needs active member links');
+requests=[];
+failPrimaryRead=true;
+const failedInstance=spawnApp(appPort+3);
+let failedStderr='';
+failedInstance.stderr.on('data',d=>failedStderr+=d);
+const failedExit=await Promise.race([
+  new Promise(resolve=>failedInstance.once('exit',code=>resolve(code))),
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error('Startup must fail closed during a Supabase outage')),3000))
+]).finally(()=>{failPrimaryRead=false;failedInstance.kill('SIGTERM')});
+assert.notEqual(failedExit,0,'outage must not start from a credential-revoking snapshot');
+assert.deepEqual(rows.get('main'),beforeOutage,'outage must not mutate the current database row');
+assert.ok(!requests.some(x=>['POST','PATCH'].includes(x.method)), 'outage must not write any Supabase snapshot');
+assert.match(failedStderr,/récupération automatique désactivée|temporary Supabase outage/);
+
 assert(server.includes("SUPABASE_ALLOW_EMPTY_INIT"), 'Supabase empty-store guard is present');
 assert(server.includes("SUPABASE_EMPTY"), 'Supabase empty-store failure code is present');
 
