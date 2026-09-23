@@ -1069,6 +1069,14 @@ class FileStore {
           await this.#persist({ preserveCurrent: false });
           return this;
         }
+        // Supabase is the source of truth. A transient HTTP/auth/network error,
+        // or even an invalid primary row, must NEVER silently restore a snapshot:
+        // that operation revokes every existing member link and device session.
+        // Fail closed; keep main and its snapshots untouched for investigation.
+        if (this.remoteSupabase) {
+          console.error('Lecture du stockage Supabase impossible : récupération automatique désactivée pour préserver les liens et sessions.', err);
+          throw err;
+        }
         primaryError = err;
       }
 
