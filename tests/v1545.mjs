@@ -242,7 +242,7 @@ try{
   assert.match(appText,/function monthWeekEnvelopeDates\(/,'month pages must preserve complete cross-month weeks on desktop/tablet');
   assert.match(appText,/currentUiMode===\'tablet\'\|\|currentUiMode===\'mobile\'/,'mobile member quick actions must share tablet organization');
   assert.match(stylesText,/mobile direct-edit and full-day-edit lists now match tablet|Phone direct-edit and full-day-edit lists now match tablet/i);
-  assert.match(indexText,/\.\/styles\.css\?v=15480-css-consolidation/);
+  assert.match(indexText,/\.\/styles\.css\?v=15483-android-scroll/);
   assert.match(indexText,/\.\/client\.js\?v=15482-root-session/);
   assert.match(indexText,/\.\/admin-desktop-enhancements\.js\?v=15474-hardening/);
   assert.doesNotMatch(desktopEnhancements,/sendLinkDirect|stopImmediatePropagation/,'mail sending must have one frontend handler only');
