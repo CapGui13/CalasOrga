@@ -5865,7 +5865,7 @@ html.ui-mobile{
 }
 html.ui-mobile body{
   overflow-x:hidden!important;
-  overscroll-behavior-y:contain;
+  overscroll-behavior-y:auto;
   -webkit-tap-highlight-color:transparent;
   background:#f2f5f3!important;
 }
@@ -8961,7 +8961,7 @@ html.ui-mobile #adminCorrectionOverlay .admin-correction-dialog{
   height:min(94dvh,760px)!important;
   max-height:94dvh!important;
   overflow:hidden!important;
-  touch-action:none!important;
+  touch-action:pan-y!important;
 }
 html.ui-mobile #adminCorrectionOverlay .section-head{
   flex:0 0 auto!important;
