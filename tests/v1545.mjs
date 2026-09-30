@@ -256,7 +256,7 @@ try{
   assert.match(vercelText,/\/admin\/admin-desktop-enhancements-core\.js/);
   // V15.47.3 : les assets doivent rester dans le sous-chemin GitHub Pages /CalasOrga/.
   const ghBase='https://capgui13.github.io/CalasOrga/';
-  for (const ref of ['./styles.css?v=15480-css-consolidation','./client.js?v=15482-root-session','./admin-desktop-enhancements.js?v=15474-hardening']) {
+  for (const ref of ['./styles.css?v=15483-android-scroll','./client.js?v=15482-root-session','./admin-desktop-enhancements.js?v=15474-hardening']) {
     assert.ok(new URL(ref,ghBase).pathname.startsWith('/CalasOrga/'),`asset GitHub Pages hors sous-chemin: ${ref}`);
   }
   assert.match(desktopEnhancements,/import\('\.\/admin-desktop-enhancements-core\.js\?v=15473-github-pages-core'\)/);
