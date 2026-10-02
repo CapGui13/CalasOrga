@@ -987,7 +987,7 @@ function monthWeekEnvelopeDates(k,isRelevant,{from='',to=''}={}){
   }
   let start=weekStart(iso(y,m,1));
   let end=addDays(weekStart(iso(y,m,daysInMonth(y,m))),6);
-  const visibleFrom=weekStart(today);
+  const visibleFrom=calendarVisibleStart(today,isRelevant);
   if(start<visibleFrom)start=visibleFrom;
   if(from&&start<from)start=from;
   if(to&&end>to)end=to;
