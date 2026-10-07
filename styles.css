@@ -9044,3 +9044,12 @@ html.ui-tablet body #memberRoot .member-schedule .member-role-display .role-chip
   color:#b42318!important;
   font-weight:900!important;
 }
+
+
+/* Member view — other people listed as Disponible are read-only for the
+   connected member, so their names use the same muted text treatment as
+   assignments already occupied by someone else. The connected member keeps
+   the red `.me` treatment above. */
+#memberRoot .role-chip.available-other{
+  color:var(--muted)!important;
+}
