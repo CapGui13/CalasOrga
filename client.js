@@ -1012,7 +1012,7 @@ function mobileRoleButton(date,role,assignments,open,past,outside,map){
   const value=document.createElement('span');value.className='mobile-role-value';
   if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}
   else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=role==='present'?'Personne disponible':'À pourvoir';value.append(x)}
-  else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;value.append(chip)}
+  else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;value.append(chip)}
   btn.append(label,value);
   if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
   return btn
@@ -1113,7 +1113,7 @@ function renderMember(){
         const stack=document.createElement('div');stack.className='role-stack';
         for(const id of ids){
           const m=map[id];if(!m)continue;
-          const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':'');chip.textContent=m.name;stack.append(chip)
+          const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;stack.append(chip)
         }
         display.append(stack)
       }else{
