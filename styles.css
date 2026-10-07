@@ -9053,3 +9053,22 @@ html.ui-tablet body #memberRoot .member-schedule .member-role-display .role-chip
 #memberRoot .role-chip.available-other{
   color:var(--muted)!important;
 }
+
+
+/* =========================================================
+   MEMBER PAST ROWS — uniform stronger grey
+   Past dates must read as one single disabled row: the date cell and every
+   role cell/button/display use exactly the same background.
+   ========================================================= */
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .date-cell,
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .member-role-cell,
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .member-role-cell > .member-role-button,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display{
+  background:#d9dedb!important;
+}
+
+html.ui-desktop #memberRoot .member-schedule tr.day-past > .date-cell,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display,
+html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display.empty{
+  color:#65706a!important;
+}
