@@ -3677,6 +3677,11 @@ export async function requestHandler(req, res) {
     // Le HTML est statique : inutile de réveiller Blob avant même que le navigateur
     // appelle l'API. Cela accélère l'ouverture du lien et économise des opérations.
     if (pathname === '/robots.txt' && req.method === 'GET') { securityHeaders(res); res.statusCode = 200; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end('User-agent: *\nDisallow: /\n'); return; }
+    if (pathname === '/manifest.webmanifest' && req.method === 'GET') return serveLocalStaticFile(res, 'manifest.webmanifest', 'application/manifest+json; charset=utf-8');
+    if (pathname === '/calasorga-icon.svg' && req.method === 'GET') return serveLocalStaticFile(res, 'calasorga-icon.svg', 'image/svg+xml');
+    if (pathname === '/icon-192.png' && req.method === 'GET') return serveLocalStaticFile(res, 'icon-192.png', 'image/png');
+    if (pathname === '/icon-512.png' && req.method === 'GET') return serveLocalStaticFile(res, 'icon-512.png', 'image/png');
+    if (pathname === '/apple-touch-icon.png' && req.method === 'GET') return serveLocalStaticFile(res, 'apple-touch-icon.png', 'image/png');
     if ((pathname === '/styles.css' || pathname === '/admin/styles.css') && req.method === 'GET') return serveLocalStaticFile(res, 'styles.css', 'text/css; charset=utf-8');
     if ((pathname === '/client.js' || pathname === '/admin/client.js') && req.method === 'GET') return serveLocalStaticFile(res, 'client.js', 'text/javascript; charset=utf-8');
     if ((pathname === '/admin-desktop-enhancements.js' || pathname === '/admin/admin-desktop-enhancements.js') && req.method === 'GET') return serveLocalStaticFile(res, 'admin-desktop-enhancements.js', 'text/javascript; charset=utf-8');
