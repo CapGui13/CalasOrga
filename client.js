@@ -153,6 +153,7 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const localRoot = q('#appRoot');
 if (LOCAL) { document.body.classList.add('mode-local'); q('#localBanner').classList.remove('hidden'); }
 let localState = null, currentLocalMemberId = '', memberData = null, adminData = null, adminSessionContext = null, memberMonth = '', memberCalendarMode = 'auto', adminMonth = '', adminCalendarMode = 'auto', currentAdminPage = 'calendar', adminSavePending = 0, adminSaveTimer = 0, adminReconcileTimer = 0, memberBusy = false, latestPersonalUrl = '';
+let publicCalendarMode=false;
 let viewSwitchTarget='member';
 let viewSwitchEpoch=0;
 let adminSwitchRefreshPromise=null;
@@ -1002,19 +1003,19 @@ function memberDatesForMonth(k){
 function chooseInitialMonth(){return memberHomeMonth()}
 function compactDayLabel(s){const[y,m,d]=s.split('-').map(Number);const wd=new Intl.DateTimeFormat('fr-FR',{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,d)));return `${wd.charAt(0).toUpperCase()+wd.slice(1)} ${pad(d)}/${pad(m)}`}
 function mobileRoleButton(date,role,assignments,open,past,outside,map){
-  const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id),btn=document.createElement('button');
+  const ids=sortMemberIds(assignments[role]||[],map),mine=!publicCalendarMode&&ids.includes(memberData.me?.id),btn=document.createElement(publicCalendarMode?'div':'button');
   const locked=role!=='present'&&!mine&&ids.length>0;
   btn.className='mobile-role-button member-mobile-role'+(mine?' mine':'')+(locked?' role-locked':'');
-  btn.disabled=!open||past||outside||locked;
-  btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
-  btn.title=mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
+  if(!publicCalendarMode)btn.disabled=!open||past||outside||locked;
+  btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'lecture seule':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
+  btn.title=publicCalendarMode?'Lecture seule':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
   const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];
   const value=document.createElement('span');value.className='mobile-role-value';
   if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}
   else if(!ids.length){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent=role==='present'?'Personne disponible':'À pourvoir';value.append(x)}
-  else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;value.append(chip)}
+  else for(const id of ids){const m=map[id];if(!m)continue;const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me?.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;value.append(chip)}
   btn.append(label,value);
-  if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
+  if(!publicCalendarMode&&!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
   return btn
 }
 
@@ -1040,8 +1041,10 @@ function setTabletWeekCardPosition(card,date,weekIndex){
 function renderMember(){
   if(!memberData)return;
   showMemberError();
-  q('#memberToAdmin')?.classList.toggle('hidden',!memberData.me?.adminPrivilege);
-  q('#memberHeaderTitle').textContent=`Bonjour ${memberData.me.name}`;
+  q('#memberToAdmin')?.classList.toggle('hidden',publicCalendarMode||!memberData.me?.adminPrivilege);
+  q('#memberHeaderTitle').textContent=publicCalendarMode?'Calendrier des permanences':`Bonjour ${memberData.me.name}`;
+  q('#memberCalendarTitle').textContent=publicCalendarMode?'Planning · Lecture seule':'Planning';
+  q('#memberRoot').classList.toggle('public-readonly',publicCalendarMode);
   setMemberPlanningVisualState(false);
 
   const today=parisToday();
@@ -1066,7 +1069,7 @@ function renderMember(){
 
   const body=q('#scheduleBody'),mobile=q('#scheduleMobile');
   body.innerHTML='';mobile.innerHTML='';
-  ensureMobilePlanningHelp(mobile,'memberMobilePlanningHelp','Touchez une case libre pour vous inscrire. Touchez votre nom pour vous retirer.');
+  ensureMobilePlanningHelp(mobile,'memberMobilePlanningHelp',publicCalendarMode?'Consultation uniquement : les inscriptions nécessitent un lien personnel.':'Touchez une case libre pour vous inscrire. Touchez votre nom pour vous retirer.');
   const map=Object.fromEntries(memberData.members.map(m=>[m.id,m]));
   const from=memberData.settings.memberWindow.from,to=memberData.settings.memberWindow.to;
   let prevWeek='',weekIndex=-1;
@@ -1099,21 +1102,21 @@ function renderMember(){
 
     for(const role of ROLE_KEYS){
       const td=document.createElement('td');td.className='role-cell member-role-cell';
-      const btn=document.createElement('button');btn.className='role-button member-role-button';
-      const ids=sortMemberIds(assignments[role]||[],map),mine=ids.includes(memberData.me.id);
+      const btn=document.createElement(publicCalendarMode?'div':'button');btn.className='role-button member-role-button';
+      const ids=sortMemberIds(assignments[role]||[],map),mine=!publicCalendarMode&&ids.includes(memberData.me?.id);
       const locked=role!=='present'&&!mine&&ids.length>0;
       if(mine)btn.classList.add('mine');
       if(locked)btn.classList.add('role-locked');
-      btn.disabled=!open||past||outside||locked;
-      btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
-      btn.title=mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
+      if(!publicCalendarMode)btn.disabled=!open||past||outside||locked;
+      btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'lecture seule':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
+      btn.title=publicCalendarMode?'Lecture seule':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
 
       const display=document.createElement('div');display.className='admin-role-display member-role-display';
       if(ids.length){
         const stack=document.createElement('div');stack.className='role-stack';
         for(const id of ids){
           const m=map[id];if(!m)continue;
-          const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;stack.append(chip)
+          const chip=document.createElement('span');chip.className='role-chip'+(id===memberData.me?.id?' me':role==='present'?' available-other':'');chip.textContent=m.name;stack.append(chip)
         }
         display.append(stack)
       }else{
@@ -1121,7 +1124,7 @@ function renderMember(){
         display.textContent=role==='present'?'Personne disponible':'À pourvoir'
       }
       btn.append(display);
-      if(!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
+      if(!publicCalendarMode&&!btn.disabled)btn.addEventListener('click',()=>toggleAssignment(date,role,!mine));
       td.append(btn);row.append(td)
     }
     body.append(row);
@@ -1148,11 +1151,12 @@ function renderMember(){
 }
 function optimisticAssignment(data,date,role,present){const next=JSON.parse(JSON.stringify(data)),id=next.me.id;next.assignments ||= {};next.attendance ||= {};next.roleAssignments ||= {};const emptyDay=()=>({accueil:[],tpe:[],mep:[],arbitrage:[],present:[]});const day={...emptyDay(),...(next.assignments[date]||{})};const set=new Set(day[role]||[]);present?set.add(id):set.delete(id);day[role]=[...set];next.assignments[date]=day;if(role==='present'){if(day.present.length)next.attendance[date]=[...day.present];else delete next.attendance[date]}else{const roles={...(next.roleAssignments[date]||{})};if(day[role].length)roles[role]=[...day[role]];else delete roles[role];if(Object.keys(roles).length)next.roleAssignments[date]=roles;else delete next.roleAssignments[date]}return next}
 function toggleAssignment(date,role,present){
+  if(publicCalendarMode)return;
   queueMemberPlanningChange(date,role,present)
 }
 
 function showMemberLinkRequired(message='Ouvrez votre lien personnel une première fois sur cet appareil.'){setAdminLoginView(false);showOnly('joinView');q('#adminCodeForm').classList.add('hidden');q('#joinTitle').textContent='Lien personnel requis';q('#joinStatus').textContent=message;setNotice(q('#joinError'));q('#githubAdminLink').classList.toggle('hidden',!GITHUB_PAGES)}
-function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){location.replace(`${GITHUB_HOME}#session-invalid`);return true}showMemberLinkRequired('Votre association à cet appareil n’est plus valide. Ouvrez à nouveau votre lien personnel.');return false}
+function invalidMemberSession(){if(!LOCAL&&!GITHUB_PAGES){void openPublicCalendar({openIfSuccessful:true});return true}showMemberLinkRequired('Votre association à cet appareil n’est plus valide. Ouvrez à nouveau votre lien personnel.');return false}
 let memberRefreshBusy=false,lastMemberActivityAt=Date.now(),lastMemberSyncAt=0,memberPollTimer=0;
 const QUOTA_ACTIVE_POLL_MS=5*60*1000;
 const QUOTA_IDLE_POLL_MS=15*60*1000;
@@ -1165,8 +1169,35 @@ function noteSharedSyncVersion(payload){
   return version
 }
 function markMemberActivity(){lastMemberActivityAt=Date.now();if(!LOCAL&&!GITHUB_PAGES)scheduleMemberPoll()}
-function memberPollDelay(){return Date.now()-lastMemberActivityAt<10*60*1000?QUOTA_ACTIVE_POLL_MS:QUOTA_IDLE_POLL_MS}
+function memberPollDelay(){return publicCalendarMode?90*1000:Date.now()-lastMemberActivityAt<10*60*1000?QUOTA_ACTIVE_POLL_MS:QUOTA_IDLE_POLL_MS}
+async function openPublicCalendar({openIfSuccessful=false}={}){
+  try{
+    const fresh=await netApi('/api/public/calendar');
+    publicCalendarMode=true;
+    memberData=fresh;
+    lastMemberSyncAt=Date.now();
+    if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth()}
+    if(openIfSuccessful){
+      history.replaceState(null,'','/calendar');
+      showOnly('memberRoot');
+    }
+    if(activeRootView==='memberRoot'){
+      q('#githubAdminLink').classList.add('hidden');
+      renderMember();
+    }
+  }catch(e){
+    if(openIfSuccessful){
+      setAdminLoginView(false);
+      showOnly('joinView');
+      q('#adminCodeForm').classList.add('hidden');
+      q('#joinTitle').textContent='Calendrier indisponible';
+      q('#joinStatus').textContent='Le calendrier public n’a pas pu être chargé.';
+      setNotice(q('#joinError'),e.message);
+    }else if(activeRootView==='memberRoot')showMemberError(`Actualisation impossible : ${e.message}`);
+  }
+}
 async function refreshMember({openIfSuccessful=false}={}){
+  if(publicCalendarMode){await openPublicCalendar({openIfSuccessful});return}
   if(memberRefreshBusy||memberPlanningHasWork())return;
 
   if(LOCAL){
@@ -1180,6 +1211,7 @@ async function refreshMember({openIfSuccessful=false}={}){
   try{
     const fresh=await netApi('/api/me');
     lastMemberSyncAt=Date.now();
+    publicCalendarMode=false;
     memberData=memberPendingOverlay(fresh);
 
     if(!memberMonth){
@@ -3379,14 +3411,13 @@ async function boot(){
   if(path==='/join'&&token){history.replaceState(null,'',path);await serverJoin('member',token);return}
   if(path==='/admin-login'&&token){history.replaceState(null,'',path);await serverJoin('admin',token);return}
   if(path==='/admin'||path==='/admin/membres'){currentAdminPage=adminPageFromPath(path);await enterAdmin();return}
-  if(path==='/calendar'){await refreshMember({openIfSuccessful:true});return}
-  if(path==='/'){
-    /* La racine sert aussi de point d'entrée aux appareils déjà associés.
-       On tente donc d'abord la session membre existante ; si elle n'existe
-       plus, on reste simplement sur l'écran demandant le lien personnel. */
+  if(path==='/calendar'||path==='/'){
+    /* Même calendrier : accès membre pour une session valide,
+       consultation en lecture seule pour les visiteurs anonymes. */
     try{
       const fresh=await netApi('/api/me');
       lastMemberSyncAt=Date.now();
+      publicCalendarMode=false;
       memberData=memberPendingOverlay(fresh);
       if(!memberMonth){memberCalendarMode='auto';memberMonth=chooseInitialMonth()}
       history.replaceState(null,'','/calendar');
@@ -3394,7 +3425,7 @@ async function boot(){
       q('#githubAdminLink').classList.add('hidden');
       renderMember();
     }catch(e){
-      if(e.status===401){showMemberLinkRequired();return}
+      if(e.status===401){await openPublicCalendar({openIfSuccessful:true});return}
       setAdminLoginView(false);
       showOnly('joinView');
       q('#adminCodeForm').classList.add('hidden');
@@ -3573,7 +3604,7 @@ async function pollSharedSync(){
   }
 
   let view='';
-  if(activeRootView==='memberRoot'&&!memberPlanningHasWork()&&!memberRefreshBusy)view='member';
+  if(activeRootView==='memberRoot'&&!publicCalendarMode&&!memberPlanningHasWork()&&!memberRefreshBusy)view='member';
   else if(activeRootView==='adminRoot'&&adminRefreshSafe())view='admin';
   if(!view){
     sharedSyncTimer=setTimeout(pollSharedSync,SHARED_SYNC_POLL_MS);

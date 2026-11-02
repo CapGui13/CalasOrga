@@ -3820,9 +3820,18 @@ export async function requestHandler(req, res) {
       });
     }
 
+    // Lecture publique limitée en débit : aucune session, aucune mutation.
+    if (pathname === '/api/public/calendar' && req.method === 'GET' && limited(`public-calendar:${getIp(req)}`, 180, 60_000)) {
+      return json(res, 429, { error: 'Trop de consultations rapprochées.' });
+    }
     // Les routes qui lisent ou modifient l'état partagé partent toujours d'une vue
     // récente. Le chemin Blob conservateur courant utilise HEAD + GET.
     await store.refresh();
+    if (pathname === '/api/public/calendar' && req.method === 'GET') {
+      const snapshot = store.memberSnapshot(null);
+      delete snapshot.syncVersion;
+      return json(res, 200, snapshot, { 'Cache-Control': 'no-store' });
+    }
 
     if (pathname === '/healthz' && req.method === 'GET') {
       const integrity = store.integrityReport();

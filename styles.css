@@ -9072,3 +9072,10 @@ html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display,
 html.ui-desktop #memberRoot .member-schedule tr.day-past .member-role-display.empty{
   color:#65706a!important;
 }
+
+/* Calendrier public sans possibilité d'inscription. */
+#memberRoot.public-readonly .member-role-button,
+#memberRoot.public-readonly .member-mobile-role,
+html.ui-mobile #memberRoot.public-readonly .member-mobile-role,
+html.ui-tablet #memberRoot.public-readonly .member-mobile-role{cursor:default!important}
+#memberRoot.public-readonly .member-role-button:hover .member-role-display{box-shadow:none!important}
