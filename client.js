@@ -1007,8 +1007,8 @@ function mobileRoleButton(date,role,assignments,open,past,outside,map){
   const locked=role!=='present'&&!mine&&ids.length>0;
   btn.className='mobile-role-button member-mobile-role'+(mine?' mine':'')+(locked?' role-locked':'');
   if(!publicCalendarMode)btn.disabled=!open||past||outside||locked;
-  btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'lecture seule':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
-  btn.title=publicCalendarMode?'Lecture seule':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
+  btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'consultation':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
+  btn.title=publicCalendarMode?'':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
   const label=document.createElement('span');label.className='mobile-role-label';label.textContent=ROLE_LABELS[role];
   const value=document.createElement('span');value.className='mobile-role-value';
   if(!open){const x=document.createElement('span');x.className='mobile-role-empty';x.textContent='—';value.append(x)}
@@ -1042,8 +1042,8 @@ function renderMember(){
   if(!memberData)return;
   showMemberError();
   q('#memberToAdmin')?.classList.toggle('hidden',publicCalendarMode||!memberData.me?.adminPrivilege);
-  q('#memberHeaderTitle').textContent=publicCalendarMode?'Calendrier des permanences':`Bonjour ${memberData.me.name}`;
-  q('#memberCalendarTitle').textContent=publicCalendarMode?'Planning · Lecture seule':'Planning';
+  q('#memberHeaderTitle').textContent=publicCalendarMode?'Vous n’êtes pas connecté. Utilisez votre lien d’accès personnalisé':`Bonjour ${memberData.me.name}`;
+  q('#memberCalendarTitle').textContent='Planning';
   q('#memberRoot').classList.toggle('public-readonly',publicCalendarMode);
   setMemberPlanningVisualState(false);
 
@@ -1108,8 +1108,8 @@ function renderMember(){
       if(mine)btn.classList.add('mine');
       if(locked)btn.classList.add('role-locked');
       if(!publicCalendarMode)btn.disabled=!open||past||outside||locked;
-      btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'lecture seule':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
-      btn.title=publicCalendarMode?'Lecture seule':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
+      btn.setAttribute('aria-label',`${ROLE_LABELS[role]} — ${compactDayLabel(date)} — ${publicCalendarMode?'consultation':mine?'vous êtes inscrit':locked?'position déjà occupée':'vous n’êtes pas inscrit'}`);
+      btn.title=publicCalendarMode?'':mine?'Cliquez pour vous désinscrire':locked?'Position déjà occupée':'Cliquez pour vous inscrire';
 
       const display=document.createElement('div');display.className='admin-role-display member-role-display';
       if(ids.length){
